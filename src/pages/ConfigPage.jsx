@@ -259,7 +259,7 @@ export function ConfigPage() {
 
       <div className="space-y-4">
         {Object.entries(groups).map(([group, groupEntries]) => (
-          <Card key={group} title={group} bodyClassName="divide-y divide-ink-100">
+          <Card key={group} title={group} bodyClassName="divide-y divide-ink-100 px-5">
             {groupEntries.map((entry) => {
               const meta = CONFIG_META[entry.key] || {};
               const isBoolean = typeof entry.value === 'boolean';
@@ -267,38 +267,47 @@ export function ConfigPage() {
               return (
                 <div
                   key={entry.key}
-                  className="flex flex-wrap items-start justify-between gap-4 py-3.5 first:pt-0 last:pb-0"
+                  className="grid grid-cols-1 gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <p className="text-sm font-medium text-ink-900">{meta.label || entry.key}</p>
-                      <code className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[11px] text-ink-600">
-                        {entry.key}
-                      </code>
                       {entry.isOverridden && <Badge tone="brand">overridden</Badge>}
                     </div>
-                    <p className="mt-1 max-w-2xl text-xs text-ink-500">
-                      {meta.note || entry.description}
-                    </p>
+                    <code className="mt-1 block max-w-full truncate rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[11px] text-ink-600">
+                      {entry.key}
+                    </code>
+                    {(meta.note || entry.description) && (
+                      <p className="mt-1.5 text-xs leading-relaxed text-ink-500">
+                        {meta.note || entry.description}
+                      </p>
+                    )}
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-3">
-                    <div className="text-right">
+                  <div className="flex items-center justify-between gap-3 sm:justify-end">
+                    <div className="min-w-[7.5rem] sm:text-right">
                       {isBoolean ? (
                         <Badge tone={entry.value ? 'success' : 'neutral'}>
                           {entry.value ? 'Enabled' : 'Disabled'}
                         </Badge>
                       ) : (
-                        <>
-                          <p className="text-lg font-semibold tabular text-ink-900">
+                        <div>
+                          <p className="text-base font-semibold tabular-nums text-ink-900">
                             {String(entry.value)}
                           </p>
-                          {meta.unit && <p className="text-[11px] text-ink-500">{meta.unit}</p>}
-                        </>
+                          {meta.unit && (
+                            <p className="mt-0.5 text-[11px] leading-tight text-ink-500">{meta.unit}</p>
+                          )}
+                        </div>
                       )}
                     </div>
                     {writable && (
-                      <Button size="sm" variant="secondary" onClick={() => setEditing(entry)}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="shrink-0"
+                        onClick={() => setEditing(entry)}
+                      >
                         Edit
                       </Button>
                     )}
