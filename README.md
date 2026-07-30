@@ -2,8 +2,8 @@
 
 React admin console for the voice-calling platform. Covers every admin API the
 backend exposes — dashboard, users, listener applications, language master,
-wallets, payments, packages, calls, moderation, notifications, bonuses, RBAC,
-configuration, reports and the audit log.
+OTP lockouts, wallets, payments, packages, calls, moderation, notifications,
+bonuses, RBAC, configuration, reports and the audit log.
 
 Plain JavaScript with JSX (no TypeScript), matching the backend's convention.
 
@@ -98,6 +98,24 @@ groups permissions by module rather than returning a flat array, and
 `{ columns, rows, summary }`, so `ReportsPage` renders any of them without
 per-report code. Adding a report type server-side needs no change here.
 
+**OTP lockouts are a durable state, not a cache.** A number that exhausts its OTP
+request budget stays locked until an admin releases it on *OTP & lockouts* —
+there is no time-based expiry, so that queue needs working through. The same
+screen edits the three thresholds that drive the policy (`otp.*` config keys), so
+an admin who finds the limits too tight can fix them where they noticed the
+problem; the Configuration screen exposes them too.
+
+**Listener availability shows intent separately from presence.** `online` is a
+live socket, `availabilityEnabled` is the listener's own "go online" choice. Login
+never sets either. Enabled-but-offline means a dropped connection and they will
+return by themselves; not-enabled means they chose to stop taking calls and only
+they can change it — no admin action puts a listener online.
+
+**Payout account numbers are masked everywhere but one screen.** The application
+list returns `bankDetails.bankAccountNumberMasked`; only the application detail
+endpoint returns the full number, for verifying a failed payout. Do not surface it
+on a list view.
+
 **Destructive actions confirm and explain.** Wallet adjustments, refunds, call
 termination, blocking, suspension and forced bonus runs all go through a modal
 that states the consequence. Several of them accept an idempotency key or default
@@ -107,6 +125,7 @@ those rather than hiding them.
 ## Verified against the live API
 
 Response shapes were checked against a running backend rather than only against
-the OpenAPI spec. All 63 admin endpoints in `docs/openapi.json` are wired in
+the OpenAPI spec. Every admin endpoint in `docs/openapi.json` is wired in
 `api/endpoints.js`, and the permission list in `auth/permissions.js` matches
-`src/modules/admin/permissions.js` exactly (30 keys).
+`src/modules/admin/permissions.js` exactly (32 keys, including `otp:read` and
+`otp:unlock`).
