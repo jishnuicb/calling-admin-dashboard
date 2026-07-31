@@ -225,7 +225,22 @@ export function UserDetailPage() {
             Back to users
           </Link>
         }
-        title={user.name || 'Unnamed user'}
+        title={
+          <span className="inline-flex items-center gap-3">
+            {user.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt=""
+                className="size-12 rounded-full object-cover ring-1 ring-ink-200"
+              />
+            ) : (
+              <span className="flex size-12 items-center justify-center rounded-full bg-ink-100 text-lg font-semibold text-ink-500">
+                {(user.name || '?').slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            {user.name || 'Unnamed user'}
+          </span>
+        }
         description={user.mobile}
         actions={
           <>
@@ -275,6 +290,22 @@ export function UserDetailPage() {
               { label: 'Mobile', value: user.mobile },
               { label: 'Gender', value: titleCase(user.gender) },
               { label: 'Country', value: user.country },
+              {
+                label: 'Profile picture',
+                value: user.profilePicture ? (
+                  <a
+                    href={user.profilePicture}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-brand-600 hover:underline"
+                  >
+                    {user.profilePicture}
+                  </a>
+                ) : (
+                  '—'
+                ),
+                full: true,
+              },
               { label: 'Registered', value: fmtDateTime(user.createdAt) },
               { label: 'Last login', value: fmtDateTime(user.lastLoginAt) },
               user.blockedAt && { label: 'Blocked at', value: fmtDateTime(user.blockedAt) },
@@ -337,7 +368,16 @@ export function UserDetailPage() {
             {user.listener ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-ink-700">{user.listener.displayName || '—'}</span>
+                  <span className="inline-flex items-center gap-2 text-sm text-ink-700">
+                    {user.listener.photoUrl && (
+                      <img
+                        src={user.listener.photoUrl}
+                        alt=""
+                        className="size-8 rounded-full object-cover ring-1 ring-ink-200"
+                      />
+                    )}
+                    {user.listener.displayName || '—'}
+                  </span>
                   <StatusBadge status={user.listener.status} />
                 </div>
 

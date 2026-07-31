@@ -53,6 +53,9 @@ export const P = {
   CONFIG_READ: 'config:read',
   CONFIG_WRITE: 'config:write',
 
+  LEGAL_READ: 'legal:read',
+  LEGAL_WRITE: 'legal:write',
+
   ADMINS_READ: 'admins:read',
   ADMINS_WRITE: 'admins:write',
   AUDIT_READ: 'audit:read',

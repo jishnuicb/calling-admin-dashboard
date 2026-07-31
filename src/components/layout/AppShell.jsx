@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Banknote,
   IndianRupee,
+  Scale,
   Users,
   X,
 } from 'lucide-react';
@@ -76,6 +77,7 @@ const NAV_SECTIONS = [
     title: 'System',
     items: [
       { to: '/config', label: 'Configuration', icon: Settings, permission: P.CONFIG_READ },
+      { to: '/legal', label: 'Legal documents', icon: Scale, permission: P.LEGAL_READ },
       { to: '/rbac', label: 'Admins & roles', icon: ShieldCheck, permission: P.ADMINS_READ },
       { to: '/audit', label: 'Audit log', icon: ScrollText, permission: P.AUDIT_READ },
     ],

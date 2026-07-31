@@ -38,11 +38,24 @@ export function ListenersPage() {
       key: 'listener',
       header: 'Listener',
       render: (row) => (
-        <div className="min-w-0">
-          <p className="truncate font-medium text-ink-900">{row.displayName}</p>
-          <p className="truncate text-xs text-ink-500">
-            {titleCase(row.gender)} · {row.country || 'Unknown country'}
-          </p>
+        <div className="flex min-w-0 items-center gap-2.5">
+          {row.photoUrl ? (
+            <img
+              src={row.photoUrl}
+              alt=""
+              className="size-8 shrink-0 rounded-full object-cover ring-1 ring-ink-200"
+            />
+          ) : (
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ink-100 text-xs font-medium text-ink-500">
+              {(row.displayName || '?').slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="truncate font-medium text-ink-900">{row.displayName}</p>
+            <p className="truncate text-xs text-ink-500">
+              {titleCase(row.gender)} · {row.country || 'Unknown country'}
+            </p>
+          </div>
         </div>
       ),
     },
