@@ -86,6 +86,13 @@ export function ListenersPage() {
       header: 'Availability',
       render: (row) => {
         if (row.status !== 'APPROVED') return <span className="text-xs text-ink-400">—</span>;
+        if (row.online && row.busy) {
+          return (
+            <Badge tone="warning" dot>
+              Busy
+            </Badge>
+          );
+        }
         if (row.online) {
           return (
             <Badge tone="success" dot>

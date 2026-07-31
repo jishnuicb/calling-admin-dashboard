@@ -311,7 +311,11 @@ export function ListenerDetailPage() {
                 label: 'Availability',
                 value:
                   status === 'APPROVED' ? (
-                    application.online ? (
+                    application.online && application.busy ? (
+                      <Badge tone="warning" dot>
+                        Busy
+                      </Badge>
+                    ) : application.online ? (
                       <Badge tone="success" dot>
                         Online
                       </Badge>
