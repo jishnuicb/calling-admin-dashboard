@@ -26,6 +26,7 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { BonusesPage } from './pages/BonusesPage';
 import { RbacPage } from './pages/RbacPage';
 import { ConfigPage } from './pages/ConfigPage';
+import { LegalPage } from './pages/LegalPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { AuditPage } from './pages/AuditPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -110,6 +111,7 @@ export function App() {
         />
 
         <Route path="config" element={guard(P.CONFIG_READ, <ConfigPage />)} />
+        <Route path="legal" element={guard(P.LEGAL_READ, <LegalPage />)} />
         <Route path="rbac" element={guard(P.ADMINS_READ, <RbacPage />)} />
         <Route path="audit" element={guard(P.AUDIT_READ, <AuditPage />)} />
         <Route path="reports" element={guard(P.REPORTS_GENERATE, <ReportsPage />)} />

@@ -52,6 +52,9 @@ export const qk = {
 
   config: ['config'],
 
+  legalList: ['legal', 'list'],
+  legal: (slug) => ['legal', 'detail', slug],
+
   reportTypes: ['reports', 'types'],
   reportData: (type, params) => ['reports', type, params],
 

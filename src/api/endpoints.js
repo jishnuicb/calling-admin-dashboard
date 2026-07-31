@@ -173,6 +173,14 @@ export const configApi = {
   set: (body) => put('/admin/config', body),
 };
 
+// --- Legal documents (privacy / terms) --------------------------------------
+
+export const legalApi = {
+  list: () => get('/admin/legal'),
+  get: (slug) => get(`/admin/legal/${slug}`),
+  upsert: (slug, body) => put(`/admin/legal/${slug}`, body),
+};
+
 // --- Reports ----------------------------------------------------------------
 
 export const reportsApi = {

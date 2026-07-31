@@ -249,7 +249,22 @@ export function ListenerDetailPage() {
             Back to applications
           </Link>
         }
-        title={application.displayName || 'Listener application'}
+        title={
+          <span className="inline-flex items-center gap-3">
+            {application.photoUrl ? (
+              <img
+                src={application.photoUrl}
+                alt=""
+                className="size-12 rounded-full object-cover ring-1 ring-ink-200"
+              />
+            ) : (
+              <span className="flex size-12 items-center justify-center rounded-full bg-ink-100 text-lg font-semibold text-ink-500">
+                {(application.displayName || '?').slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            {application.displayName || 'Listener application'}
+          </span>
+        }
         description={`${titleCase(application.gender)} · ${application.country || 'Unknown country'}`}
         actions={
           <>
@@ -332,6 +347,27 @@ export function ListenerDetailPage() {
                   ),
               },
               { label: 'Date of birth', value: fmtDate(application.dateOfBirth) },
+              {
+                label: 'Photo',
+                value: application.photoUrl ? (
+                  <a
+                    href={application.photoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 break-all text-brand-600 hover:underline"
+                  >
+                    <img
+                      src={application.photoUrl}
+                      alt=""
+                      className="size-14 rounded-lg object-cover ring-1 ring-ink-200"
+                    />
+                    Open full size
+                  </a>
+                ) : (
+                  '—'
+                ),
+                full: true,
+              },
               { label: 'Application id', value: application.id, mono: true },
               { label: 'User id', value: application.userId, mono: true },
               { label: 'Submitted', value: fmtDateTime(application.submittedAt) },
