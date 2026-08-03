@@ -103,7 +103,7 @@ function ManualPayoutModal({ application, onClose }) {
       open
       onClose={onClose}
       title="Manual payout"
-      description={`Pay pending earnings for ${application.displayName || 'this listener'}.`}
+      description={`Pay pending earnings for ${application.displayName || 'this listener'}. Status becomes SUCCESS when the Cashfree Payouts webhook confirms.`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>

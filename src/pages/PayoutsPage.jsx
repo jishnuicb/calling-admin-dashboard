@@ -46,7 +46,7 @@ function CreatePayoutModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       title="Create manual payout"
-      description="Bundles all pending earnings for one listener. With process on, Cashfree (or dry-run) runs immediately."
+      description="Bundles all pending earnings for one listener. Process submits to Cashfree; SUCCESS is set when the Payouts webhook confirms (dry-run settles immediately)."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -296,7 +296,7 @@ export function PayoutsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Listener payouts"
-        description="Pay accrued earnings to listeners via Cashfree Payouts, or mark paid offline. Packages and caller wallets are unaffected."
+        description="Submit transfers via Cashfree Payouts; our DB marks SUCCESS when the Payouts webhook confirms (SUCCESS + COMPLETED). Use mark paid offline only for non-Cashfree transfers. Pending after process usually means waiting for the webhook."
         actions={
           canWrite ? (
             <>
