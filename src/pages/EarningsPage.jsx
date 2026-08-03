@@ -1,13 +1,101 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { earningsApi } from '../api/endpoints';
+import { Banknote } from 'lucide-react';
+import { earningsApi, payoutsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
+import { useApiMutation } from '../hooks/useApiMutation';
+import { useAuth } from '../auth/AuthContext';
+import { P } from '../auth/permissions';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
-import { Card, Field, Input, PageHeader, Select, StatusBadge } from '../components/ui';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  Input,
+  Modal,
+  PageHeader,
+  Select,
+  StatusBadge,
+  Textarea,
+  Toggle,
+} from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, fmtDuration, fmtPaise, shortId } from '../lib/format';
 
+function ManualPayoutModal({ listenerUserId, onClose }) {
+  const [notes, setNotes] = useState('');
+  const [processImmediately, setProcessImmediately] = useState(true);
+
+  const summary = useQuery({
+    queryKey: qk.earningsSummary({ listenerUserId }),
+    queryFn: () => earningsApi.summary({ listenerUserId }),
+    enabled: Boolean(listenerUserId),
+  });
+
+  const pendingPaise = summary.data?.pendingAmountPaise || 0;
+
+  const mutation = useApiMutation({
+    mutationFn: () =>
+      payoutsApi.create({
+        listenerUserId,
+        notes: notes.trim() || undefined,
+        processImmediately,
+      }),
+    successMessage: 'Manual payout created',
+    invalidate: [['payouts'], ['earnings']],
+    onSuccess: onClose,
+  });
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Manual payout"
+      description="Bundles all pending earnings for this listener."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            loading={mutation.isPending}
+            disabled={pendingPaise <= 0 || summary.isLoading}
+          >
+            Create payout
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+        <div className="rounded-lg bg-ink-50 px-3.5 py-3 text-sm">
+          <p className="text-xs uppercase tracking-wide text-ink-500">Pending to pay</p>
+          <p className="mt-1 text-lg font-semibold text-ink-900">
+            {summary.isLoading ? '…' : fmtPaise(pendingPaise)}
+          </p>
+          <p className="font-mono text-xs text-ink-500">{listenerUserId}</p>
+        </div>
+        <Field label="Notes">
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+        </Field>
+        <Toggle
+          checked={processImmediately}
+          onChange={setProcessImmediately}
+          label="Process via Cashfree immediately"
+        />
+      </div>
+    </Modal>
+  );
+}
+
 export function EarningsPage() {
+  const { can } = useAuth();
+  const canWrite = can(P.PAYOUTS_WRITE);
+  const [payoutListenerId, setPayoutListenerId] = useState(null);
+
   const table = useTableState({
     status: '',
     listenerUserId: '',
@@ -91,7 +179,15 @@ export function EarningsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Listener earnings"
-        description="Per-call INR accruals. Caller token billing is unchanged — this is what listeners are owed before payout."
+        description="Per-call INR accruals after the listener picks up. Caller token billing is unchanged — this is what listeners are owed before payout."
+        actions={
+          canWrite && table.filters.listenerUserId.trim() ? (
+            <Button onClick={() => setPayoutListenerId(table.filters.listenerUserId.trim())}>
+              <Banknote className="size-4" />
+              Manual payout
+            </Button>
+          ) : null
+        }
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -161,6 +257,13 @@ export function EarningsPage() {
         />
         <Pagination meta={data?.meta} page={table.page} onPageChange={table.setPage} />
       </Card>
+
+      {payoutListenerId && (
+        <ManualPayoutModal
+          listenerUserId={payoutListenerId}
+          onClose={() => setPayoutListenerId(null)}
+        />
+      )}
     </div>
   );
 }
