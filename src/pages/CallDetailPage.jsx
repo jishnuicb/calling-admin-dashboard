@@ -94,6 +94,13 @@ export function CallDetailPage() {
 
   const isLive = LIVE_STATUSES.includes(call.status);
 
+
+  console.log('CALL DETAIL DATA:', call);
+  console.log('CALLER:', call.caller);
+  console.log('LISTENER:', call.listener);
+  console.log('CALLER ID:', call.callerId);
+  console.log('LISTENER ID:', call.listenerId);
+
   return (
     <>
       <PageHeader
@@ -199,7 +206,7 @@ export function CallDetailPage() {
               {call.caller?.name || shortId(call.callerId)}
             </p>
             <Link
-              to={`/users/${call.callerId}`}
+              to={`/users/${call.caller?.id}`}
               className="mt-1.5 block text-xs font-medium text-brand-600 hover:underline"
             >
               Open account
@@ -211,7 +218,7 @@ export function CallDetailPage() {
               {call.listener?.displayName || call.listener?.name || shortId(call.listenerId)}
             </p>
             <Link
-              to={`/users/${call.listenerId}`}
+              to={`/users/${call.listener?.id}`}
               className="mt-1.5 block text-xs font-medium text-brand-600 hover:underline"
             >
               Open account
