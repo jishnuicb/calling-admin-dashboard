@@ -132,6 +132,15 @@ export function ListenersPage() {
         ),
     },
     {
+      key: 'mobileNumber',
+      header: 'Mobile Number',
+      render: (row) => (
+        <span className="tabular text-sm text-ink-700">
+          {row.user?.mobile ?? '—'}
+        </span>
+      ),
+    },
+    {
       key: 'payout',
       header: 'Payout',
       render: (row) =>
