@@ -51,6 +51,10 @@ export function CallsPage() {
     refetchInterval: table.filters.status === 'ACTIVE' ? 10_000 : false,
   });
 
+  console.log('Calls API response:', data);
+  console.log('Calls rows:', data?.data);
+console.log('Calls rows length:', data?.data?.length);
+
   const exportCsv = async () => {
     try {
       await callsApi.downloadReport({ from: table.filters.from, to: table.filters.to });
@@ -192,7 +196,8 @@ export function CallsPage() {
           loading={isLoading}
           error={error}
           onRetry={refetch}
-          onRowClick={(row) => navigate(`/calls/${row.id}`)}
+          onRowClick={(row) => 
+            navigate(`/calls/${row.callSessionId}`)}
           emptyIcon={PhoneCall}
           emptyTitle="No calls match these filters"
         />

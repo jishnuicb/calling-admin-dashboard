@@ -237,6 +237,14 @@ export function ListenerDetailPage() {
   const canSuspend = status === 'APPROVED' && can(P.LISTENERS_SUSPEND);
   const canReactivate = status === 'SUSPENDED' && can(P.LISTENERS_SUSPEND);
 
+
+  console.log('Mobile Number:', application.user?.mobileNumber);
+console.log(
+  'Phone Number:',
+  `${application.user?.countryCode} ${application.user?.mobileNumber}`
+);
+
+
   return (
     <>
       <PageHeader
@@ -350,7 +358,10 @@ export function ListenerDetailPage() {
                     </span>
                   ),
               },
+
+              
               { label: 'Date of birth', value: fmtDate(application.dateOfBirth) },
+              { label: 'Phone number', value: `${application.user?.countryCode} ${application.user?.mobileNumber}` },
               {
                 label: 'Photo',
                 value: application.photoUrl ? (
