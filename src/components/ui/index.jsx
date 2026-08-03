@@ -413,7 +413,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         role="dialog"
         aria-modal="true"
         className={clsx(
-          'animate-fade-in-up relative my-8 w-full rounded-xl bg-white shadow-xl',
+          'animate-fade-in-up relative my-8 w-full rounded-xl overflow-hidden bg-white shadow-xl',
           sizes[size],
         )}
       >

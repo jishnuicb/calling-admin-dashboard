@@ -168,6 +168,7 @@ function EditConfigModal({ entry, onClose }) {
             Save setting
           </Button>
         </>
+        
       }
     >
       <div className="space-y-4">
@@ -259,7 +260,7 @@ export function ConfigPage() {
 
       <div className="space-y-4">
         {Object.entries(groups).map(([group, groupEntries]) => (
-          <Card key={group} title={group} bodyClassName="divide-y divide-ink-100">
+          <Card key={group} title={group} bodyClassName="divide-y divide-ink-100 px-2">
             {groupEntries.map((entry) => {
               const meta = CONFIG_META[entry.key] || {};
               const isBoolean = typeof entry.value === 'boolean';
@@ -267,7 +268,7 @@ export function ConfigPage() {
               return (
                 <div
                   key={entry.key}
-                  className="flex flex-wrap items-start justify-between gap-4 py-3.5 first:pt-0 last:pb-0"
+                  className="flex flex-wrap items-start justify-between gap-4 px-2 py-3.5"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
