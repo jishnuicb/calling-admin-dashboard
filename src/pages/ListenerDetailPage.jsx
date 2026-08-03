@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Check, PauseCircle, PlayCircle, StickyNote, X } from 'lucide-react';
-import { listenersApi } from '../api/endpoints';
+import { ArrowLeft, Banknote, Check, PauseCircle, PlayCircle, StickyNote, X } from 'lucide-react';
+import { earningsApi, listenersApi, payoutsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
@@ -19,8 +19,9 @@ import {
   PageHeader,
   StatusBadge,
   Textarea,
+  Toggle,
 } from '../components/ui';
-import { fmtDate, fmtDateTime, fmtRelative, titleCase } from '../lib/format';
+import { fmtDate, fmtDateTime, fmtPaise, fmtRelative, titleCase } from '../lib/format';
 
 /**
  * The four review decisions share one modal. `reason` is required for reject and
@@ -71,6 +72,77 @@ const DECISIONS = {
     notesLabel: 'Verification notes',
   },
 };
+
+function ManualPayoutModal({ application, onClose }) {
+  const [notes, setNotes] = useState('');
+  const [processImmediately, setProcessImmediately] = useState(true);
+
+  const summary = useQuery({
+    queryKey: qk.earningsSummary({ listenerUserId: application.userId }),
+    queryFn: () => earningsApi.summary({ listenerUserId: application.userId }),
+    enabled: Boolean(application.userId),
+  });
+
+  const pendingPaise = summary.data?.pendingAmountPaise || 0;
+  const pendingCount = summary.data?.byStatus?.PENDING?.count || 0;
+
+  const mutation = useApiMutation({
+    mutationFn: () =>
+      payoutsApi.create({
+        listenerUserId: application.userId,
+        notes: notes.trim() || undefined,
+        processImmediately,
+      }),
+    successMessage: 'Manual payout created',
+    invalidate: [['payouts'], ['earnings'], qk.earningsSummary({ listenerUserId: application.userId })],
+    onSuccess: onClose,
+  });
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Manual payout"
+      description={`Pay pending earnings for ${application.displayName || 'this listener'}.`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            loading={mutation.isPending}
+            disabled={pendingPaise <= 0 || summary.isLoading}
+          >
+            Create payout
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+        {summary.error && <ErrorState error={summary.error} compact />}
+        <div className="rounded-lg bg-ink-50 px-3.5 py-3 text-sm">
+          <p className="text-xs uppercase tracking-wide text-ink-500">Pending to pay</p>
+          <p className="mt-1 text-lg font-semibold text-ink-900">
+            {summary.isLoading ? '…' : fmtPaise(pendingPaise)}
+          </p>
+          <p className="text-xs text-ink-500">
+            {pendingCount} earning row{pendingCount === 1 ? '' : 's'} · user {application.userId}
+          </p>
+        </div>
+        <Field label="Notes">
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+        </Field>
+        <Toggle
+          checked={processImmediately}
+          onChange={setProcessImmediately}
+          label="Process via Cashfree immediately"
+        />
+      </div>
+    </Modal>
+  );
+}
 
 function ReviewModal({ decision, application, onClose }) {
   const [reason, setReason] = useState('');
@@ -213,6 +285,7 @@ export function ListenerDetailPage() {
   const { can } = useAuth();
   const [decision, setDecision] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [payoutOpen, setPayoutOpen] = useState(false);
 
   const { data: application, isLoading, error, refetch } = useQuery({
     queryKey: qk.listener(id),
@@ -236,6 +309,7 @@ export function ListenerDetailPage() {
   const canReject = status === 'PENDING' && can(P.LISTENERS_APPROVE);
   const canSuspend = status === 'APPROVED' && can(P.LISTENERS_SUSPEND);
   const canReactivate = status === 'SUSPENDED' && can(P.LISTENERS_SUSPEND);
+  const canManualPayout = status === 'APPROVED' && can(P.PAYOUTS_WRITE) && Boolean(application.userId);
 
 
   console.log('Mobile Number:', application.user?.mobileNumber);
@@ -304,6 +378,12 @@ console.log(
               <Button onClick={() => setDecision('reactivate')}>
                 <PlayCircle className="size-4" />
                 Reactivate
+              </Button>
+            )}
+            {canManualPayout && (
+              <Button variant="secondary" onClick={() => setPayoutOpen(true)}>
+                <Banknote className="size-4" />
+                Manual payout
               </Button>
             )}
           </>
@@ -500,16 +580,24 @@ console.log(
                 <p className="text-xs text-ink-500">
                   The listener can correct bank details from the app without re-applying.
                 </p>
-                {can(P.PAYOUTS_WRITE) && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    loading={syncBeneficiary.isPending}
-                    onClick={() => syncBeneficiary.mutate()}
-                  >
-                    Sync Cashfree beneficiary
-                  </Button>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {can(P.PAYOUTS_WRITE) && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      loading={syncBeneficiary.isPending}
+                      onClick={() => syncBeneficiary.mutate()}
+                    >
+                      Sync Cashfree beneficiary
+                    </Button>
+                  )}
+                  {canManualPayout && (
+                    <Button size="sm" onClick={() => setPayoutOpen(true)}>
+                      <Banknote className="size-4" />
+                      Manual payout
+                    </Button>
+                  )}
+                </div>
               </div>
             </>
           ) : (
@@ -535,6 +623,9 @@ console.log(
         />
       )}
       {notesOpen && <NotesModal application={application} onClose={() => setNotesOpen(false)} />}
+      {payoutOpen && (
+        <ManualPayoutModal application={application} onClose={() => setPayoutOpen(false)} />
+      )}
     </>
   );
 }
