@@ -84,8 +84,8 @@ export function PaymentsPage() {
       key: 'credited',
       header: 'Wallet',
       render: (row) =>
-        row.walletCreditedAt ? (
-          <span className="text-xs text-emerald-700" title={fmtDateTime(row.walletCreditedAt)}>
+        row.walletCredited ? (
+          <span className="text-xs text-emerald-700" title={fmtDateTime(row.creditedAt)}>
             Credited
           </span>
         ) : (
