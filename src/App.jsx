@@ -11,6 +11,7 @@ import { UserDetailPage } from './pages/UserDetailPage';
 import { ListenersPage } from './pages/ListenersPage';
 import { ListenerDetailPage } from './pages/ListenerDetailPage';
 import { LanguagesPage } from './pages/LanguagesPage';
+import { AvatarsPage } from './pages/AvatarsPage';
 import { OtpPage } from './pages/OtpPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
@@ -85,6 +86,7 @@ export function App() {
         <Route path="listeners/:id" element={guard(P.LISTENERS_READ, <ListenerDetailPage />)} />
 
         <Route path="languages" element={guard(P.LANGUAGES_READ, <LanguagesPage />)} />
+        <Route path="avatars" element={guard(P.AVATARS_READ, <AvatarsPage />)} />
         <Route path="otp" element={guard(P.OTP_READ, <OtpPage />)} />
 
         <Route path="payments" element={guard(P.PAYMENTS_READ, <PaymentsPage />)} />

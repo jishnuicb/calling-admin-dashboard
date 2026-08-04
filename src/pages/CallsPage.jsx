@@ -91,7 +91,7 @@ console.log('Calls rows length:', data?.data?.length);
       header: 'Tokens',
       align: 'right',
       render: (row) => (
-        <span className="font-medium text-ink-800">{fmtTokens(row.tokensConsumedSoFar)}</span>
+        <span className="font-medium text-ink-800">{fmtTokens(row.tokensConsumed)}</span>
       ),
     },
     {
