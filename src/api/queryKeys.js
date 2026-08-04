@@ -46,6 +46,7 @@ export const qk = {
 
   weeklyRuns: (params) => ['bonuses', 'weekly', params],
   weeklyAwards: (id, params) => ['bonuses', 'weekly', id, 'awards', params],
+  weeklySettings: ['bonuses', 'weekly', 'settings'],
   promotions: (params) => ['bonuses', 'promotions', params],
 
   permissions: ['rbac', 'permissions'],

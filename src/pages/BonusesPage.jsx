@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Gift, Play, Plus } from 'lucide-react';
 import { bonusesApi } from '../api/endpoints';
@@ -18,6 +18,7 @@ import {
   JsonBlock,
   Modal,
   PageHeader,
+  Select,
   StatusBadge,
   Tabs,
   Textarea,
@@ -26,21 +27,124 @@ import {
 import { useTableState } from '../hooks/useTableState';
 import { fmtDate, fmtDateTime, fmtNumber, fmtTokens, shortId } from '../lib/format';
 
+function WeeklySettingsCard() {
+  const { can } = useAuth();
+  const writable = can(P.BONUSES_WRITE);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: qk.weeklySettings,
+    queryFn: () => bonusesApi.weeklySettings(),
+  });
+
+  const [caller, setCaller] = useState(null);
+  const [listener, setListener] = useState(null);
+
+  useEffect(() => {
+    if (!data) return;
+    setCaller({ ...data.caller });
+    setListener({ ...data.listener });
+  }, [data]);
+
+  const save = useApiMutation({
+    mutationFn: (body) => bonusesApi.updateWeeklySettings(body),
+    successMessage: (_d, vars) =>
+      vars.audience === 'LISTENER' ? 'Listener weekly bonus updated' : 'User weekly bonus updated',
+    invalidate: [['bonuses'], ['config']],
+  });
+
+  const renderEditor = (label, form, setForm, audience) => {
+    if (!form) return null;
+    return (
+      <div className="space-y-3 rounded-lg border border-ink-100 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-ink-900">{label}</p>
+          <Badge tone={audience === 'LISTENER' ? 'info' : 'brand'}>{audience}</Badge>
+        </div>
+        <Toggle
+          checked={Boolean(form.enabled)}
+          disabled={!writable || save.isPending}
+          onChange={(v) => setForm({ ...form, enabled: v })}
+          label="Enabled"
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Target minutes">
+            <Input
+              type="number"
+              min="1"
+              value={form.targetMinutes ?? ''}
+              disabled={!writable}
+              onChange={(e) => setForm({ ...form, targetMinutes: e.target.value })}
+            />
+          </Field>
+          <Field label="Reward tokens">
+            <Input
+              type="number"
+              min="0"
+              value={form.rewardTokens ?? ''}
+              disabled={!writable}
+              onChange={(e) => setForm({ ...form, rewardTokens: e.target.value })}
+            />
+          </Field>
+        </div>
+        {writable && (
+          <Button
+            size="sm"
+            loading={save.isPending}
+            onClick={() =>
+              save.mutate({
+                audience,
+                enabled: Boolean(form.enabled),
+                targetMinutes: Number(form.targetMinutes),
+                rewardTokens: Number(form.rewardTokens),
+              })
+            }
+          >
+            Save {label.toLowerCase()}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Card
+      title="Weekly bonus settings"
+      description="Separate rules for users (callers) and listeners. Cron evaluates each audience independently."
+    >
+      {error && <ErrorState error={error} onRetry={refetch} compact />}
+      {isLoading && !data ? (
+        <p className="text-sm text-ink-500">Loading settings…</p>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {renderEditor('User weekly bonus', caller, setCaller, 'CALLER')}
+          {renderEditor('Listener weekly bonus', listener, setListener, 'LISTENER')}
+        </div>
+      )}
+      {save.error && <div className="mt-3"><ErrorState error={save.error} compact /></div>}
+    </Card>
+  );
+}
+
 /**
  * Manual weekly-bonus trigger.
  *
- * The run is idempotent per period: without `force`, a period that already has a
- * completed run is skipped rather than paying twice. `dryRun` computes the
- * eligible set and reports it without touching a wallet, which is the safe way to
- * check a period before committing.
+ * The run is idempotent per period+audience: without `force`, a period that
+ * already has a completed run is skipped rather than paying twice.
  */
 function RunWeeklyModal({ onClose }) {
-  const [form, setForm] = useState({ periodStart: '', periodEnd: '', dryRun: true, force: false });
+  const [form, setForm] = useState({
+    audience: 'CALLER',
+    periodStart: '',
+    periodEnd: '',
+    dryRun: true,
+    force: false,
+  });
   const [result, setResult] = useState(null);
 
   const mutation = useApiMutation({
     mutationFn: () =>
       bonusesApi.runWeekly({
+        audience: form.audience,
         periodStart: form.periodStart || undefined,
         periodEnd: form.periodEnd || undefined,
         dryRun: form.dryRun,
@@ -48,7 +152,7 @@ function RunWeeklyModal({ onClose }) {
       }),
     successMessage: (data) =>
       form.dryRun
-        ? `Dry run complete: ${data.usersRewarded ?? data.eligibleUsers ?? 0} user(s) would qualify`
+        ? `Dry run complete: ${data.usersQualifying ?? data.usersRewarded ?? 0} would qualify`
         : `Run complete: ${fmtTokens(data.tokensAwarded ?? 0)} tokens awarded`,
     invalidate: [['bonuses'], ['dashboard'], ['wallet']],
     onSuccess: (data) => setResult(data),
@@ -60,7 +164,7 @@ function RunWeeklyModal({ onClose }) {
       onClose={onClose}
       size="lg"
       title="Run the weekly bonus"
-      description="Normally this runs on a schedule. Trigger it manually to backfill a missed period or to preview eligibility."
+      description="Trigger user or listener weekly bonus independently. Dry-run first on production data."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -78,6 +182,16 @@ function RunWeeklyModal({ onClose }) {
     >
       <div className="space-y-4">
         {mutation.error && <ErrorState error={mutation.error} compact />}
+
+        <Field label="Audience" required>
+          <Select
+            value={form.audience}
+            onChange={(e) => setForm({ ...form, audience: e.target.value })}
+          >
+            <option value="CALLER">User (caller)</option>
+            <option value="LISTENER">Listener</option>
+          </Select>
+        </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Period start" hint="Leave blank for the previous complete week.">
@@ -132,16 +246,30 @@ function RunWeeklyModal({ onClose }) {
 
 function WeeklyRunsTab() {
   const { can } = useAuth();
-  const table = useTableState({}, { limit: 20 });
+  const table = useTableState({ audience: '' }, { limit: 20 });
   const [runOpen, setRunOpen] = useState(false);
   const [awardsFor, setAwardsFor] = useState(null);
 
+  const params = {
+    ...table.params,
+    ...(table.filters.audience ? { audience: table.filters.audience } : {}),
+  };
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: qk.weeklyRuns(table.params),
-    queryFn: () => bonusesApi.weeklyRuns(table.params),
+    queryKey: qk.weeklyRuns(params),
+    queryFn: () => bonusesApi.weeklyRuns(params),
   });
 
   const columns = [
+    {
+      key: 'audience',
+      header: 'Audience',
+      render: (row) => (
+        <Badge tone={row.audience === 'LISTENER' ? 'info' : 'brand'}>
+          {row.audience === 'LISTENER' ? 'Listener' : 'User'}
+        </Badge>
+      ),
+    },
     {
       key: 'period',
       header: 'Period',
@@ -154,7 +282,7 @@ function WeeklyRunsTab() {
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'usersRewarded',
-      header: 'Users rewarded',
+      header: 'Rewarded',
       align: 'right',
       render: (row) => fmtNumber(row.usersRewarded),
     },
@@ -206,10 +334,12 @@ function WeeklyRunsTab() {
   ];
 
   return (
-    <>
+    <div className="space-y-5">
+      <WeeklySettingsCard />
+
       <Card
         title="Weekly bonus runs"
-        description="One row per period. A period is processed at most once unless a run is forced."
+        description="One row per period and audience. User and listener runs are tracked separately."
         actions={
           can(P.BONUSES_WRITE) && (
             <Button size="sm" onClick={() => setRunOpen(true)}>
@@ -220,6 +350,18 @@ function WeeklyRunsTab() {
         }
         bodyClassName=""
       >
+        <div className="flex flex-wrap gap-3 border-b border-ink-100 px-5 py-3">
+          <Field label="Audience" className="w-44">
+            <Select
+              value={table.filters.audience}
+              onChange={(e) => table.setFilter('audience', e.target.value)}
+            >
+              <option value="">All</option>
+              <option value="CALLER">User (caller)</option>
+              <option value="LISTENER">Listener</option>
+            </Select>
+          </Field>
+        </div>
         <DataTable
           columns={columns}
           rows={data?.data}
@@ -239,7 +381,7 @@ function WeeklyRunsTab() {
 
       {runOpen && <RunWeeklyModal onClose={() => setRunOpen(false)} />}
       {awardsFor && <AwardsModal run={awardsFor} onClose={() => setAwardsFor(null)} />}
-    </>
+    </div>
   );
 }
 
@@ -616,7 +758,7 @@ export function BonusesPage() {
     <>
       <PageHeader
         title="Bonuses"
-        description="Weekly talk-time rewards and promotional grants. Every award is idempotent per user and period."
+        description="Separate weekly talk-time rewards for users and listeners, plus promotional grants. Awards are idempotent per user, period, and audience."
       />
 
       <Tabs

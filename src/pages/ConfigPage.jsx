@@ -104,20 +104,37 @@ const CONFIG_META = {
     group: 'Bonuses',
   },
   'bonus.weekly.enabled': {
-    label: 'Weekly bonus enabled',
-    note: 'Turns the scheduled weekly run on or off.',
+    label: 'User weekly bonus enabled',
+    note: 'Caller talk-time weekly bonus. Prefer Bonuses → Weekly settings for edits.',
     group: 'Bonuses',
   },
   'bonus.weekly.targetMinutes': {
-    label: 'Weekly target',
+    label: 'User weekly target',
     unit: 'minutes',
-    note: 'Talk time a user must reach in the period to qualify.',
+    note: 'Talk time a caller must reach in the period to qualify.',
     group: 'Bonuses',
   },
   'bonus.weekly.rewardTokens': {
-    label: 'Weekly reward',
+    label: 'User weekly reward',
     unit: 'tokens',
-    note: 'Granted to each qualifying user when the run completes.',
+    note: 'Granted to each qualifying caller when the run completes.',
+    group: 'Bonuses',
+  },
+  'bonus.weekly.listener.enabled': {
+    label: 'Listener weekly bonus enabled',
+    note: 'Listener talk-time weekly bonus (separate from users).',
+    group: 'Bonuses',
+  },
+  'bonus.weekly.listener.targetMinutes': {
+    label: 'Listener weekly target',
+    unit: 'minutes',
+    note: 'Talk time a listener must reach in the period to qualify.',
+    group: 'Bonuses',
+  },
+  'bonus.weekly.listener.rewardTokens': {
+    label: 'Listener weekly reward',
+    unit: 'tokens',
+    note: 'Granted to each qualifying listener when the run completes.',
     group: 'Bonuses',
   },
 };

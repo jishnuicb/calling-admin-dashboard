@@ -27,6 +27,8 @@ function PackageFormModal({ open, onClose, pkg }) {
           tokens: pkg.tokens ?? '',
           bonusTokens: pkg.bonusTokens ?? 0,
           price: pkg.price ?? '',
+          originalPrice: pkg.originalPrice ?? '',
+          discountPercent: pkg.discountPercent ?? 0,
           currency: pkg.currency || 'INR',
           active: pkg.active ?? true,
           sortOrder: pkg.sortOrder ?? 0,
@@ -36,6 +38,8 @@ function PackageFormModal({ open, onClose, pkg }) {
           tokens: '',
           bonusTokens: 0,
           price: '',
+          originalPrice: '',
+          discountPercent: 0,
           currency: 'INR',
           active: true,
           sortOrder: 0,
@@ -55,6 +59,9 @@ function PackageFormModal({ open, onClose, pkg }) {
       tokens: Number(form.tokens),
       bonusTokens: Number(form.bonusTokens) || 0,
       price: Number(form.price),
+      originalPrice: form.originalPrice === '' || form.originalPrice == null
+        ? null
+        : Number(form.originalPrice),
       active: form.active,
       sortOrder: Number(form.sortOrder) || 0,
     };
@@ -66,6 +73,10 @@ function PackageFormModal({ open, onClose, pkg }) {
   const fieldErrors = mutation.error?.fieldErrors || {};
   const totalTokens = (Number(form.tokens) || 0) + (Number(form.bonusTokens) || 0);
   const perToken = totalTokens > 0 ? (Number(form.price) || 0) / totalTokens : 0;
+  const sell = Number(form.price) || 0;
+  const original = Number(form.originalPrice) || 0;
+  const computedDiscount =
+    original > sell && sell > 0 ? Math.round(((original - sell) / original) * 100) : 0;
 
   return (
     <Modal
@@ -120,7 +131,13 @@ function PackageFormModal({ open, onClose, pkg }) {
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <Field label="Price" required error={fieldErrors.price} className="col-span-2">
+          <Field
+            label="Sale price"
+            required
+            error={fieldErrors.price}
+            className="col-span-2"
+            hint="Amount charged at checkout."
+          >
             <Input
               type="number"
               step="0.01"
@@ -139,9 +156,39 @@ function PackageFormModal({ open, onClose, pkg }) {
           </Field>
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <Field
+            label="Original price (MRP)"
+            hint="Optional. When higher than sale price, the app shows a discount."
+            error={fieldErrors.originalPrice}
+          >
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.originalPrice}
+              onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
+              placeholder="Leave blank for no discount"
+            />
+          </Field>
+          <Field label="Discount" hint="Derived from original vs sale price.">
+            <Input value={computedDiscount ? `${computedDiscount}% off` : 'No discount'} disabled />
+          </Field>
+        </div>
+
         {totalTokens > 0 && Number(form.price) > 0 && (
           <div className="rounded-lg bg-ink-50 px-3.5 py-2.5 text-xs text-ink-600">
-            {fmtTokens(totalTokens)} tokens for {fmtMoney(Number(form.price), form.currency)} —{' '}
+            {fmtTokens(totalTokens)} tokens for {fmtMoney(Number(form.price), form.currency)}
+            {computedDiscount > 0 && (
+              <>
+                {' '}
+                <span className="text-ink-400 line-through">
+                  {fmtMoney(original, form.currency)}
+                </span>{' '}
+                <span className="font-medium text-emerald-700">{computedDiscount}% off</span>
+              </>
+            )}{' '}
+            —{' '}
             <span className="font-medium text-ink-800">
               {fmtMoney(perToken, form.currency)} per token
             </span>
@@ -215,7 +262,18 @@ export function PackagesPage() {
       key: 'price',
       header: 'Price',
       align: 'right',
-      render: (row) => fmtMoney(row.price, row.currency),
+      render: (row) => (
+        <div className="text-right">
+          <p className="font-medium text-ink-800">{fmtMoney(row.price, row.currency)}</p>
+          {row.discountPercent > 0 && row.originalPrice != null && (
+            <p className="text-[11px] text-ink-400">
+              <span className="line-through">{fmtMoney(row.originalPrice, row.currency)}</span>
+              {' · '}
+              <span className="text-emerald-600">{row.discountPercent}% off</span>
+            </p>
+          )}
+        </div>
+      ),
     },
     {
       key: 'perToken',
