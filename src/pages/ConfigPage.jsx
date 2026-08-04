@@ -64,9 +64,9 @@ const CONFIG_META = {
     group: 'Listener payouts',
   },
   'presence.offlineGraceSeconds': {
-    label: 'Presence offline grace',
+    label: 'Presence offline grace (unused)',
     unit: 'seconds',
-    note: 'How long a listener stays discoverable after their last socket drops, so a brief network blip does not knock them offline.',
+    note: 'Legacy setting. Online/offline is manual-only now — socket disconnect no longer flips listeners offline.',
     group: 'Calling',
   },
   'otp.resendDelayAfterFirstSeconds': {

@@ -410,17 +410,11 @@ console.log(
                     ) : (
                       <span>
                         Offline
-                        {application.availabilityEnabled ? (
-                          // Intent is on but no live socket: a dropped
-                          // connection, so they return without any action.
-                          <span className="ml-1.5 text-xs text-amber-700">
-                            (go-online enabled, currently disconnected)
-                          </span>
-                        ) : (
-                          <span className="ml-1.5 text-xs text-ink-500">
-                            (not taking calls — only they can go online)
-                          </span>
-                        )}
+                        <span className="ml-1.5 text-xs text-ink-500">
+                          {application.manualOffline
+                            ? '(went offline manually — only they can go online)'
+                            : '(not taking calls — only they can go online)'}
+                        </span>
                       </span>
                     )
                   ) : (
