@@ -20,6 +20,8 @@ export const qk = {
 
   languages: (params) => ['languages', params],
 
+  avatars: (params) => ['avatars', params],
+
   wallet: (userId) => ['wallet', userId],
   walletHistory: (userId, params) => ['wallet', userId, 'history', params],
 

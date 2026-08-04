@@ -1,4 +1,4 @@
-import { get, post, put, patch, del, downloadCsv } from './client';
+import { api, get, post, put, patch, del, downloadCsv } from './client';
 
 /**
  * Every admin endpoint the backend exposes, grouped by module to mirror
@@ -84,6 +84,29 @@ export const languagesApi = {
   update: (id, body) => patch(`/admin/languages/${id}`, body),
   // Returns 409 LANGUAGE_IN_USE while any listener references the language.
   remove: (id) => del(`/admin/languages/${id}`),
+};
+
+// --- Profile avatars (USER / LISTENER catalogs by gender) -------------------
+
+export const avatarsApi = {
+  list: (params) => get('/admin/avatars', params),
+  create: (body) => post('/admin/avatars', body),
+  upload: (formData) =>
+    api
+      .post('/admin/avatars/upload', formData, {
+        // Let the browser set multipart boundary (default JSON Content-Type breaks uploads).
+        transformRequest: [
+          (data, headers) => {
+            if (headers && typeof headers === 'object') {
+              delete headers['Content-Type'];
+            }
+            return data;
+          },
+        ],
+      })
+      .then((r) => r.data),
+  update: (id, body) => patch(`/admin/avatars/${id}`, body),
+  remove: (id) => del(`/admin/avatars/${id}`),
 };
 
 // --- Wallets ----------------------------------------------------------------

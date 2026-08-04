@@ -26,6 +26,9 @@ export const P = {
   LANGUAGES_WRITE: 'languages:write',
   LANGUAGES_DELETE: 'languages:delete',
 
+  AVATARS_READ: 'avatars:read',
+  AVATARS_WRITE: 'avatars:write',
+
   WALLET_READ: 'wallet:read',
   WALLET_ADJUST: 'wallet:adjust',
 
