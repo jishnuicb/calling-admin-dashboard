@@ -383,8 +383,11 @@ export function UserDetailPage() {
 
                 {user.listener.status === 'APPROVED' && (
                   <p className="text-xs text-ink-500">
-                    {user.listener.online ? 'Online now' : 'Offline'}
-                    {user.listener.manualOffline && ' (went offline manually)'}
+                    {user.listener.online
+                      ? 'Online (manual — stays online if app is closed)'
+                      : user.listener.manualOffline
+                        ? 'Offline (went offline manually)'
+                        : 'Offline'}
                   </p>
                 )}
 

@@ -95,22 +95,22 @@ export function ListenersPage() {
         }
         if (row.online) {
           return (
-            <Badge tone="success" dot>
-              Online
-            </Badge>
+            <div className="min-w-0">
+              <Badge tone="success" dot>
+                Online
+              </Badge>
+              <p className="mt-0.5 text-[11px] text-ink-500" title={row.lastSeenAt || ''}>
+                {row.lastSeenAt ? `seen ${fmtRelative(row.lastSeenAt)}` : 'manual online'}
+              </p>
+            </div>
           );
         }
-        // `availabilityEnabled` is the listener's own intent, set only by their
-        // "Go online" action. Distinguishing the two states matters: intent on
-        // but offline is a dropped connection, intent off means they chose to
-        // stop taking calls and a reconnect will not bring them back.
+        // Offline is only a manual choice. Socket disconnect does not flip this.
         return (
           <div className="min-w-0">
-            <Badge tone={row.availabilityEnabled ? 'warning' : 'neutral'}>
-              {row.availabilityEnabled ? 'Enabled, disconnected' : 'Offline'}
-            </Badge>
+            <Badge tone="neutral">Offline</Badge>
             <p className="mt-0.5 text-[11px] text-ink-500" title={row.lastSeenAt || ''}>
-              {row.lastSeenAt ? `seen ${fmtRelative(row.lastSeenAt)}` : 'never online'}
+              {row.lastSeenAt ? `seen ${fmtRelative(row.lastSeenAt)}` : 'not taking calls'}
             </p>
           </div>
         );

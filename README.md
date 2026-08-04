@@ -105,11 +105,13 @@ screen edits the three thresholds that drive the policy (`otp.*` config keys), s
 an admin who finds the limits too tight can fix them where they noticed the
 problem; the Configuration screen exposes them too.
 
-**Listener availability shows intent separately from presence.** `online` is a
-live socket, `availabilityEnabled` is the listener's own "go online" choice. Login
-never sets either. Enabled-but-offline means a dropped connection and they will
-return by themselves; not-enabled means they chose to stop taking calls and only
-they can change it — no admin action puts a listener online.
+**Listener online/offline is manual-only (plus logout).** `online` is the
+listener's last choice (`POST /listener/status`), not a live socket. App close,
+disconnect, and login do not flip it; **logout does set them offline**. Approved
+listeners start online by default; going offline (or logging out) keeps them
+offline until they manually go online again. Busy during calls is still real-time
+over WebSocket. Product notifications are delivered via Firebase push, not
+WebSocket.
 
 **Payout account numbers are masked everywhere but one screen.** The application
 list returns `bankDetails.bankAccountNumberMasked`; only the application detail
