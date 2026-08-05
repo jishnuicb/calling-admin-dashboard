@@ -349,7 +349,7 @@ export function DashboardPage() {
             to="/bonuses"
             className="mt-4 block text-center text-xs font-medium text-brand-600 hover:underline"
           >
-            View run history and promotions
+            View weekly bonus runs
           </Link>
         </Card>
       </div>
