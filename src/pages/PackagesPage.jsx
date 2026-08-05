@@ -4,7 +4,7 @@ import { Package, Plus, Trash2 } from 'lucide-react';
 import { packagesApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
-import { DataTable } from '../components/DataTable';
+import { DataTable, Pagination } from '../components/DataTable';
 import {
   Badge,
   Button,
@@ -16,6 +16,7 @@ import {
   PageHeader,
   Toggle,
 } from '../components/ui';
+import { slicePage, useTableState } from '../hooks/useTableState';
 import { fmtMoney, fmtTokens } from '../lib/format';
 
 function PackageFormModal({ open, onClose, pkg }) {
@@ -215,6 +216,7 @@ function PackageFormModal({ open, onClose, pkg }) {
 }
 
 export function PackagesPage() {
+  const table = useTableState({}, { limit: 20 });
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -237,7 +239,7 @@ export function PackagesPage() {
     onSuccess: () => setDeleting(null),
   });
 
-  const rows = data?.data || data || [];
+  const { rows, meta } = slicePage(data?.data || data || [], table.page, table.pageSize);
 
   const columns = [
     {
@@ -371,6 +373,11 @@ export function PackagesPage() {
               New package
             </Button>
           }
+        />
+        <Pagination
+          meta={meta}
+          onPageChange={table.setPage}
+          onLimitChange={table.changeLimit}
         />
       </Card>
 
