@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, Download, FileText } from 'lucide-react';
 import { reportsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
-import { DataTable } from '../components/DataTable';
+import { DataTable, Pagination } from '../components/DataTable';
 import {
   Button,
   Card,
@@ -14,6 +14,7 @@ import {
   PageHeader,
 } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
+import { slicePage, useTableState } from '../hooks/useTableState';
 import { fmtNumber, titleCase } from '../lib/format';
 
 /**
@@ -25,6 +26,7 @@ import { fmtNumber, titleCase } from '../lib/format';
  */
 export function ReportsPage() {
   const toast = useToast();
+  const table = useTableState({}, { limit: 20 });
   const [selected, setSelected] = useState(null);
   const [range, setRange] = useState({ from: '', to: '' });
   const [downloading, setDownloading] = useState(false);
@@ -41,6 +43,14 @@ export function ReportsPage() {
     queryFn: () => reportsApi.generate(selected, params),
     enabled: Boolean(selected),
   });
+
+  useEffect(() => {
+    table.setPage(1);
+    // Reset paging when the report selection or date range changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, range.from, range.to]);
+
+  const { rows: pagedRows, meta } = slicePage(report?.rows || [], table.page, table.pageSize);
 
   const download = async () => {
     setDownloading(true);
@@ -191,7 +201,7 @@ export function ReportsPage() {
               >
                 <DataTable
                   columns={columns}
-                  rows={report?.rows}
+                  rows={pagedRows}
                   loading={isLoading}
                   error={error}
                   onRetry={refetch}
@@ -199,6 +209,11 @@ export function ReportsPage() {
                   emptyTitle="This report returned no rows"
                   emptyDescription="Try widening the date range."
                   dense
+                />
+                <Pagination
+                  meta={meta}
+                  onPageChange={table.setPage}
+                  onLimitChange={table.changeLimit}
                 />
               </Card>
             </>

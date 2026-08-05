@@ -22,7 +22,7 @@ import {
   StatusBadge,
   Tabs,
 } from '../components/ui';
-import { useTableState } from '../hooks/useTableState';
+import { slicePage, useTableState } from '../hooks/useTableState';
 import { fmtDateTime, titleCase } from '../lib/format';
 
 /**
@@ -192,6 +192,7 @@ function RoleFormModal({ role, permissions, onClose }) {
 
 function RolesTab() {
   const { can } = useAuth();
+  const table = useTableState({}, { limit: 20 });
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(null);
@@ -215,6 +216,7 @@ function RolesTab() {
 
   const permissionList = flattenPermissions(permissions);
   const writable = can(P.ADMINS_WRITE);
+  const { rows, meta } = slicePage(roles?.data || roles || [], table.page, table.pageSize);
 
   const columns = [
     {
@@ -292,12 +294,17 @@ function RolesTab() {
       >
         <DataTable
           columns={columns}
-          rows={roles?.data || roles}
+          rows={rows}
           loading={isLoading}
           error={error}
           onRetry={refetch}
           emptyIcon={ShieldCheck}
           emptyTitle="No roles defined"
+        />
+        <Pagination
+          meta={meta}
+          onPageChange={table.setPage}
+          onLimitChange={table.changeLimit}
         />
       </Card>
 

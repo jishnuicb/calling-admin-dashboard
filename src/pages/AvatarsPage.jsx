@@ -6,7 +6,7 @@ import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
-import { DataTable, FilterBar } from '../components/DataTable';
+import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import {
   Badge,
   Button,
@@ -19,6 +19,7 @@ import {
   Select,
   Toggle,
 } from '../components/ui';
+import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime } from '../lib/format';
 
 function AvatarFormModal({ open, onClose, avatar }) {
@@ -187,19 +188,13 @@ function AvatarFormModal({ open, onClose, avatar }) {
 
 export function AvatarsPage() {
   const { can } = useAuth();
-  const [filters, setFilters] = useState({ audience: '', gender: '', active: '' });
+  const table = useTableState({ audience: '', gender: '', active: '' }, { limit: 20 });
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 
-  const params = {
-    ...(filters.audience ? { audience: filters.audience } : {}),
-    ...(filters.gender ? { gender: filters.gender } : {}),
-    ...(filters.active === '' ? {} : { active: filters.active }),
-  };
-
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: qk.avatars(params),
-    queryFn: () => avatarsApi.list(params),
+    queryKey: qk.avatars(table.params),
+    queryFn: () => avatarsApi.list(table.params),
   });
 
   const toggleActive = useApiMutation({
@@ -216,6 +211,7 @@ export function AvatarsPage() {
 
   const rows = data?.data || [];
   const writable = can(P.AVATARS_WRITE);
+  const filters = table.filters;
 
   const columns = [
     {
@@ -332,7 +328,7 @@ export function AvatarsPage() {
           <Field label="Audience" className="w-40">
             <Select
               value={filters.audience}
-              onChange={(e) => setFilters({ ...filters, audience: e.target.value })}
+              onChange={(e) => table.setFilter('audience', e.target.value)}
             >
               <option value="">All audiences</option>
               <option value="USER">User</option>
@@ -342,7 +338,7 @@ export function AvatarsPage() {
           <Field label="Gender" className="w-36">
             <Select
               value={filters.gender}
-              onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
+              onChange={(e) => table.setFilter('gender', e.target.value)}
             >
               <option value="">All genders</option>
               <option value="FEMALE">Female</option>
@@ -352,7 +348,7 @@ export function AvatarsPage() {
           <Field label="State" className="w-36">
             <Select
               value={filters.active}
-              onChange={(e) => setFilters({ ...filters, active: e.target.value })}
+              onChange={(e) => table.setFilter('active', e.target.value)}
             >
               <option value="">All states</option>
               <option value="true">Active</option>
@@ -369,6 +365,11 @@ export function AvatarsPage() {
           onRetry={refetch}
           emptyTitle="No avatars yet"
           emptyDescription="Upload gender-specific images for USER and LISTENER catalogs."
+        />
+        <Pagination
+          meta={data?.meta}
+          onPageChange={table.setPage}
+          onLimitChange={table.changeLimit}
         />
       </Card>
 

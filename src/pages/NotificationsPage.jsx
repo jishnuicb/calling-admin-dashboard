@@ -24,7 +24,7 @@ import {
   Toggle,
   ErrorState,
 } from '../components/ui';
-import { useTableState } from '../hooks/useTableState';
+import { slicePage, useTableState } from '../hooks/useTableState';
 import { fmtDateTime, shortId, titleCase } from '../lib/format';
 
 // --- Templates --------------------------------------------------------------
@@ -157,6 +157,7 @@ function TemplateModal({ template, onClose }) {
 
 function TemplatesTab() {
   const { can } = useAuth();
+  const table = useTableState({}, { limit: 20 });
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
 
@@ -165,7 +166,7 @@ function TemplatesTab() {
     queryFn: () => notificationsApi.templates(),
   });
 
-  const rows = data?.data || data || [];
+  const { rows, meta } = slicePage(data?.data || data || [], table.page, table.pageSize);
   const writable = can(P.NOTIFICATIONS_TEMPLATES);
 
   const columns = [
@@ -241,6 +242,11 @@ function TemplatesTab() {
           emptyIcon={Bell}
           emptyTitle="No templates yet"
           emptyDescription="Run the backend seed to install the defaults."
+        />
+        <Pagination
+          meta={meta}
+          onPageChange={table.setPage}
+          onLimitChange={table.changeLimit}
         />
       </Card>
 

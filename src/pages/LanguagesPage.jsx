@@ -6,7 +6,7 @@ import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
-import { DataTable, FilterBar } from '../components/DataTable';
+import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import {
   Badge,
   Button,
@@ -20,7 +20,8 @@ import {
   Select,
   Toggle,
 } from '../components/ui';
-import { fmtDateTime, fmtNumber } from '../lib/format';
+import { slicePage, useTableState } from '../hooks/useTableState';
+import { cleanParams, fmtDateTime, fmtNumber } from '../lib/format';
 
 function LanguageFormModal({ open, onClose, language }) {
   const editing = Boolean(language);
@@ -210,15 +211,15 @@ function DeleteLanguageModal({ language, onClose }) {
 
 export function LanguagesPage() {
   const { can } = useAuth();
-  const [filters, setFilters] = useState({ active: '', search: '' });
+  const table = useTableState({ active: '', search: '' }, { limit: 20 });
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
-  const params = {
-    ...(filters.active === '' ? {} : { active: filters.active }),
-    ...(filters.search ? { search: filters.search } : {}),
-  };
+  const params = cleanParams({
+    active: table.params.active,
+    search: table.params.search,
+  });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.languages(params),
@@ -231,7 +232,8 @@ export function LanguagesPage() {
     invalidate: [['languages'], ['dashboard']],
   });
 
-  const rows = data?.data || [];
+  const { rows, meta } = slicePage(data?.data || [], table.page, table.pageSize);
+  const filters = table.filters;
   const writable = can(P.LANGUAGES_WRITE);
 
   const columns = [
@@ -339,22 +341,18 @@ export function LanguagesPage() {
       />
 
       <Card bodyClassName="">
-        <FilterBar
-          onReset={
-            filters.active || filters.search ? () => setFilters({ active: '', search: '' }) : undefined
-          }
-        >
+        <FilterBar onReset={table.isFiltered ? table.reset : undefined}>
           <Field label="Search" className="w-full sm:w-56">
             <SearchInput
               value={filters.search}
-              onChange={(v) => setFilters({ ...filters, search: v })}
+              onChange={(v) => table.setFilter('search', v)}
               placeholder="Language name"
             />
           </Field>
           <Field label="State" className="w-40">
             <Select
               value={filters.active}
-              onChange={(e) => setFilters({ ...filters, active: e.target.value })}
+              onChange={(e) => table.setFilter('active', e.target.value)}
             >
               <option value="">All</option>
               <option value="true">Active only</option>
@@ -372,6 +370,11 @@ export function LanguagesPage() {
           emptyIcon={Languages}
           emptyTitle="No languages found"
           emptyDescription="Seed the default list or add one manually."
+        />
+        <Pagination
+          meta={meta}
+          onPageChange={table.setPage}
+          onLimitChange={table.changeLimit}
         />
       </Card>
 

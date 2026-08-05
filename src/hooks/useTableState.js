@@ -75,3 +75,28 @@ export function useTableState(initialFilters = {}, { limit = 20 } = {}) {
     params,
   };
 }
+
+/** Build Pagination `meta` for APIs that return a full array (client-side paging). */
+export function buildPageMeta({ page = 1, limit = 20, total = 0 }) {
+  const totalPages = Math.max(1, Math.ceil((total || 0) / (limit || 20)) || 1);
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  return {
+    page: safePage,
+    limit,
+    total: total || 0,
+    totalPages,
+    hasNextPage: safePage < totalPages,
+    hasPreviousPage: safePage > 1,
+  };
+}
+
+/** Slice a full list into the current page + meta for `<Pagination />`. */
+export function slicePage(rows, page = 1, limit = 20) {
+  const list = Array.isArray(rows) ? rows : [];
+  const meta = buildPageMeta({ page, limit, total: list.length });
+  const start = (meta.page - 1) * meta.limit;
+  return {
+    rows: list.slice(start, start + meta.limit),
+    meta,
+  };
+}
