@@ -257,9 +257,6 @@ export function PackagesPage() {
       render: (row) => (
         <div>
           <p className="font-medium text-ink-800">{fmtTokens(row.tokens)}</p>
-          {row.bonusTokens > 0 && (
-            <p className="text-[11px] text-emerald-600">+{fmtTokens(row.bonusTokens)} bonus</p>
-          )}
         </div>
       ),
     },
