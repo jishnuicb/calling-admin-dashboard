@@ -26,7 +26,7 @@ function PackageFormModal({ open, onClose, pkg }) {
       ? {
           name: pkg.name || '',
           tokens: pkg.tokens ?? '',
-          bonusTokens: pkg.bonusTokens ?? 0,
+          // bonusTokens: pkg.bonusTokens ?? 0,
           price: pkg.price ?? '',
           originalPrice: pkg.originalPrice ?? '',
           discountPercent: pkg.discountPercent ?? 0,
@@ -37,7 +37,7 @@ function PackageFormModal({ open, onClose, pkg }) {
       : {
           name: '',
           tokens: '',
-          bonusTokens: 0,
+          // bonusTokens: 0,
           price: '',
           originalPrice: '',
           discountPercent: 0,
@@ -58,7 +58,7 @@ function PackageFormModal({ open, onClose, pkg }) {
     const body = {
       name: form.name.trim(),
       tokens: Number(form.tokens),
-      bonusTokens: Number(form.bonusTokens) || 0,
+      bonusTokens: 0,
       price: Number(form.price),
       originalPrice: form.originalPrice === '' || form.originalPrice == null
         ? null
@@ -72,7 +72,7 @@ function PackageFormModal({ open, onClose, pkg }) {
   };
 
   const fieldErrors = mutation.error?.fieldErrors || {};
-  const totalTokens = (Number(form.tokens) || 0) + (Number(form.bonusTokens) || 0);
+  const totalTokens = Number(form.tokens) || 0;
   const perToken = totalTokens > 0 ? (Number(form.price) || 0) / totalTokens : 0;
   const sell = Number(form.price) || 0;
   const original = Number(form.originalPrice) || 0;
@@ -112,7 +112,7 @@ function PackageFormModal({ open, onClose, pkg }) {
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <Field label="Tokens" required error={fieldErrors.tokens}>
             <Input
               type="number"
@@ -121,14 +121,14 @@ function PackageFormModal({ open, onClose, pkg }) {
               onChange={(e) => setForm({ ...form, tokens: e.target.value })}
             />
           </Field>
-          <Field label="Bonus tokens" error={fieldErrors.bonusTokens}>
+          {/* <Field label="Bonus tokens" error={fieldErrors.bonusTokens}>
             <Input
               type="number"
               min="0"
               value={form.bonusTokens}
               onChange={(e) => setForm({ ...form, bonusTokens: e.target.value })}
             />
-          </Field>
+          </Field> */}
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -196,20 +196,23 @@ function PackageFormModal({ open, onClose, pkg }) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 items-end gap-4">
-          <Field label="Sort order" hint="Lower shows first.">
-            <Input
-              type="number"
-              value={form.sortOrder}
-              onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-            />
-          </Field>
-          <Toggle
-            checked={form.active}
-            onChange={(v) => setForm({ ...form, active: v })}
-            label="Available for purchase"
-          />
-        </div>
+<div className="grid grid-cols-2 gap-4">
+  <Field label="Sort order" hint="Lower shows first.">
+    <Input
+      type="number"
+      value={form.sortOrder}
+      onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
+    />
+  </Field>
+
+  <div className="flex items-center h-full">
+    <Toggle
+      checked={form.active}
+      onChange={(v) => setForm({ ...form, active: v })}
+      label="Available for purchase"
+    />
+  </div>
+</div>
       </div>
     </Modal>
   );

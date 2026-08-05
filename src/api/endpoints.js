@@ -172,10 +172,6 @@ export const bonusesApi = {
   weeklySettings: () => get('/admin/bonuses/weekly/settings'),
   updateWeeklySettings: (body) => put('/admin/bonuses/weekly/settings', body),
   runWeekly: (body) => post('/admin/bonuses/weekly/run', body),
-  promotions: (params) => get('/admin/bonuses/promotions', params),
-  createPromotion: (body) => post('/admin/bonuses/promotions', body),
-  updatePromotion: (id, body) => patch(`/admin/bonuses/promotions/${id}`, body),
-  grantPromotion: (id, body) => post(`/admin/bonuses/promotions/${id}/grant`, body),
 };
 
 // --- RBAC -------------------------------------------------------------------

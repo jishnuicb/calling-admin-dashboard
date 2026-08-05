@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Gift, Play, Plus } from 'lucide-react';
+import { Gift, Play } from 'lucide-react';
 import { bonusesApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -20,12 +20,25 @@ import {
   PageHeader,
   Select,
   StatusBadge,
-  Tabs,
-  Textarea,
   Toggle,
 } from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDate, fmtDateTime, fmtNumber, fmtTokens, shortId } from '../lib/format';
+
+const toDateInput = (value) => {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+};
+
+const weekEndFromStart = (startDate) => {
+  if (!startDate) return '';
+  const start = new Date(`${startDate}T00:00:00.000Z`);
+  if (Number.isNaN(start.getTime())) return '';
+  const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+  return end.toISOString().slice(0, 10);
+};
 
 function WeeklySettingsCard() {
   const { can } = useAuth();
@@ -41,8 +54,14 @@ function WeeklySettingsCard() {
 
   useEffect(() => {
     if (!data) return;
-    setCaller({ ...data.caller });
-    setListener({ ...data.listener });
+    setCaller({
+      ...data.caller,
+      periodStartInput: toDateInput(data.caller.periodStart),
+    });
+    setListener({
+      ...data.listener,
+      periodStartInput: toDateInput(data.listener.periodStart),
+    });
   }, [data]);
 
   const save = useApiMutation({
@@ -54,11 +73,12 @@ function WeeklySettingsCard() {
 
   const renderEditor = (label, form, setForm, audience) => {
     if (!form) return null;
+    const isListener = audience === 'LISTENER';
     return (
       <div className="space-y-3 rounded-lg border border-ink-100 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold text-ink-900">{label}</p>
-          <Badge tone={audience === 'LISTENER' ? 'info' : 'brand'}>{audience}</Badge>
+          <Badge tone={isListener ? 'info' : 'brand'}>{audience}</Badge>
         </div>
         <Toggle
           checked={Boolean(form.enabled)}
@@ -76,7 +96,14 @@ function WeeklySettingsCard() {
               onChange={(e) => setForm({ ...form, targetMinutes: e.target.value })}
             />
           </Field>
-          <Field label="Reward tokens">
+          <Field
+            label={isListener ? 'Reward (paise)' : 'Reward tokens'}
+            hint={
+              isListener
+                ? 'Credited to listener earnings (same payout pool as call pay). 100 paise = ₹1.'
+                : 'Credited as tokens to the user wallet.'
+            }
+          >
             <Input
               type="number"
               min="0"
@@ -84,6 +111,19 @@ function WeeklySettingsCard() {
               disabled={!writable}
               onChange={(e) => setForm({ ...form, rewardTokens: e.target.value })}
             />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Period start" hint="UTC date. End is auto-filled as start + 7 days.">
+            <Input
+              type="date"
+              value={form.periodStartInput || ''}
+              disabled={!writable}
+              onChange={(e) => setForm({ ...form, periodStartInput: e.target.value })}
+            />
+          </Field>
+          <Field label="Period end" hint="Read-only — week end from start date.">
+            <Input type="date" value={weekEndFromStart(form.periodStartInput)} disabled />
           </Field>
         </div>
         {writable && (
@@ -96,6 +136,9 @@ function WeeklySettingsCard() {
                 enabled: Boolean(form.enabled),
                 targetMinutes: Number(form.targetMinutes),
                 rewardTokens: Number(form.rewardTokens),
+                periodStart: form.periodStartInput
+                  ? new Date(`${form.periodStartInput}T00:00:00.000Z`).toISOString()
+                  : undefined,
               })
             }
           >
@@ -109,7 +152,7 @@ function WeeklySettingsCard() {
   return (
     <Card
       title="Weekly bonus settings"
-      description="Separate rules for users (callers) and listeners. Cron evaluates each audience independently."
+      description="Set start date (end auto = +7 days). Cron awards after period end, then rolls the start forward. Users get tokens; listeners get paise earnings."
     >
       {error && <ErrorState error={error} onRetry={refetch} compact />}
       {isLoading && !data ? (
@@ -120,7 +163,11 @@ function WeeklySettingsCard() {
           {renderEditor('Listener weekly bonus', listener, setListener, 'LISTENER')}
         </div>
       )}
-      {save.error && <div className="mt-3"><ErrorState error={save.error} compact /></div>}
+      {save.error && (
+        <div className="mt-3">
+          <ErrorState error={save.error} compact />
+        </div>
+      )}
     </Card>
   );
 }
@@ -142,18 +189,27 @@ function RunWeeklyModal({ onClose }) {
   const [result, setResult] = useState(null);
 
   const mutation = useApiMutation({
-    mutationFn: () =>
-      bonusesApi.runWeekly({
+    mutationFn: () => {
+      const periodStart = form.periodStart
+        ? new Date(`${form.periodStart}T00:00:00.000Z`).toISOString()
+        : undefined;
+      const periodEnd = form.periodStart
+        ? new Date(
+            new Date(`${form.periodStart}T00:00:00.000Z`).getTime() + 7 * 24 * 60 * 60 * 1000 - 1,
+          ).toISOString()
+        : undefined;
+      return bonusesApi.runWeekly({
         audience: form.audience,
-        periodStart: form.periodStart || undefined,
-        periodEnd: form.periodEnd || undefined,
+        periodStart,
+        periodEnd,
         dryRun: form.dryRun,
         force: form.force,
-      }),
+      });
+    },
     successMessage: (data) =>
       form.dryRun
         ? `Dry run complete: ${data.usersQualifying ?? data.usersRewarded ?? 0} would qualify`
-        : `Run complete: ${fmtTokens(data.tokensAwarded ?? 0)} tokens awarded`,
+        : `Run complete: ${fmtNumber(data.tokensAwarded ?? 0)} awarded`,
     invalidate: [['bonuses'], ['dashboard'], ['wallet']],
     onSuccess: (data) => setResult(data),
   });
@@ -175,7 +231,7 @@ function RunWeeklyModal({ onClose }) {
             onClick={() => mutation.mutate()}
             loading={mutation.isPending}
           >
-            {form.dryRun ? 'Preview eligibility' : 'Run and award tokens'}
+            {form.dryRun ? 'Preview eligibility' : 'Run and award'}
           </Button>
         </>
       }
@@ -194,14 +250,20 @@ function RunWeeklyModal({ onClose }) {
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Period start" hint="Leave blank for the previous complete week.">
+          <Field label="Period start" hint="Leave blank to use the configured admin period.">
             <Input
               type="date"
               value={form.periodStart}
-              onChange={(e) => setForm({ ...form, periodStart: e.target.value })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  periodStart: e.target.value,
+                  periodEnd: e.target.value ? weekEndFromStart(e.target.value) : '',
+                })
+              }
             />
           </Field>
-          <Field label="Period end">
+          <Field label="Period end" hint="Auto week-end from start when you pick a start date.">
             <Input
               type="date"
               value={form.periodEnd}
@@ -409,10 +471,14 @@ function AwardsModal({ run, onClose }) {
     },
     {
       key: 'tokens',
-      header: 'Tokens',
+      header: run.audience === 'LISTENER' ? 'Paise' : 'Tokens',
       align: 'right',
       render: (row) => (
-        <span className="font-medium text-emerald-700">{fmtTokens(row.tokensAwarded)}</span>
+        <span className="font-medium text-emerald-700">
+          {run.audience === 'LISTENER'
+            ? fmtNumber(row.tokensAwarded)
+            : fmtTokens(row.tokensAwarded)}
+        </span>
       ),
     },
     {
@@ -456,321 +522,14 @@ function AwardsModal({ run, onClose }) {
   );
 }
 
-// --- Promotions -------------------------------------------------------------
-
-function PromotionFormModal({ promotion, onClose }) {
-  const editing = Boolean(promotion);
-  const [form, setForm] = useState({
-    name: promotion?.name || '',
-    description: promotion?.description || '',
-    tokens: promotion?.tokens ?? '',
-    active: promotion?.active ?? true,
-    startsAt: promotion?.startsAt ? promotion.startsAt.slice(0, 10) : '',
-    endsAt: promotion?.endsAt ? promotion.endsAt.slice(0, 10) : '',
-  });
-
-  const mutation = useApiMutation({
-    mutationFn: () => {
-      const body = {
-        name: form.name.trim(),
-        description: form.description || undefined,
-        tokens: Number(form.tokens),
-        active: form.active,
-        startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : undefined,
-        endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : undefined,
-      };
-      return editing
-        ? bonusesApi.updatePromotion(promotion.id, body)
-        : bonusesApi.createPromotion(body);
-    },
-    successMessage: editing ? 'Campaign updated' : 'Campaign created',
-    invalidate: [['bonuses', 'promotions']],
-    onSuccess: onClose,
-  });
-
-  const fieldErrors = mutation.error?.fieldErrors || {};
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title={editing ? `Edit ${promotion.name}` : 'New promotional campaign'}
-      description="A campaign defines the token grant. Granting to users is a separate, explicit step."
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => mutation.mutate()}
-            loading={mutation.isPending}
-            disabled={!form.name.trim() || !form.tokens}
-          >
-            {editing ? 'Save changes' : 'Create campaign'}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        {mutation.error && <ErrorState error={mutation.error} compact />}
-
-        <Field label="Name" required error={fieldErrors.name}>
-          <Input
-            autoFocus
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Diwali 2026"
-          />
-        </Field>
-
-        <Field label="Description" error={fieldErrors.description}>
-          <Textarea
-            rows={2}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </Field>
-
-        <Field label="Tokens per user" required error={fieldErrors.tokens}>
-          <Input
-            type="number"
-            min="1"
-            value={form.tokens}
-            onChange={(e) => setForm({ ...form, tokens: e.target.value })}
-          />
-        </Field>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Starts at">
-            <Input
-              type="date"
-              value={form.startsAt}
-              onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
-            />
-          </Field>
-          <Field label="Ends at">
-            <Input
-              type="date"
-              value={form.endsAt}
-              onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
-            />
-          </Field>
-        </div>
-
-        <Toggle
-          checked={form.active}
-          onChange={(v) => setForm({ ...form, active: v })}
-          label="Active (grants permitted)"
-        />
-      </div>
-    </Modal>
-  );
-}
-
-function GrantModal({ promotion, onClose }) {
-  const [userIds, setUserIds] = useState('');
-
-  const ids = userIds
-    .split(/[\s,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const mutation = useApiMutation({
-    mutationFn: () => bonusesApi.grantPromotion(promotion.id, { userIds: ids }),
-    successMessage: (data) =>
-      `Granted to ${data.granted ?? ids.length} user(s)${data.skipped ? `, ${data.skipped} skipped` : ''}`,
-    invalidate: [['bonuses'], ['wallet']],
-    onSuccess: onClose,
-  });
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title={`Grant ${promotion.name}`}
-      description={`${fmtTokens(promotion.tokens)} tokens per user. A user who already received this campaign is skipped, not paid twice.`}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={() => mutation.mutate()} loading={mutation.isPending} disabled={ids.length === 0}>
-            Grant to {ids.length} user(s)
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        {mutation.error && <ErrorState error={mutation.error} compact />}
-
-        <Field
-          label="User ids"
-          required
-          hint={`Comma, space or newline separated. ${ids.length} id(s) entered.`}
-        >
-          <Textarea
-            rows={6}
-            value={userIds}
-            onChange={(e) => setUserIds(e.target.value)}
-            className="font-mono text-xs"
-            placeholder="9f1c2e40-1111-4a2b-8c3d-000000000001"
-          />
-        </Field>
-
-        {ids.length > 0 && (
-          <div className="rounded-lg bg-ink-50 px-3.5 py-2.5 text-sm">
-            <span className="text-ink-500">Total tokens to grant: </span>
-            <span className="font-semibold tabular text-ink-900">
-              {fmtTokens(ids.length * (promotion.tokens || 0))}
-            </span>
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-function PromotionsTab() {
-  const { can } = useAuth();
-  const table = useTableState({}, { limit: 20 });
-  const [formFor, setFormFor] = useState(null);
-  const [creating, setCreating] = useState(false);
-  const [grantFor, setGrantFor] = useState(null);
-
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: qk.promotions(table.params),
-    queryFn: () => bonusesApi.promotions(table.params),
-  });
-
-  const writable = can(P.BONUSES_WRITE);
-
-  const columns = [
-    {
-      key: 'name',
-      header: 'Campaign',
-      render: (row) => (
-        <div className="min-w-0">
-          <p className="truncate font-medium text-ink-900">{row.name}</p>
-          {row.description && (
-            <p className="truncate text-xs text-ink-500">{row.description}</p>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'tokens',
-      header: 'Tokens',
-      align: 'right',
-      render: (row) => <span className="font-medium text-ink-800">{fmtTokens(row.tokens)}</span>,
-    },
-    {
-      key: 'active',
-      header: 'Active',
-      render: (row) => (
-        <Badge tone={row.active ? 'success' : 'neutral'}>{row.active ? 'Yes' : 'No'}</Badge>
-      ),
-    },
-    {
-      key: 'window',
-      header: 'Window',
-      render: (row) => (
-        <span className="text-xs text-ink-600">
-          {row.startsAt || row.endsAt
-            ? `${fmtDate(row.startsAt)} → ${fmtDate(row.endsAt)}`
-            : 'No window set'}
-        </span>
-      ),
-    },
-    {
-      key: 'grants',
-      header: 'Granted',
-      align: 'right',
-      render: (row) => fmtNumber(row.grantCount ?? row._count?.grants ?? 0),
-    },
-    {
-      key: 'actions',
-      header: '',
-      align: 'right',
-      render: (row) =>
-        writable && (
-          <div className="flex items-center justify-end gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setFormFor(row)}>
-              Edit
-            </Button>
-            <Button size="sm" variant="subtle" onClick={() => setGrantFor(row)} disabled={!row.active}>
-              Grant
-            </Button>
-          </div>
-        ),
-    },
-  ];
-
-  return (
-    <>
-      <Card
-        title="Promotional campaigns"
-        description="Ad-hoc token grants, separate from the automatic welcome and weekly bonuses."
-        actions={
-          writable && (
-            <Button size="sm" onClick={() => setCreating(true)}>
-              <Plus className="size-4" />
-              New campaign
-            </Button>
-          )
-        }
-        bodyClassName=""
-      >
-        <DataTable
-          columns={columns}
-          rows={data?.data}
-          loading={isLoading}
-          error={error}
-          onRetry={refetch}
-          emptyIcon={Gift}
-          emptyTitle="No promotional campaigns"
-          emptyDescription="Create one to grant bonus tokens to a specific set of users."
-        />
-        <Pagination
-          meta={data?.meta}
-          onPageChange={table.setPage}
-          onLimitChange={table.changeLimit}
-        />
-      </Card>
-
-      {(formFor || creating) && (
-        <PromotionFormModal
-          promotion={formFor}
-          onClose={() => {
-            setFormFor(null);
-            setCreating(false);
-          }}
-        />
-      )}
-      {grantFor && <GrantModal promotion={grantFor} onClose={() => setGrantFor(null)} />}
-    </>
-  );
-}
-
 export function BonusesPage() {
-  const [tab, setTab] = useState('weekly');
-
   return (
     <>
       <PageHeader
         title="Bonuses"
-        description="Separate weekly talk-time rewards for users and listeners, plus promotional grants. Awards are idempotent per user, period, and audience."
+        description="Weekly talk-time rewards: users earn tokens, listeners earn paise into their earnings. Set period start (end auto +7 days); cron awards after the period ends."
       />
-
-      <Tabs
-        tabs={[
-          { id: 'weekly', label: 'Weekly bonus' },
-          { id: 'promotions', label: 'Promotional campaigns' },
-        ]}
-        active={tab}
-        onChange={setTab}
-      />
-
-      {tab === 'weekly' ? <WeeklyRunsTab /> : <PromotionsTab />}
+      <WeeklyRunsTab />
     </>
   );
 }
