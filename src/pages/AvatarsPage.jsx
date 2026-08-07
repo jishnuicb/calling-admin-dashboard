@@ -222,7 +222,6 @@ export function AvatarsPage() {
           <img src={row.imageUrl} alt="" className="size-10 rounded-full object-cover bg-ink-100" />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-ink-900">{row.label || 'Untitled'}</p>
-            <p className="truncate text-[11px] text-ink-500">{row.id}</p>
           </div>
         </div>
       ),
