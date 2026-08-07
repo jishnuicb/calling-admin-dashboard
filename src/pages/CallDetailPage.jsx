@@ -165,12 +165,37 @@ export function CallDetailPage() {
               {
                 label: 'End reason',
                 value: call.endReason ? (
-                  <Badge tone={call.endReason === 'INSUFFICIENT_BALANCE' ? 'warning' : 'neutral'}>
+                  <Badge
+                    tone={
+                      call.endReason === 'INSUFFICIENT_BALANCE' ||
+                      call.endReason?.includes('NETWORK')
+                        ? 'warning'
+                        : 'neutral'
+                    }
+                  >
                     {call.endReason.replace(/_/g, ' ').toLowerCase()}
                   </Badge>
                 ) : null,
               },
               { label: 'Ended by', value: call.endedByRole },
+              {
+                label: 'Billing paused',
+                value: call.billingPaused ? 'Yes (network grace)' : call.billingPausedAt ? '—' : 'No',
+              },
+              {
+                label: 'Network disconnect',
+                value: call.networkDisconnectRole
+                  ? `${call.networkDisconnectRole}${
+                      call.networkDisconnectedAt
+                        ? ` @ ${fmtDateTimeSeconds(call.networkDisconnectedAt)}`
+                        : ''
+                    }`
+                  : null,
+              },
+              {
+                label: 'Grace expires',
+                value: fmtDateTimeSeconds(call.networkGraceExpiresAt),
+              },
             ]}
           />
         </Card>
@@ -179,17 +204,55 @@ export function CallDetailPage() {
           <Card title={isLive ? 'Consumption (live)' : 'Final consumption'}>
             <div className="space-y-3">
               <div>
-                <p className="text-xs font-medium text-ink-500">Duration</p>
+                <p className="text-xs font-medium text-ink-500">Billable duration</p>
                 <p className="mt-0.5 text-2xl font-semibold tabular text-ink-900">
                   {fmtDuration(call.durationSeconds ?? call.elapsedSeconds)}
                 </p>
               </div>
+              {(call.wallClockDurationSeconds != null ||
+                call.billingMismatch?.wallClockSeconds != null) && (
+                <div className="border-t border-ink-100 pt-3">
+                  <p className="text-xs font-medium text-ink-500">Wall-clock duration</p>
+                  <p className="mt-0.5 text-lg font-semibold tabular text-ink-800">
+                    {fmtDuration(
+                      call.wallClockDurationSeconds ?? call.billingMismatch?.wallClockSeconds,
+                    )}
+                  </p>
+                </div>
+              )}
+              {(call.pausedBillingSeconds > 0 || call.billingMismatch?.pausedSeconds > 0) && (
+                <div className="border-t border-ink-100 pt-3">
+                  <p className="text-xs font-medium text-ink-500">Paused (network grace)</p>
+                  <p className="mt-0.5 text-lg font-semibold tabular text-ink-800">
+                    {fmtDuration(
+                      call.pausedBillingSeconds || call.billingMismatch?.pausedSeconds || 0,
+                    )}
+                  </p>
+                </div>
+              )}
               <div className="border-t border-ink-100 pt-3">
                 <p className="text-xs font-medium text-ink-500">Tokens consumed</p>
                 <p className="mt-0.5 text-2xl font-semibold tabular text-ink-900">
                   {fmtTokens(call.tokensConsumedSoFar ?? call.tokensConsumed)}
                 </p>
               </div>
+              {call.billingMismatch && (
+                <div className="border-t border-ink-100 pt-3">
+                  <p className="text-xs font-medium text-ink-500">Time / token mismatch</p>
+                  <p className="mt-1 text-xs text-ink-600">
+                    Wall {call.billingMismatch.wallClockSeconds}s · billable{' '}
+                    {call.billingMismatch.billableSeconds}s · paused{' '}
+                    {call.billingMismatch.pausedSeconds}s
+                    {call.billingMismatch.tokensExpectedIfUnpaused != null && (
+                      <>
+                        <br />
+                        If unpaused: ~{fmtTokens(call.billingMismatch.tokensExpectedIfUnpaused)} ·
+                        billed {fmtTokens(call.billingMismatch.tokensBilled)}
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
               {call.remainingBalance != null && (
                 <div className="border-t border-ink-100 pt-3">
                   <p className="text-xs font-medium text-ink-500">Caller balance now</p>
@@ -234,10 +297,30 @@ export function CallDetailPage() {
           >
             <DescList
               items={[
-                { label: 'Duration', value: fmtDuration(call.log.durationSeconds) },
+                { label: 'Billable duration', value: fmtDuration(call.log.durationSeconds) },
+                {
+                  label: 'Wall-clock duration',
+                  value:
+                    call.log.wallClockDurationSeconds != null
+                      ? fmtDuration(call.log.wallClockDurationSeconds)
+                      : null,
+                },
+                {
+                  label: 'Paused (network)',
+                  value:
+                    call.log.pausedBillingSeconds > 0
+                      ? fmtDuration(call.log.pausedBillingSeconds)
+                      : null,
+                },
                 { label: 'Tokens consumed', value: fmtTokens(call.log.tokensConsumed) },
-                { label: 'Status', value: <StatusBadge status={call.log.status} /> },
+                { label: 'Status', value: <StatusBadge status={call.log.status || call.log.finalStatus} /> },
                 { label: 'Rate applied', value: `${call.log.ratePerSecond ?? call.ratePerSecond}/s` },
+                {
+                  label: 'Time / token mismatch',
+                  value: call.log.billingMismatch
+                    ? `Wall ${call.log.billingMismatch.wallClockSeconds}s · billable ${call.log.billingMismatch.billableSeconds}s · paused ${call.log.billingMismatch.pausedSeconds}s`
+                    : null,
+                },
               ]}
             />
           </Card>

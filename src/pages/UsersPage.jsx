@@ -47,6 +47,27 @@ export function UsersPage() {
         </div>
       ),
     },
+    {
+      key: 'gender',
+      header: 'Gender',
+      render: (row) => {
+        const gender = row.gender || 'UNDISCLOSED';
+    
+        return (
+          <Badge
+            tone={
+              gender === 'FEMALE'
+                ? 'success'
+                : gender === 'MALE'
+                  ? 'info'
+                  : 'neutral'
+            }
+          >
+            {gender.charAt(0) + gender.slice(1).toLowerCase()}
+          </Badge>
+        );
+      },
+    },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'listener',

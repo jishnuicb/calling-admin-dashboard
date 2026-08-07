@@ -105,7 +105,13 @@ console.log('Calls rows length:', data?.data?.length);
       header: 'End reason',
       render: (row) =>
         row.endReason ? (
-          <Badge tone={row.endReason === 'INSUFFICIENT_BALANCE' ? 'warning' : 'neutral'}>
+          <Badge
+            tone={
+              row.endReason === 'INSUFFICIENT_BALANCE' || String(row.endReason).includes('NETWORK')
+                ? 'warning'
+                : 'neutral'
+            }
+          >
             {row.endReason.replace(/_/g, ' ').toLowerCase()}
           </Badge>
         ) : (
