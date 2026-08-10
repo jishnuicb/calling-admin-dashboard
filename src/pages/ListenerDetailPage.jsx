@@ -1,8 +1,20 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Banknote, Check, PauseCircle, PlayCircle, StickyNote, X } from 'lucide-react';
-import { earningsApi, listenersApi, payoutsApi } from '../api/endpoints';
+import {
+  ArrowLeft,
+  Banknote,
+  Check,
+  Eye,
+  EyeOff,
+  PauseCircle,
+  PlayCircle,
+  RefreshCw,
+  ShieldCheck,
+  StickyNote,
+  X,
+} from 'lucide-react';
+import { earningsApi, listenersApi, payoutsApi, securityApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
@@ -14,6 +26,7 @@ import {
   DescList,
   ErrorState,
   Field,
+  Input,
   LoadingBlock,
   Modal,
   PageHeader,
@@ -70,6 +83,17 @@ const DECISIONS = {
     reasonRequired: false,
     notesField: 'verificationNotes',
     notesLabel: 'Verification notes',
+  },
+  reopen: {
+    title: 'Reopen this application',
+    description:
+      'Use when Cashfree cannot create the beneficiary because bank/UPI details are invalid. The listener is notified with your reason and can resubmit corrected details.',
+    confirmLabel: 'Reopen application',
+    variant: 'danger',
+    reasonRequired: true,
+    reasonLabel: 'Reason for reopening',
+    reasonPlaceholder:
+      'Cashfree account could not be created because the bank account details are invalid.',
   },
 };
 
@@ -286,11 +310,28 @@ export function ListenerDetailPage() {
   const [decision, setDecision] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [decryptKey, setDecryptKey] = useState('');
+  const [revealedApp, setRevealedApp] = useState(null);
 
   const { data: application, isLoading, error, refetch } = useQuery({
     queryKey: qk.listener(id),
     queryFn: () => listenersApi.get(id),
   });
+
+  const keyStatus = useQuery({
+    queryKey: ['security', 'sensitive-key'],
+    queryFn: () => securityApi.sensitiveKeyStatus(),
+    enabled: can(P.LISTENERS_APPROVE),
+  });
+
+  // Clear any temporarily revealed plaintext when leaving the page.
+  useEffect(
+    () => () => {
+      setDecryptKey('');
+      setRevealedApp(null);
+    },
+    [],
+  );
 
   const syncBeneficiary = useApiMutation({
     mutationFn: () => listenersApi.syncBeneficiary(id),
@@ -298,9 +339,39 @@ export function ListenerDetailPage() {
     invalidate: [qk.listener(id), ['listeners']],
   });
 
+  const unlockKey = useApiMutation({
+    mutationFn: () => securityApi.unlockSensitiveKey({ decryptionKey: decryptKey }),
+    successMessage: 'Decryption key unlocked for this server process',
+    invalidate: [['security', 'sensitive-key'], qk.listener(id)],
+  });
+
+  const lockKey = useApiMutation({
+    mutationFn: () => securityApi.lockSensitiveKey(),
+    successMessage: 'Decryption key cleared from server memory',
+    invalidate: [['security', 'sensitive-key']],
+    onSuccess: () => {
+      setDecryptKey('');
+      setRevealedApp(null);
+    },
+  });
+
+  const revealBank = useApiMutation({
+    mutationFn: () => listenersApi.revealBank(id, { decryptionKey: decryptKey }),
+    successMessage: 'Bank details revealed for this view only',
+    onSuccess: (data) => setRevealedApp(data),
+  });
+
+  const professionalVerify = useApiMutation({
+    mutationFn: () => listenersApi.professionalVerify(id),
+    successMessage: 'Professional verification approved',
+    invalidate: [qk.listener(id), ['listeners']],
+  });
+
   if (isLoading) return <LoadingBlock label="Loading application…" />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
+  const view = revealedApp || application;
+  const bank = view.bankDetails || {};
   const { status } = application;
 
   // Mirrors the backend's allowed transitions, so the UI cannot offer an action
@@ -309,15 +380,13 @@ export function ListenerDetailPage() {
   const canReject = status === 'PENDING' && can(P.LISTENERS_APPROVE);
   const canSuspend = status === 'APPROVED' && can(P.LISTENERS_SUSPEND);
   const canReactivate = status === 'SUSPENDED' && can(P.LISTENERS_SUSPEND);
+  const canReopen =
+    (status === 'APPROVED' || status === 'PENDING') && can(P.LISTENERS_APPROVE);
+  const canProfessionalVerify =
+    status === 'APPROVED' &&
+    !application.isProfessionalVerified &&
+    can(P.LISTENERS_APPROVE);
   const canManualPayout = status === 'APPROVED' && can(P.PAYOUTS_WRITE) && Boolean(application.userId);
-
-
-  console.log('Mobile Number:', application.user?.mobileNumber);
-console.log(
-  'Phone Number:',
-  `${application.user?.countryCode} ${application.user?.mobileNumber}`
-);
-
 
   return (
     <>
@@ -378,6 +447,22 @@ console.log(
               <Button onClick={() => setDecision('reactivate')}>
                 <PlayCircle className="size-4" />
                 Reactivate
+              </Button>
+            )}
+            {canReopen && (
+              <Button variant="secondary" onClick={() => setDecision('reopen')}>
+                <RefreshCw className="size-4" />
+                Reopen
+              </Button>
+            )}
+            {canProfessionalVerify && (
+              <Button
+                variant="secondary"
+                loading={professionalVerify.isPending}
+                onClick={() => professionalVerify.mutate()}
+              >
+                <ShieldCheck className="size-4" />
+                Professional verify
               </Button>
             )}
             {canManualPayout && (
@@ -465,15 +550,25 @@ console.log(
               { label: 'Re-applications', value: application.reapplyCount ?? 0 },
               { label: 'Bio', value: application.bio, full: true },
               {
-                label: 'Interests',
-                value: application.interests?.length ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {application.interests.map((i) => (
-                      <Badge key={i}>{i}</Badge>
-                    ))}
-                  </div>
-                ) : null,
+                label: 'Profession',
+                value: application.profession?.name || '—',
+              },
+              {
+                label: 'Professional verification',
+                value: application.isProfessionalVerified ? (
+                  <Badge tone="success">Verified</Badge>
+                ) : (
+                  <Badge>Not verified</Badge>
+                ),
+              },
+              application.reopenReason && {
+                label: 'Reopen reason',
+                value: <span className="text-amber-800">{application.reopenReason}</span>,
                 full: true,
+              },
+              application.resubmittedAt && {
+                label: 'Resubmitted',
+                value: fmtDateTime(application.resubmittedAt),
               },
               application.rejectionReason && {
                 label: 'Rejection reason',
@@ -534,26 +629,84 @@ console.log(
 
         <Card
           title="Payout details"
-          description="Bank details for Cashfree Payouts. Approving creates a beneficiary automatically (retry below if it failed)."
+          description="Sensitive fields are masked by default. Enter the permanent decryption key to reveal or sync Cashfree. The key is never stored."
           className="lg:col-span-2"
         >
-          {application.bankDetails?.provided ? (
+          {can(P.LISTENERS_APPROVE) && (
+            <div className="mb-4 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
+              <p className="text-xs text-ink-600">
+                Server key status:{' '}
+                <span className="font-medium">
+                  {keyStatus.data?.unlocked ? 'Unlocked (memory only)' : 'Locked'}
+                </span>
+              </p>
+              <Field label="Permanent decryption key" hint="Held only in memory for this session. Never saved.">
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  value={decryptKey}
+                  onChange={(e) => setDecryptKey(e.target.value)}
+                  placeholder="Enter permanent decryption key"
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={unlockKey.isPending}
+                  disabled={!decryptKey.trim()}
+                  onClick={() => unlockKey.mutate()}
+                >
+                  Unlock for Cashfree
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={revealBank.isPending}
+                  disabled={!decryptKey.trim()}
+                  onClick={() => revealBank.mutate()}
+                >
+                  <Eye className="size-4" />
+                  Reveal details
+                </Button>
+                {(revealedApp || keyStatus.data?.unlocked) && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    loading={lockKey.isPending}
+                    onClick={() => lockKey.mutate()}
+                  >
+                    <EyeOff className="size-4" />
+                    Clear key / remask
+                  </Button>
+                )}
+              </div>
+              {(unlockKey.error || revealBank.error || lockKey.error) && (
+                <ErrorState error={unlockKey.error || revealBank.error || lockKey.error} compact />
+              )}
+            </div>
+          )}
+
+          {bank.provided ? (
             <>
               <DescList
                 items={[
-                  { label: 'Account holder', value: application.bankDetails.accountHolderName },
-                  { label: 'Bank', value: application.bankDetails.bankName },
                   {
-                    // The application detail response is the only place the full
-                    // number is returned; every list shows it masked.
+                    label: 'Account holder',
+                    value: bank.accountHolderName || bank.accountHolderNameMasked || '—',
+                  },
+                  { label: 'Bank', value: bank.bankName },
+                  {
                     label: 'Account number',
-                    value: application.bankDetails.bankAccountNumber,
+                    value: bank.revealed
+                      ? bank.bankAccountNumber
+                      : bank.bankAccountNumberMasked,
                     mono: true,
                   },
-                  { label: 'IFSC', value: application.bankDetails.ifscCode, mono: true },
+                  { label: 'IFSC', value: bank.ifscCode, mono: true },
                   {
                     label: 'UPI id',
-                    value: application.bankDetails.upiId,
+                    value: bank.revealed ? bank.upiId : bank.upiIdMasked || bank.upiId,
                     mono: true,
                   },
                   {
@@ -572,7 +725,7 @@ console.log(
               )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <p className="text-xs text-ink-500">
-                  The listener can correct bank details from the app without re-applying.
+                  Unlock the permanent key before syncing Cashfree when details are encrypted.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {can(P.PAYOUTS_WRITE) && (
@@ -598,7 +751,7 @@ console.log(
             <div className="rounded-lg bg-amber-50 px-3.5 py-3 text-sm text-amber-800">
               <p className="font-medium">No usable payout details on file.</p>
               <p className="mt-1 text-xs">
-                {application.bankDetails?.bankAccountNumberMasked
+                {bank.bankAccountNumberMasked
                   ? 'Some fields are present but the set is incomplete, so a payout would fail.'
                   : 'This application was submitted before payout details were collected.'}{' '}
                 Account holder name, account number, IFSC, bank name and UPI id are all required. Ask

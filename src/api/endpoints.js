@@ -43,8 +43,21 @@ export const listenersApi = {
   reject: (id, body) => post(`/admin/listeners/applications/${id}/reject`, body),
   suspend: (id, body) => post(`/admin/listeners/applications/${id}/suspend`, body),
   reactivate: (id, body) => post(`/admin/listeners/applications/${id}/reactivate`, body),
+  reopen: (id, body) => post(`/admin/listeners/applications/${id}/reopen`, body),
+  professionalVerify: (id) => post(`/admin/listeners/applications/${id}/professional-verify`),
+  revealBank: (id, body) => post(`/admin/listeners/applications/${id}/bank-details/reveal`, body),
   addNotes: (id, body) => post(`/admin/listeners/applications/${id}/notes`, body),
   syncBeneficiary: (id) => post(`/admin/listeners/applications/${id}/beneficiary/sync`),
+};
+
+export const professionsApi = {
+  list: (params) => get('/admin/professions', params),
+};
+
+export const securityApi = {
+  sensitiveKeyStatus: () => get('/admin/security/sensitive-key/status'),
+  unlockSensitiveKey: (body) => post('/admin/security/sensitive-key/unlock', body),
+  lockSensitiveKey: () => post('/admin/security/sensitive-key/lock'),
 };
 
 // --- Listener earnings & Cashfree payouts -----------------------------------
