@@ -334,7 +334,11 @@ export function ListenerDetailPage() {
   );
 
   const syncBeneficiary = useApiMutation({
-    mutationFn: () => listenersApi.syncBeneficiary(id),
+    mutationFn: () =>
+      listenersApi.syncBeneficiary(id, {
+        // Pass key for this request when typed; otherwise server uses in-memory unlock.
+        decryptionKey: decryptKey.trim() || undefined,
+      }),
     successMessage: 'Cashfree beneficiary synced',
     invalidate: [qk.listener(id), ['listeners']],
   });
@@ -745,6 +749,11 @@ export function ListenerDetailPage() {
                     </Button>
                   )}
                 </div>
+                {syncBeneficiary.error && (
+                  <div className="mt-2">
+                    <ErrorState error={syncBeneficiary.error} compact />
+                  </div>
+                )}
               </div>
             </>
           ) : (

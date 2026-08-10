@@ -47,7 +47,8 @@ export const listenersApi = {
   professionalVerify: (id) => post(`/admin/listeners/applications/${id}/professional-verify`),
   revealBank: (id, body) => post(`/admin/listeners/applications/${id}/bank-details/reveal`, body),
   addNotes: (id, body) => post(`/admin/listeners/applications/${id}/notes`, body),
-  syncBeneficiary: (id) => post(`/admin/listeners/applications/${id}/beneficiary/sync`),
+  syncBeneficiary: (id, body) =>
+    post(`/admin/listeners/applications/${id}/beneficiary/sync`, body || {}),
 };
 
 export const professionsApi = {
