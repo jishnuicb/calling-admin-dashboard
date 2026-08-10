@@ -49,6 +49,7 @@ export const qk = {
   weeklySettings: ['bonuses', 'weekly', 'settings'],
 
   permissions: ['rbac', 'permissions'],
+  sections: ['rbac', 'sections'],
   roles: ['rbac', 'roles'],
   admins: (params) => ['rbac', 'admins', params],
 

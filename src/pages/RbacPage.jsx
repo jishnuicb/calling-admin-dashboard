@@ -351,6 +351,14 @@ function RolesTab() {
 
 // --- Admin users ------------------------------------------------------------
 
+const FALLBACK_SECTIONS = [
+  { key: 'OVERVIEW', label: 'Overview' },
+  { key: 'PEOPLE', label: 'People' },
+  { key: 'MONEY', label: 'Money' },
+  { key: 'ACTIVITY', label: 'Activity' },
+  { key: 'SYSTEM', label: 'System' },
+];
+
 function AdminFormModal({ adminUser, roles, onClose }) {
   const editing = Boolean(adminUser);
   const { admin: currentAdmin } = useAuth();
@@ -361,7 +369,23 @@ function AdminFormModal({ adminUser, roles, onClose }) {
     roleId: adminUser?.roleId || adminUser?.role?.id || '',
     status: adminUser?.status || 'ACTIVE',
     isSuperAdmin: adminUser?.isSuperAdmin ?? false,
+    sections: adminUser?.sections ? [...adminUser.sections] : FALLBACK_SECTIONS.map((s) => s.key),
   });
+
+  const { data: sectionsResponse } = useQuery({
+    queryKey: qk.sections,
+    queryFn: () => rbacApi.sections(),
+  });
+  const sectionOptions = sectionsResponse?.data || FALLBACK_SECTIONS;
+
+  const setSectionChecked = (key, checked) => {
+    setForm((prev) => ({
+      ...prev,
+      sections: checked
+        ? [...new Set([...prev.sections, key])]
+        : prev.sections.filter((s) => s !== key),
+    }));
+  };
 
   const mutation = useApiMutation({
     mutationFn: () => {
@@ -371,6 +395,7 @@ function AdminFormModal({ adminUser, roles, onClose }) {
           roleId: form.roleId,
           status: form.status,
           isSuperAdmin: form.isSuperAdmin,
+          sections: form.sections,
         };
         if (form.password) body.password = form.password;
         return rbacApi.updateAdmin(adminUser.id, body);
@@ -381,6 +406,7 @@ function AdminFormModal({ adminUser, roles, onClose }) {
         name: form.name.trim(),
         roleId: form.roleId,
         isSuperAdmin: form.isSuperAdmin,
+        sections: form.sections,
       });
     },
     successMessage: editing ? 'Admin updated' : 'Admin created',
@@ -475,10 +501,40 @@ function AdminFormModal({ adminUser, roles, onClose }) {
           </Field>
         )}
 
+        <Field
+          label="Permissions"
+          hint="Dashboard sections this admin may open. Unauthorized sections are hidden and blocked."
+          error={fieldErrors.sections}
+        >
+          <div className="space-y-2 rounded-lg border border-ink-200 bg-ink-50/60 px-3.5 py-3">
+            {sectionOptions.map((section) => (
+              <Checkbox
+                key={section.key}
+                checked={form.isSuperAdmin || form.sections.includes(section.key)}
+                onChange={(checked) => setSectionChecked(section.key, checked)}
+                label={section.label}
+                disabled={form.isSuperAdmin}
+              />
+            ))}
+            {form.isSuperAdmin && (
+              <p className="text-xs text-ink-500">
+                Super admins bypass section checks. Section assignments still apply if super access
+                is later removed.
+              </p>
+            )}
+          </div>
+        </Field>
+
         <div className="rounded-lg bg-ink-50 px-3.5 py-3">
           <Checkbox
             checked={form.isSuperAdmin}
-            onChange={(v) => setForm({ ...form, isSuperAdmin: v })}
+            onChange={(v) =>
+              setForm({
+                ...form,
+                isSuperAdmin: v,
+                sections: v ? sectionOptions.map((s) => s.key) : form.sections,
+              })
+            }
             label="Super admin"
             description="Bypasses every permission check regardless of role. Grant sparingly."
           />
@@ -529,6 +585,24 @@ function AdminsTab() {
       key: 'role',
       header: 'Role',
       render: (row) => <Badge tone="info">{row.role?.name || '—'}</Badge>,
+    },
+    {
+      key: 'sections',
+      header: 'Sections',
+      render: (row) =>
+        row.isSuperAdmin ? (
+          <span className="text-xs text-ink-500">All (super)</span>
+        ) : (row.sections || []).length ? (
+          <div className="flex flex-wrap gap-1">
+            {row.sections.map((key) => (
+              <Badge key={key} tone="neutral">
+                {titleCase(key.toLowerCase())}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-ink-400">None</span>
+        ),
     },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {

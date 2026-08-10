@@ -2,10 +2,22 @@ import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { KeyRound } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { firstAllowedPath } from '../auth/sections';
 import { Button, ErrorState, Field, Input, LoadingBlock } from '../components/ui';
 
+function homeForAdmin(admin) {
+  const isSuperAdmin = Boolean(admin?.isSuperAdmin);
+  const permissions = new Set(admin?.permissions || []);
+  const sections = new Set(admin?.sections || []);
+  const can = (...required) =>
+    isSuperAdmin || required.flat().filter(Boolean).some((key) => permissions.has(key));
+  const canSection = (...required) =>
+    isSuperAdmin || required.flat().filter(Boolean).some((key) => sections.has(key));
+  return firstAllowedPath({ can, canSection });
+}
+
 export function LoginPage() {
-  const { login, isAuthenticated, status, expiryNotice } = useAuth();
+  const { login, isAuthenticated, status, expiryNotice, can, canSection } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -22,7 +34,10 @@ export function LoginPage() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={location.state?.from || '/'} replace />;
+    const home = firstAllowedPath({ can, canSection });
+    const requested = location.state?.from;
+    // Route guards block unauthorized deep-links; default to first allowed section.
+    return <Navigate to={requested || home} replace />;
   }
 
   const submit = async (e) => {
@@ -30,8 +45,9 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(form);
-      navigate(location.state?.from || '/', { replace: true });
+      const admin = await login(form);
+      const home = homeForAdmin(admin);
+      navigate(location.state?.from || home, { replace: true });
     } catch (err) {
       setError(err);
     } finally {

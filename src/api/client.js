@@ -151,6 +151,7 @@ const refreshSession = async () => {
     // treated as theft and revoke every session for this admin.
     refreshToken: data.refreshToken,
     permissions: data.permissions || existing.permissions,
+    sections: data.sections || existing.sections,
   };
   tokenStore.write(session);
   return session;

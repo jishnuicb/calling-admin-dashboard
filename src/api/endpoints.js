@@ -192,6 +192,7 @@ export const bonusesApi = {
 
 export const rbacApi = {
   permissions: () => get('/admin/permissions'),
+  sections: () => get('/admin/sections'),
   roles: () => get('/admin/roles'),
   createRole: (body) => post('/admin/roles', body),
   updateRole: (id, body) => patch(`/admin/roles/${id}`, body),

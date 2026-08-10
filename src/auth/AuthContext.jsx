@@ -74,6 +74,7 @@ export function AuthProvider({ children }) {
       accessToken: result.tokens.accessToken,
       refreshToken: result.tokens.refreshToken,
       permissions: result.admin.permissions,
+      sections: result.admin.sections,
     });
     setAdmin(result.admin);
     setStatus('authenticated');
@@ -101,6 +102,7 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => {
     const permissions = new Set(admin?.permissions || []);
+    const sections = new Set(admin?.sections || []);
     const isSuperAdmin = Boolean(admin?.isSuperAdmin);
 
     /** Super admins bypass every check, matching the backend's behaviour. */
@@ -111,14 +113,24 @@ export function AuthProvider({ children }) {
       return list.some((key) => permissions.has(key));
     };
 
+    /** Dashboard section gate (Overview / People / …). */
+    const canSection = (...required) => {
+      if (isSuperAdmin) return true;
+      const list = required.flat().filter(Boolean);
+      if (list.length === 0) return true;
+      return list.some((key) => sections.has(key));
+    };
+
     return {
       admin,
       status,
       isAuthenticated: status === 'authenticated',
       isSuperAdmin,
       permissions,
+      sections,
       expiryNotice,
       can,
+      canSection,
       canAll: (...required) =>
         isSuperAdmin || required.flat().filter(Boolean).every((key) => permissions.has(key)),
       login,

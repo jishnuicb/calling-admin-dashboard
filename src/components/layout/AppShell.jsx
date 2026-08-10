@@ -29,17 +29,18 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { P } from '../../auth/permissions';
+import { S, firstAllowedPath } from '../../auth/sections';
 import { Badge, Button, Modal, Field, Input, ErrorState } from '../ui';
 import { useToast } from '../ui/Toast';
 import { authApi } from '../../api/endpoints';
 
 /**
- * Navigation is permission-filtered: an admin only sees sections they can
- * actually use. The server enforces the same keys, so this is purely about not
- * presenting dead ends.
+ * Navigation is section- then permission-filtered. Unauthorized sections are
+ * omitted entirely (not shown disabled). The API enforces the same rules.
  */
 const NAV_SECTIONS = [
   {
+    key: S.OVERVIEW,
     title: 'Overview',
     items: [
       { to: '/', label: 'Dashboard', icon: LayoutDashboard, permission: P.DASHBOARD_READ, end: true },
@@ -47,6 +48,7 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    key: S.PEOPLE,
     title: 'People',
     items: [
       { to: '/users', label: 'Users', icon: Users, permission: P.USERS_READ },
@@ -57,6 +59,7 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    key: S.MONEY,
     title: 'Money',
     items: [
       { to: '/payments', label: 'Payments', icon: CreditCard, permission: P.PAYMENTS_READ },
@@ -68,6 +71,7 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    key: S.ACTIVITY,
     title: 'Activity',
     items: [
       { to: '/calls', label: 'Calls', icon: PhoneCall, permission: P.CALLS_READ },
@@ -76,6 +80,7 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    key: S.SYSTEM,
     title: 'System',
     items: [
       { to: '/config', label: 'Configuration', icon: Settings, permission: P.CONFIG_READ },
@@ -87,12 +92,14 @@ const NAV_SECTIONS = [
 ];
 
 function SidebarContent({ onNavigate }) {
-  const { can } = useAuth();
+  const { can, canSection } = useAuth();
 
-  const sections = NAV_SECTIONS.map((section) => ({
-    ...section,
-    items: section.items.filter((item) => can(item.permission)),
-  })).filter((section) => section.items.length > 0);
+  const sections = NAV_SECTIONS.filter((section) => canSection(section.key))
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => can(item.permission)),
+    }))
+    .filter((section) => section.items.length > 0);
 
   return (
     <div className="flex h-full flex-col">
@@ -139,7 +146,7 @@ function SidebarContent({ onNavigate }) {
 
         {sections.length === 0 && (
           <p className="px-2 text-xs text-ink-400">
-            Your role has no dashboard permissions. Ask a super admin to grant access.
+            Your account has no dashboard sections. Ask a super admin to grant access.
           </p>
         )}
       </nav>
@@ -364,8 +371,11 @@ export function AppShell() {
   );
 }
 
-/** Shown when an admin reaches a route their role does not cover. */
+/** Shown when an admin reaches a route their role/section does not cover. */
 export function Forbidden() {
+  const { can, canSection } = useAuth();
+  const home = firstAllowedPath({ can, canSection });
+
   return (
     <div className="mx-auto max-w-md py-20 text-center">
       <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-amber-100">
@@ -373,12 +383,31 @@ export function Forbidden() {
       </span>
       <h1 className="text-lg font-semibold text-ink-900">You do not have access to this section</h1>
       <p className="mt-2 text-sm text-ink-500">
-        Your role is missing the permission this page requires. A super admin can grant it under
-        Admins &amp; roles.
+        Your account is missing the section permission this page requires. A super admin can grant
+        it under Admins &amp; roles.
       </p>
-      <Link to="/" className="mt-5 inline-block text-sm font-medium text-brand-600 hover:underline">
-        Back to dashboard
+      <Link
+        to={home}
+        className="mt-5 inline-block text-sm font-medium text-brand-600 hover:underline"
+      >
+        {home === '/no-access' ? 'View access status' : 'Go to an allowed page'}
       </Link>
+    </div>
+  );
+}
+
+/** Dedicated landing when the admin has no assigned dashboard sections. */
+export function NoAccess() {
+  return (
+    <div className="mx-auto max-w-md py-20 text-center">
+      <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-amber-100">
+        <ShieldCheck className="size-6 text-amber-600" />
+      </span>
+      <h1 className="text-lg font-semibold text-ink-900">No dashboard access</h1>
+      <p className="mt-2 text-sm text-ink-500">
+        Your admin account has no section permissions. Ask a super admin to assign Overview,
+        People, Money, Activity, or System access.
+      </p>
     </div>
   );
 }
