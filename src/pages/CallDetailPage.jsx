@@ -21,7 +21,7 @@ import {
   StatusBadge,
   Textarea,
 } from '../components/ui';
-import { fmtDateTimeSeconds, fmtDuration, fmtTokens, shortId } from '../lib/format';
+import { fmtDateTime, fmtDateTimeSeconds, fmtDuration, fmtTokens, shortId, titleCase } from '../lib/format';
 
 const LIVE_STATUSES = ['RINGING', 'ACTIVE'];
 
@@ -93,13 +93,7 @@ export function CallDetailPage() {
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   const isLive = LIVE_STATUSES.includes(call.status);
-
-
-  console.log('CALL DETAIL DATA:', call);
-  console.log('CALLER:', call.caller);
-  console.log('LISTENER:', call.listener);
-  console.log('CALLER ID:', call.callerId);
-  console.log('LISTENER ID:', call.listenerId);
+  const reports = call.reports || [];
 
   return (
     <>
@@ -325,6 +319,52 @@ export function CallDetailPage() {
             />
           </Card>
         )}
+
+        <Card
+          title="User reports"
+          description={
+            reports.length
+              ? 'Filed by the caller and/or listener from call history.'
+              : 'No reports have been filed for this call yet.'
+          }
+          className="lg:col-span-3"
+        >
+          {reports.length === 0 ? (
+            <p className="text-sm text-ink-500">—</p>
+          ) : (
+            <ul className="divide-y divide-ink-100">
+              {reports.map((report) => (
+                <li key={report.id} className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-ink-900">{titleCase(report.reason)}</p>
+                      <StatusBadge status={report.status} />
+                      {report.reporterRole && (
+                        <Badge tone="neutral">{titleCase(report.reporterRole)} reported</Badge>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-ink-500">
+                      {report.reporter?.name || shortId(report.reporterId)}
+                      {' → '}
+                      {report.reportedUser?.name || shortId(report.reportedUserId)}
+                      {' · '}
+                      {fmtDateTime(report.createdAt)}
+                    </p>
+                    {report.description && (
+                      <p className="mt-1 text-xs text-ink-600 whitespace-pre-wrap">{report.description}</p>
+                    )}
+                  </div>
+                  <Link
+                    to={`/moderation/${report.id}`}
+                    className="shrink-0 text-xs font-medium text-brand-600 hover:underline"
+                  >
+                    Open report
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
         {call.mediaMetadata && (
           <Card

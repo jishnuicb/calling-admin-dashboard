@@ -72,9 +72,18 @@ export class ApiError extends Error {
 const toApiError = (error) => {
   if (error.response) {
     const body = error.response.data || {};
+    // Prefer Cashfree/upstream providerMessage when present so admins see the
+    // exact reason (e.g. "IFSC provided is invalid") instead of a generic wrap.
+    const providerMessage =
+      body.details?.providerMessage ||
+      (typeof body.details === 'string' ? body.details : null);
     return new ApiError({
       statusCode: body.statusCode || error.response.status,
-      message: body.message || error.response.statusText || 'Request failed',
+      message:
+        providerMessage ||
+        body.message ||
+        error.response.statusText ||
+        'Request failed',
       code: body.error || 'REQUEST_FAILED',
       details: body.details,
       // Most error bodies omit requestId, but the backend always sends the
@@ -142,6 +151,7 @@ const refreshSession = async () => {
     // treated as theft and revoke every session for this admin.
     refreshToken: data.refreshToken,
     permissions: data.permissions || existing.permissions,
+    sections: data.sections || existing.sections,
   };
   tokenStore.write(session);
   return session;

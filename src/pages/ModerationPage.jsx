@@ -15,7 +15,7 @@ import {
   StatusBadge,
 } from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
-import { fmtRelative, shortId, titleCase } from '../lib/format';
+import { fmtDuration, fmtRelative, shortId, titleCase } from '../lib/format';
 
 const REASONS = [
   'ABUSIVE_LANGUAGE',
@@ -34,8 +34,10 @@ export function ModerationPage() {
   const table = useTableState({
     status: searchParams.get('status') || '',
     reason: '',
+    hasCall: searchParams.get('hasCall') || '',
     reportedUserId: '',
     reporterId: '',
+    callSessionId: '',
     from: '',
     to: '',
   });
@@ -63,28 +65,48 @@ export function ModerationPage() {
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'reported',
-      header: 'Reported user',
+      header: 'Reported',
       render: (row) => (
-        <span className="text-xs text-ink-700">
-          {row.reportedUser?.name || shortId(row.reportedUserId)}
-        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-ink-800">
+            {row.reportedUser?.name || shortId(row.reportedUserId)}
+          </p>
+          {row.reportedRole && (
+            <p className="text-[11px] text-ink-500">{titleCase(row.reportedRole)}</p>
+          )}
+        </div>
       ),
     },
     {
       key: 'reporter',
       header: 'Reporter',
       render: (row) => (
-        <span className="text-xs text-ink-600">
-          {row.reporter?.name || shortId(row.reporterId)}
-        </span>
+        <div className="min-w-0">
+          <p className="text-xs text-ink-700">
+            {row.reporter?.name || shortId(row.reporterId)}
+          </p>
+          {row.reporterRole && (
+            <p className="text-[11px] text-ink-500">{titleCase(row.reporterRole)}</p>
+          )}
+        </div>
       ),
     },
     {
       key: 'call',
       header: 'Call',
       render: (row) =>
-        row.callSessionId ? (
-          <span className="font-mono text-[11px] text-ink-600">{shortId(row.callSessionId)}</span>
+        row.callSessionId || row.call?.id ? (
+          <div className="min-w-0">
+            <p className="font-mono text-[11px] text-ink-700">
+              {shortId(row.callSessionId || row.call.id)}
+            </p>
+            {row.call?.durationSeconds != null && (
+              <p className="text-[11px] text-ink-500">
+                {fmtDuration(row.call.durationSeconds)}
+                {row.call.status ? ` · ${titleCase(row.call.status)}` : ''}
+              </p>
+            )}
+          </div>
         ) : (
           <span className="text-ink-400">—</span>
         ),
@@ -110,7 +132,7 @@ export function ModerationPage() {
     <>
       <PageHeader
         title="Moderation"
-        description="User reports and their workflow: pending → under review → resolved or rejected."
+        description="User and listener reports from call history and direct reports. Open a row for full detail."
       />
 
       <Card bodyClassName="">
@@ -140,6 +162,25 @@ export function ModerationPage() {
                 </option>
               ))}
             </Select>
+          </Field>
+
+          <Field label="Call link" className="w-44">
+            <Select
+              value={table.filters.hasCall}
+              onChange={(e) => table.setFilter('hasCall', e.target.value)}
+            >
+              <option value="">All reports</option>
+              <option value="true">From a call</option>
+              <option value="false">No call linked</option>
+            </Select>
+          </Field>
+
+          <Field label="Call session id" className="w-44">
+            <SearchInput
+              value={table.filters.callSessionId}
+              onChange={(v) => table.setFilter('callSessionId', v)}
+              placeholder="UUID"
+            />
           </Field>
 
           <Field label="Reported user id" className="w-44">

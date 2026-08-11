@@ -24,7 +24,9 @@ import {
 import { fmtDateTime, fmtMoney, fmtTokens } from '../lib/format';
 
 function RefundModal({ payment, onClose }) {
-  const maxRefundable = (payment.amount || 0) - (payment.refundAmount || 0);
+  const paid = Number(payment.amount || 0);
+  const alreadyRefunded = Number(payment.refundAmount || 0);
+  const maxRefundable = Math.round((paid - alreadyRefunded) * 100) / 100;
   const [form, setForm] = useState({ amount: '', reason: '' });
 
   const mutation = useApiMutation({
@@ -127,10 +129,12 @@ export function PaymentDetailPage() {
   if (isLoading) return <LoadingBlock label="Loading payment…" />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
+  const remainingRefundable =
+    Math.round((Number(payment.amount || 0) - Number(payment.refundAmount || 0)) * 100) / 100;
   const refundable =
     can(P.PAYMENTS_REFUND) &&
-    payment.status === 'SUCCESS' &&
-    (payment.amount || 0) - (payment.refundAmount || 0) > 0;
+    (payment.status === 'SUCCESS' || payment.status === 'PARTIALLY_REFUNDED') &&
+    remainingRefundable > 0;
 
   return (
     <>

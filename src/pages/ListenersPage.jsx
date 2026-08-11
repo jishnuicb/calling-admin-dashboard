@@ -61,6 +61,18 @@ export function ListenersPage() {
     },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
+      key: 'isProfessionalVerified',
+      header: 'Profession verified',
+      render: (row) =>
+        row.isProfessionalVerified ? (
+          <Badge tone="success" dot>
+            Verified
+          </Badge>
+        ) : (
+          <Badge tone="neutral">Not verified</Badge>
+        ),
+    },
+    {
       key: 'languages',
       header: 'Languages',
       render: (row) =>

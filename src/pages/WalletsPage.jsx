@@ -209,7 +209,7 @@ export function WalletsPage() {
     },
     {
       key: 'amount',
-      header: 'Amount',
+      header: 'Tokens',
       align: 'right',
       render: (row) => (
         <span
@@ -218,6 +218,19 @@ export function WalletsPage() {
           {fmtSigned(row.amount)}
         </span>
       ),
+    },
+    {
+      key: 'purchaseAmount',
+      header: 'Amount paid',
+      align: 'right',
+      render: (row) =>
+        row.purchaseAmount != null || row.amountPaid != null ? (
+          <span className="tabular text-sm text-ink-800">
+            ₹{Number(row.purchaseAmount ?? row.amountPaid).toFixed(2)}
+          </span>
+        ) : (
+          <span className="text-ink-400">—</span>
+        ),
     },
     {
       key: 'balanceAfter',
