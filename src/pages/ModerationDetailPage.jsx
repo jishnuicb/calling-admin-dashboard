@@ -21,7 +21,7 @@ import {
   StatusBadge,
   Textarea,
 } from '../components/ui';
-import { fmtDateTime, shortId, titleCase } from '../lib/format';
+import { fmtDateTime, fmtDuration, fmtTokens, shortId, titleCase } from '../lib/format';
 
 const ACTIONS = [
   { value: 'NONE', label: 'No action', hint: 'Logged, but nothing is enforced.' },
@@ -205,8 +205,13 @@ export function ModerationDetailPage() {
         <div className="space-y-4">
           <Card title="Reported user">
             <p className="text-sm font-medium text-ink-900">
-              {report.reportedUser?.name || shortId(report.reportedUserId)}
+              {report.reportedUser?.listenerApplication?.displayName ||
+                report.reportedUser?.name ||
+                shortId(report.reportedUserId)}
             </p>
+            {report.reportedRole && (
+              <p className="mt-1 text-xs text-ink-500">Role on call: {titleCase(report.reportedRole)}</p>
+            )}
             {report.reportedUser?.status && (
               <div className="mt-1.5">
                 <StatusBadge status={report.reportedUser.status} />
@@ -224,6 +229,9 @@ export function ModerationDetailPage() {
             <p className="text-sm text-ink-800">
               {report.reporter?.name || shortId(report.reporterId)}
             </p>
+            {report.reporterRole && (
+              <p className="mt-1 text-xs text-ink-500">Role on call: {titleCase(report.reporterRole)}</p>
+            )}
             <Link
               to={`/users/${report.reporterId}`}
               className="mt-1.5 block text-xs font-medium text-brand-600 hover:underline"
@@ -232,15 +240,63 @@ export function ModerationDetailPage() {
             </Link>
           </Card>
 
-          {report.callSessionId && (
+          {(report.call || report.callSessionId) && (
             <Card title="Referenced call">
-              <p className="font-mono text-xs text-ink-600">{report.callSessionId}</p>
-              <Link
-                to={`/calls/${report.callSessionId}`}
-                className="mt-1.5 block text-xs font-medium text-brand-600 hover:underline"
-              >
-                Open call session
-              </Link>
+              <DescList
+                columns={1}
+                items={[
+                  {
+                    label: 'Session',
+                    value: (
+                      <Link
+                        to={`/calls/${report.call?.id || report.callSessionId}`}
+                        className="font-mono text-xs font-medium text-brand-600 hover:underline"
+                      >
+                        {shortId(report.call?.id || report.callSessionId)}
+                      </Link>
+                    ),
+                  },
+                  {
+                    label: 'Status',
+                    value: report.call?.status ? (
+                      <StatusBadge status={report.call.status} />
+                    ) : null,
+                  },
+                  {
+                    label: 'Duration',
+                    value:
+                      report.call?.durationSeconds != null
+                        ? fmtDuration(report.call.durationSeconds)
+                        : null,
+                  },
+                  {
+                    label: 'Tokens',
+                    value:
+                      report.call?.tokensConsumed != null
+                        ? fmtTokens(report.call.tokensConsumed)
+                        : null,
+                  },
+                  {
+                    label: 'End reason',
+                    value: report.call?.endReason
+                      ? titleCase(report.call.endReason)
+                      : null,
+                  },
+                  {
+                    label: 'Caller',
+                    value: report.call?.caller?.name || shortId(report.call?.callerId),
+                  },
+                  {
+                    label: 'Listener',
+                    value: report.call?.listener?.name || shortId(report.call?.listenerId),
+                  },
+                  {
+                    label: 'Started',
+                    value: fmtDateTime(report.call?.startedAt || report.call?.initiatedAt),
+                  },
+                  { label: 'Ended', value: fmtDateTime(report.call?.endedAt) },
+                ]}
+              />
             </Card>
           )}
         </div>
