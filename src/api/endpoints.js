@@ -209,6 +209,12 @@ export const configApi = {
   set: (body) => put('/admin/config', body),
 };
 
+/** App version release + company WhatsApp (dedicated admin form). */
+export const appSettingsApi = {
+  get: () => get('/admin/app-settings'),
+  update: (body) => put('/admin/app-settings', body),
+};
+
 // --- Legal documents (privacy / terms) --------------------------------------
 
 export const legalApi = {

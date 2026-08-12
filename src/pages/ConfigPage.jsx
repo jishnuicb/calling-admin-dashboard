@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Settings } from 'lucide-react';
-import { configApi } from '../api/endpoints';
+import { appSettingsApi, configApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
@@ -16,6 +16,7 @@ import {
   LoadingBlock,
   Modal,
   PageHeader,
+  Select,
   Toggle,
 } from '../components/ui';
 
@@ -139,6 +140,166 @@ const CONFIG_META = {
   },
 };
 
+/** Edited in the dedicated App & support card — hide from the generic list. */
+const APP_SETTINGS_KEYS = new Set([
+  'app.version.major',
+  'app.version.minor',
+  'app.version.patch',
+  'app.releaseType',
+  'company.whatsappNumber',
+]);
+
+function AppSettingsCard({ writable }) {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: qk.appSettings,
+    queryFn: () => appSettingsApi.get(),
+  });
+
+  const [major, setMajor] = useState(1);
+  const [minor, setMinor] = useState(0);
+  const [patch, setPatch] = useState(0);
+  const [releaseType, setReleaseType] = useState('MINOR');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+
+  useEffect(() => {
+    if (!data) return;
+    setMajor(data.version?.major ?? 1);
+    setMinor(data.version?.minor ?? 0);
+    setPatch(data.version?.patch ?? 0);
+    setReleaseType(data.version?.releaseType || 'MINOR');
+    setWhatsappNumber(data.whatsappNumber || '');
+  }, [data]);
+
+  const mutation = useApiMutation({
+    mutationFn: () =>
+      appSettingsApi.update({
+        major: Number(major),
+        minor: Number(minor),
+        patch: Number(patch),
+        releaseType,
+        whatsappNumber: whatsappNumber.trim(),
+      }),
+    successMessage: 'App settings saved',
+    invalidate: [qk.appSettings, qk.config],
+  });
+
+  if (isLoading) return <LoadingBlock label="Loading app settings…" />;
+  if (error) return <ErrorState error={error} onRetry={refetch} />;
+
+  const label = `${Number(major) || 0}.${Number(minor) || 0}.${Number(patch) || 0}`;
+  const dirty =
+    Number(major) !== (data.version?.major ?? 1) ||
+    Number(minor) !== (data.version?.minor ?? 0) ||
+    Number(patch) !== (data.version?.patch ?? 0) ||
+    releaseType !== (data.version?.releaseType || 'MINOR') ||
+    whatsappNumber.trim() !== (data.whatsappNumber || '');
+
+  return (
+    <Card
+      title="App version & WhatsApp"
+      description="Shown to the mobile app via GET /app/settings and GET /app/whatsapp. Edit both here without a redeploy."
+      actions={
+        writable ? (
+          <Button onClick={() => mutation.mutate()} loading={mutation.isPending} disabled={!dirty}>
+            Save app settings
+          </Button>
+        ) : null
+      }
+    >
+      <div className="space-y-5">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            App release
+          </p>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Field label="Major" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={major}
+                disabled={!writable}
+                onChange={(e) => setMajor(e.target.value)}
+              />
+            </Field>
+            <Field label="Minor" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={minor}
+                disabled={!writable}
+                onChange={(e) => setMinor(e.target.value)}
+              />
+            </Field>
+            <Field label="Patch" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={patch}
+                disabled={!writable}
+                onChange={(e) => setPatch(e.target.value)}
+              />
+            </Field>
+            <Field label="Release type" required>
+              <Select
+                value={releaseType}
+                disabled={!writable}
+                onChange={(e) => setReleaseType(e.target.value)}
+              >
+                <option value="MAJOR">MAJOR</option>
+                <option value="MINOR">MINOR</option>
+                <option value="PATCH">PATCH</option>
+              </Select>
+            </Field>
+          </div>
+          <p className="mt-2 text-xs text-ink-500">
+            Current label: <span className="font-medium tabular text-ink-800">{label}</span>
+            {data.version?.label && data.version.label !== label ? (
+              <span className="text-ink-400"> (saved as {data.version.label})</span>
+            ) : null}
+          </p>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            Company WhatsApp
+          </p>
+          <Field
+            label="WhatsApp number"
+            hint="Include country code. Flutter opens wa.me from this value."
+          >
+            <Input
+              type="tel"
+              placeholder="+91 98765 43210"
+              value={whatsappNumber}
+              disabled={!writable}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              maxLength={32}
+            />
+          </Field>
+          {data.whatsappLink && (
+            <p className="mt-2 text-xs text-ink-500">
+              Link:{' '}
+              <a
+                className="font-medium text-brand-700 underline"
+                href={data.whatsappLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {data.whatsappLink}
+              </a>
+            </p>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function EditConfigModal({ entry, onClose }) {
   const isBoolean = typeof entry.value === 'boolean' || entry.type === 'boolean';
   // Some settings are genuinely textual (the default discovery language), so the
@@ -181,11 +342,14 @@ function EditConfigModal({ entry, onClose }) {
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={() => mutation.mutate()} loading={mutation.isPending} disabled={!changed && !description}>
+          <Button
+            onClick={() => mutation.mutate()}
+            loading={mutation.isPending}
+            disabled={!changed && !description}
+          >
             Save setting
           </Button>
         </>
-        
       }
     >
       <div className="space-y-4">
@@ -252,7 +416,7 @@ export function ConfigPage() {
     );
   }
 
-  const entries = data?.data || data || [];
+  const entries = (data?.data || data || []).filter((entry) => !APP_SETTINGS_KEYS.has(entry.key));
   const writable = can(P.CONFIG_WRITE);
 
   // Group by the meta table so related settings sit together.
@@ -274,6 +438,10 @@ export function ConfigPage() {
           You have read-only access to configuration.
         </div>
       )}
+
+      <div className="mb-4">
+        <AppSettingsCard writable={writable} />
+      </div>
 
       <div className="space-y-4">
         {Object.entries(groups).map(([group, groupEntries]) => (
