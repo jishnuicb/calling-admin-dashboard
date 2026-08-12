@@ -54,6 +54,7 @@ export const qk = {
   admins: (params) => ['rbac', 'admins', params],
 
   config: ['config'],
+  appSettings: ['config', 'app-settings'],
 
   legalList: ['legal', 'list'],
   legal: (slug) => ['legal', 'detail', slug],
