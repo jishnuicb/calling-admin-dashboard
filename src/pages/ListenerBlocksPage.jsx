@@ -336,7 +336,7 @@ export function ListenerBlocksPage() {
           size="sm"
           variant="ghost"
           icon={Trash2}
-          className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 hover:text-red-800 focus-visible:ring-red-500/30"
+          className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 hover:text-blue-800 focus-visible:ring-blue-500/30"
           onClick={(e) => {
             e.stopPropagation();
             setUnblockTarget(row);
