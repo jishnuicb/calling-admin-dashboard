@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState, useDeferredValue } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Ban, Plus, Trash2 } from 'lucide-react';
-import { blocksApi } from '../api/endpoints';
+import { Ban, Plus, Trash2, X } from 'lucide-react';
+import { blocksApi, listenersApi, usersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
@@ -12,7 +12,6 @@ import {
   Card,
   ErrorState,
   Field,
-  Input,
   Modal,
   PageHeader,
   SearchInput,
@@ -21,28 +20,156 @@ import {
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, shortId } from '../lib/format';
 
-function CreateBlockModal({ open, onClose }) {
-  const [form, setForm] = useState({
-    listenerId: '',
-    callerId: '',
-    reason: '',
+/**
+ * Search-by-name/phone picker. Selecting a row sets the underlying user id.
+ * `mode: 'listener'` uses the listeners list (listeners only).
+ * `mode: 'caller'` uses the users list.
+ */
+function PersonSearchPicker({ mode, value, selectedLabel, onSelect, onClear }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const deferredQuery = useDeferredValue(query.trim());
+  const canSearch = deferredQuery.length >= 2;
+
+  const listenersQuery = useQuery({
+    queryKey: ['blocks', 'picker', 'listeners', deferredQuery],
+    queryFn: () =>
+      listenersApi.list({
+        search: deferredQuery,
+        status: 'APPROVED',
+        page: 1,
+        limit: 10,
+      }),
+    enabled: mode === 'listener' && canSearch && !value,
   });
+
+  const usersQuery = useQuery({
+    queryKey: ['blocks', 'picker', 'users', deferredQuery],
+    queryFn: () =>
+      usersApi.list({
+        search: deferredQuery,
+        page: 1,
+        limit: 10,
+      }),
+    enabled: mode === 'caller' && canSearch && !value,
+  });
+
+  const active = mode === 'listener' ? listenersQuery : usersQuery;
+  const rows = active.data?.data || [];
+
+  const options =
+    mode === 'listener'
+      ? rows.map((row) => ({
+          id: row.userId,
+          title: row.displayName || row.user?.name || 'Unnamed',
+          subtitle: row.user?.mobile || '—',
+        }))
+      : rows.map((row) => ({
+          id: row.id,
+          title: row.name || 'Unnamed',
+          subtitle: row.mobile || '—',
+        }));
+
+  useEffect(() => {
+    if (value) {
+      setQuery('');
+      setOpen(false);
+    }
+  }, [value]);
+
+  if (value) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-lg border border-ink-200 bg-ink-50 px-3 py-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-ink-900">{selectedLabel || shortId(value)}</p>
+          <p className="font-mono text-[11px] text-ink-500">{shortId(value)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          className="shrink-0 rounded p-1 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+          aria-label="Clear selection"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <SearchInput
+        value={query}
+        onChange={(v) => {
+          setQuery(v);
+          setOpen(true);
+        }}
+        placeholder="Search by name or phone…"
+      />
+      {open && canSearch && (
+        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-ink-200 bg-white shadow-md">
+          {active.isLoading ? (
+            <p className="px-3 py-2 text-sm text-ink-500">Searching…</p>
+          ) : active.error ? (
+            <p className="px-3 py-2 text-sm text-red-600">Search failed. Try again.</p>
+          ) : options.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-ink-500">No matches</p>
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className="flex w-full flex-col items-start gap-0.5 border-b border-ink-100 px-3 py-2 text-left last:border-0 hover:bg-ink-50"
+                onClick={() => {
+                  onSelect({ id: opt.id, label: `${opt.title} · ${opt.subtitle}` });
+                  setOpen(false);
+                  setQuery('');
+                }}
+              >
+                <span className="text-sm font-medium text-ink-900">{opt.title}</span>
+                <span className="text-xs text-ink-500">{opt.subtitle}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      {!canSearch && query.trim() ? (
+        <p className="mt-1 text-xs text-ink-500">Type at least 2 characters</p>
+      ) : null}
+    </div>
+  );
+}
+
+function CreateBlockModal({ open, onClose }) {
+  const [listenerId, setListenerId] = useState('');
+  const [listenerLabel, setListenerLabel] = useState('');
+  const [callerId, setCallerId] = useState('');
+  const [callerLabel, setCallerLabel] = useState('');
+  const [reason, setReason] = useState('');
+
+  const reset = () => {
+    setListenerId('');
+    setListenerLabel('');
+    setCallerId('');
+    setCallerLabel('');
+    setReason('');
+  };
 
   const mutation = useApiMutation({
     mutationFn: (body) => blocksApi.create(body),
     successMessage: 'Listener→caller block created',
     invalidate: [['blocks']],
     onSuccess: () => {
-      setForm({ listenerId: '', callerId: '', reason: '' });
+      reset();
       onClose();
     },
   });
 
   const submit = () =>
     mutation.mutate({
-      listenerId: form.listenerId.trim(),
-      callerId: form.callerId.trim(),
-      reason: form.reason.trim() || undefined,
+      listenerId,
+      callerId,
+      reason: reason.trim() || undefined,
     });
 
   const fieldErrors = mutation.error?.fieldErrors || {};
@@ -50,18 +177,27 @@ function CreateBlockModal({ open, onClose }) {
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        reset();
+        onClose();
+      }}
       title="Block caller for a listener"
-      description="Creates a social block (listener will not receive calls from that caller). Does not ban the caller account."
+      description="Search by name or phone, then select. Does not ban the caller account."
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              reset();
+              onClose();
+            }}
+          >
             Cancel
           </Button>
           <Button
             onClick={submit}
             loading={mutation.isPending}
-            disabled={!form.listenerId.trim() || !form.callerId.trim()}
+            disabled={!listenerId || !callerId}
           >
             Create block
           </Button>
@@ -70,26 +206,51 @@ function CreateBlockModal({ open, onClose }) {
     >
       <div className="space-y-4">
         {mutation.error && <ErrorState error={mutation.error} compact />}
-        <Field label="Listener user ID" required error={fieldErrors.listenerId} hint="UUID of the listener (User id)">
-          <Input
-            autoFocus
-            value={form.listenerId}
-            onChange={(e) => setForm({ ...form, listenerId: e.target.value })}
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        <Field
+          label="Listener"
+          required
+          error={fieldErrors.listenerId}
+          hint="Only approved listeners appear in search results"
+        >
+          <PersonSearchPicker
+            mode="listener"
+            value={listenerId}
+            selectedLabel={listenerLabel}
+            onSelect={({ id, label }) => {
+              setListenerId(id);
+              setListenerLabel(label);
+            }}
+            onClear={() => {
+              setListenerId('');
+              setListenerLabel('');
+            }}
           />
         </Field>
-        <Field label="Caller user ID" required error={fieldErrors.callerId} hint="UUID of the caller (User id)">
-          <Input
-            value={form.callerId}
-            onChange={(e) => setForm({ ...form, callerId: e.target.value })}
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        <Field
+          label="Caller (user)"
+          required
+          error={fieldErrors.callerId}
+          hint="Search any user by name or phone"
+        >
+          <PersonSearchPicker
+            mode="caller"
+            value={callerId}
+            selectedLabel={callerLabel}
+            onSelect={({ id, label }) => {
+              setCallerId(id);
+              setCallerLabel(label);
+            }}
+            onClear={() => {
+              setCallerId('');
+              setCallerLabel('');
+            }}
           />
         </Field>
         <Field label="Reason" error={fieldErrors.reason}>
           <Textarea
             rows={3}
-            value={form.reason}
-            onChange={(e) => setForm({ ...form, reason: e.target.value })}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
             placeholder="Optional note shown to the caller on their block list"
           />
         </Field>
@@ -115,7 +276,7 @@ export function ListenerBlocksPage() {
 
   const remove = useApiMutation({
     mutationFn: (id) => blocksApi.remove(id),
-    successMessage: 'Block removed',
+    successMessage: 'Caller unblocked',
     invalidate: [['blocks']],
   });
 
@@ -166,10 +327,10 @@ export function ListenerBlocksPage() {
           loading={remove.isPending && remove.variables === row.id}
           onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm('Remove this block?')) remove.mutate(row.id);
+            if (window.confirm('Unblock this caller for the listener?')) remove.mutate(row.id);
           }}
         >
-          Remove
+          Unblock
         </Button>
       ),
     });
@@ -179,7 +340,7 @@ export function ListenerBlocksPage() {
     <>
       <PageHeader
         title="Listener blocks"
-        description="Admin-managed listener→caller blocks. Callers see who blocked them via GET /users/me/blocked-by-listeners."
+        description="Admin-managed listener→caller blocks. Search by name or phone to create a block; unblock anytime from the list."
         actions={
           writable ? (
             <Button icon={Plus} onClick={() => setCreateOpen(true)}>
