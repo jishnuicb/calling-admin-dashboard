@@ -273,6 +273,7 @@ export function ListenerBlocksPage() {
   const { can } = useAuth();
   const writable = can(P.BLOCKS_WRITE);
   const [createOpen, setCreateOpen] = useState(false);
+  const [unblockTarget, setUnblockTarget] = useState(null);
 
   const table = useTableState({
     listenerId: '',
@@ -288,6 +289,7 @@ export function ListenerBlocksPage() {
     mutationFn: (id) => blocksApi.remove(id),
     successMessage: 'Caller unblocked',
     invalidate: [['blocks']],
+    onSuccess: () => setUnblockTarget(null),
   });
 
   const columns = [
@@ -334,10 +336,9 @@ export function ListenerBlocksPage() {
           size="sm"
           variant="ghost"
           icon={Trash2}
-          loading={remove.isPending && remove.variables === row.id}
           onClick={(e) => {
             e.stopPropagation();
-            if (window.confirm('Unblock this caller for the listener?')) remove.mutate(row.id);
+            setUnblockTarget(row);
           }}
         >
           Unblock
@@ -397,6 +398,64 @@ export function ListenerBlocksPage() {
       </Card>
 
       <CreateBlockModal open={createOpen} onClose={() => setCreateOpen(false)} />
+
+      <Modal
+        open={Boolean(unblockTarget)}
+        onClose={() => !remove.isPending && setUnblockTarget(null)}
+        title="Unblock caller"
+        description="This listener will be able to receive calls from this caller again. The caller account is not changed."
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              disabled={remove.isPending}
+              onClick={() => setUnblockTarget(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              loading={remove.isPending}
+              onClick={() => unblockTarget && remove.mutate(unblockTarget.id)}
+            >
+              Unblock
+            </Button>
+          </>
+        }
+      >
+        {unblockTarget ? (
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Listener</p>
+              <p className="mt-0.5 font-medium text-ink-900">
+                {unblockTarget.listenerName || '—'}
+              </p>
+              <p className="font-mono text-[11px] text-ink-500">
+                {shortId(unblockTarget.listenerId)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Caller</p>
+              <p className="mt-0.5 font-medium text-ink-900">
+                {unblockTarget.callerName || '—'}
+              </p>
+              <p className="font-mono text-[11px] text-ink-500">
+                {shortId(unblockTarget.callerId)}
+              </p>
+              {unblockTarget.callerMobile ? (
+                <p className="text-[11px] text-ink-500">{unblockTarget.callerMobile}</p>
+              ) : null}
+            </div>
+            {unblockTarget.reason ? (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-ink-500">Reason</p>
+                <p className="mt-0.5 text-ink-700">{unblockTarget.reason}</p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </Modal>
     </>
   );
 }
