@@ -60,7 +60,8 @@ function PersonSearchPicker({ mode, value, selectedLabel, onSelect, onClear }) {
   const options =
     mode === 'listener'
       ? rows.map((row) => ({
-          id: row.userId,
+          // Prefer userId; fall back to nested user.id (needed for create-block API).
+          id: row.userId || row.user?.id,
           title: row.displayName || row.user?.name || 'Unnamed',
           subtitle: row.user?.mobile || '—',
         }))
@@ -76,6 +77,13 @@ function PersonSearchPicker({ mode, value, selectedLabel, onSelect, onClear }) {
       setOpen(false);
     }
   }, [value]);
+
+  const pick = (opt) => {
+    if (!opt?.id) return;
+    onSelect({ id: opt.id, label: `${opt.title} · ${opt.subtitle}` });
+    setOpen(false);
+    setQuery('');
+  };
 
   if (value) {
     return (
@@ -96,8 +104,10 @@ function PersonSearchPicker({ mode, value, selectedLabel, onSelect, onClear }) {
     );
   }
 
+  // In-flow list (not absolute): Modal uses overflow-hidden, so a floating
+  // dropdown gets clipped and clicks miss the option / hit Cancel instead.
   return (
-    <div className="relative">
+    <div>
       <SearchInput
         value={query}
         onChange={(v) => {
@@ -107,7 +117,7 @@ function PersonSearchPicker({ mode, value, selectedLabel, onSelect, onClear }) {
         placeholder="Search by name or phone…"
       />
       {open && canSearch && (
-        <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-ink-200 bg-white shadow-md">
+        <div className="mt-1 max-h-48 overflow-auto rounded-lg border border-ink-200 bg-white">
           {active.isLoading ? (
             <p className="px-3 py-2 text-sm text-ink-500">Searching…</p>
           ) : active.error ? (
@@ -120,10 +130,10 @@ function PersonSearchPicker({ mode, value, selectedLabel, onSelect, onClear }) {
                 key={opt.id}
                 type="button"
                 className="flex w-full flex-col items-start gap-0.5 border-b border-ink-100 px-3 py-2 text-left last:border-0 hover:bg-ink-50"
-                onClick={() => {
-                  onSelect({ id: opt.id, label: `${opt.title} · ${opt.subtitle}` });
-                  setOpen(false);
-                  setQuery('');
+                onMouseDown={(e) => {
+                  // Prevent input blur from racing the select.
+                  e.preventDefault();
+                  pick(opt);
                 }}
               >
                 <span className="text-sm font-medium text-ink-900">{opt.title}</span>
