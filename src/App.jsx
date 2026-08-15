@@ -24,6 +24,7 @@ import { CallsPage } from './pages/CallsPage';
 import { CallDetailPage } from './pages/CallDetailPage';
 import { ModerationPage } from './pages/ModerationPage';
 import { ModerationDetailPage } from './pages/ModerationDetailPage';
+import { ListenerBlocksPage } from './pages/ListenerBlocksPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { BonusesPage } from './pages/BonusesPage';
 import { RbacPage } from './pages/RbacPage';
@@ -119,6 +120,10 @@ export function App() {
         <Route
           path="moderation/:id"
           element={guard(S.ACTIVITY, P.MODERATION_READ, <ModerationDetailPage />)}
+        />
+        <Route
+          path="listener-blocks"
+          element={guard(S.ACTIVITY, P.BLOCKS_READ, <ListenerBlocksPage />)}
         />
 
         <Route

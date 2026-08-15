@@ -30,6 +30,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/bonuses', section: S.MONEY, permission: P.BONUSES_READ },
   { path: '/calls', section: S.ACTIVITY, permission: P.CALLS_READ },
   { path: '/moderation', section: S.ACTIVITY, permission: P.MODERATION_READ },
+  { path: '/listener-blocks', section: S.ACTIVITY, permission: P.BLOCKS_READ },
   { path: '/notifications', section: S.ACTIVITY, permission: P.NOTIFICATIONS_READ },
   { path: '/config', section: S.SYSTEM, permission: P.CONFIG_READ },
   { path: '/legal', section: S.SYSTEM, permission: P.LEGAL_READ },

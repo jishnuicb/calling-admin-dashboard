@@ -147,6 +147,7 @@ const APP_SETTINGS_KEYS = new Set([
   'app.version.patch',
   'app.releaseType',
   'company.whatsappNumber',
+  'payment.mode',
 ]);
 
 function AppSettingsCard({ writable }) {
@@ -160,6 +161,7 @@ function AppSettingsCard({ writable }) {
   const [patch, setPatch] = useState(0);
   const [releaseType, setReleaseType] = useState('MINOR');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [paymentMode, setPaymentMode] = useState('SANDBOX');
 
   useEffect(() => {
     if (!data) return;
@@ -168,6 +170,7 @@ function AppSettingsCard({ writable }) {
     setPatch(data.version?.patch ?? 0);
     setReleaseType(data.version?.releaseType || 'MINOR');
     setWhatsappNumber(data.whatsappNumber || '');
+    setPaymentMode(data.payment?.mode || 'SANDBOX');
   }, [data]);
 
   const mutation = useApiMutation({
@@ -178,6 +181,7 @@ function AppSettingsCard({ writable }) {
         patch: Number(patch),
         releaseType,
         whatsappNumber: whatsappNumber.trim(),
+        paymentMode,
       }),
     successMessage: 'App settings saved',
     invalidate: [qk.appSettings, qk.config],
@@ -192,12 +196,13 @@ function AppSettingsCard({ writable }) {
     Number(minor) !== (data.version?.minor ?? 0) ||
     Number(patch) !== (data.version?.patch ?? 0) ||
     releaseType !== (data.version?.releaseType || 'MINOR') ||
-    whatsappNumber.trim() !== (data.whatsappNumber || '');
+    whatsappNumber.trim() !== (data.whatsappNumber || '') ||
+    paymentMode !== (data.payment?.mode || 'SANDBOX');
 
   return (
     <Card
-      title="App version & WhatsApp"
-      description="Shown to the mobile app via GET /app/settings and GET /app/whatsapp. Edit both here without a redeploy."
+      title="App version, WhatsApp & payments"
+      description="Shown to the mobile app via GET /app/settings. Edit without a redeploy."
       actions={
         writable ? (
           <Button onClick={() => mutation.mutate()} loading={mutation.isPending} disabled={!dirty}>
@@ -294,6 +299,26 @@ function AppSettingsCard({ writable }) {
               </a>
             </p>
           )}
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            Payment settings
+          </p>
+          <Field
+            label="Payment mode"
+            required
+            hint="SANDBOX for test payments, LIVE for production. Default is SANDBOX."
+          >
+            <Select
+              value={paymentMode}
+              disabled={!writable}
+              onChange={(e) => setPaymentMode(e.target.value)}
+            >
+              <option value="SANDBOX">SANDBOX</option>
+              <option value="LIVE">LIVE</option>
+            </Select>
+          </Field>
         </div>
       </div>
     </Card>

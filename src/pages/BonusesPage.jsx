@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Gift, Play } from 'lucide-react';
 import { bonusesApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
@@ -43,6 +43,7 @@ const weekEndFromStart = (startDate) => {
 function WeeklySettingsCard() {
   const { can } = useAuth();
   const writable = can(P.BONUSES_WRITE);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.weeklySettings,
@@ -52,28 +53,64 @@ function WeeklySettingsCard() {
   const [caller, setCaller] = useState(null);
   const [listener, setListener] = useState(null);
 
+  // Seed local forms once from the shared GET — do not reset both forms on every
+  // refetch (saving one audience used to wipe in-progress edits on the other).
   useEffect(() => {
     if (!data) return;
-    setCaller({
-      ...data.caller,
-      periodStartInput: toDateInput(data.caller.periodStart),
-    });
-    setListener({
-      ...data.listener,
-      periodStartInput: toDateInput(data.listener.periodStart),
-    });
+    setCaller((prev) =>
+      prev
+        ? prev
+        : {
+            ...data.caller,
+            periodStartInput: toDateInput(data.caller.periodStart),
+          },
+    );
+    setListener((prev) =>
+      prev
+        ? prev
+        : {
+            ...data.listener,
+            periodStartInput: toDateInput(data.listener.periodStart),
+          },
+    );
   }, [data]);
 
-  const save = useApiMutation({
+  const saveCaller = useApiMutation({
     mutationFn: (body) => bonusesApi.updateWeeklySettings(body),
-    successMessage: (_d, vars) =>
-      vars.audience === 'LISTENER' ? 'Listener weekly bonus updated' : 'User weekly bonus updated',
-    invalidate: [['bonuses'], ['config']],
+    successMessage: 'User weekly bonus updated',
+    invalidate: [['config']],
+    onSuccess: (updated) => {
+      const withInput = {
+        ...updated,
+        periodStartInput: toDateInput(updated.periodStart),
+      };
+      setCaller(withInput);
+      queryClient.setQueryData(qk.weeklySettings, (prev) =>
+        prev ? { ...prev, caller: updated } : prev,
+      );
+    },
+  });
+
+  const saveListener = useApiMutation({
+    mutationFn: (body) => bonusesApi.updateWeeklySettings(body),
+    successMessage: 'Listener weekly bonus updated',
+    invalidate: [['config']],
+    onSuccess: (updated) => {
+      const withInput = {
+        ...updated,
+        periodStartInput: toDateInput(updated.periodStart),
+      };
+      setListener(withInput);
+      queryClient.setQueryData(qk.weeklySettings, (prev) =>
+        prev ? { ...prev, listener: updated } : prev,
+      );
+    },
   });
 
   const renderEditor = (label, form, setForm, audience) => {
     if (!form) return null;
     const isListener = audience === 'LISTENER';
+    const save = isListener ? saveListener : saveCaller;
     return (
       <div className="space-y-3 rounded-lg border border-ink-100 p-4">
         <div className="flex items-center justify-between gap-3">
@@ -92,7 +129,7 @@ function WeeklySettingsCard() {
               type="number"
               min="1"
               value={form.targetMinutes ?? ''}
-              disabled={!writable}
+              disabled={!writable || save.isPending}
               onChange={(e) => setForm({ ...form, targetMinutes: e.target.value })}
             />
           </Field>
@@ -108,7 +145,7 @@ function WeeklySettingsCard() {
               type="number"
               min="0"
               value={form.rewardTokens ?? ''}
-              disabled={!writable}
+              disabled={!writable || save.isPending}
               onChange={(e) => setForm({ ...form, rewardTokens: e.target.value })}
             />
           </Field>
@@ -118,7 +155,7 @@ function WeeklySettingsCard() {
             <Input
               type="date"
               value={form.periodStartInput || ''}
-              disabled={!writable}
+              disabled={!writable || save.isPending}
               onChange={(e) => setForm({ ...form, periodStartInput: e.target.value })}
             />
           </Field>
@@ -145,6 +182,11 @@ function WeeklySettingsCard() {
             Save {label.toLowerCase()}
           </Button>
         )}
+        {save.error && (
+          <div className="mt-1">
+            <ErrorState error={save.error} compact />
+          </div>
+        )}
       </div>
     );
   };
@@ -161,11 +203,6 @@ function WeeklySettingsCard() {
         <div className="grid gap-4 lg:grid-cols-2">
           {renderEditor('User weekly bonus', caller, setCaller, 'CALLER')}
           {renderEditor('Listener weekly bonus', listener, setListener, 'LISTENER')}
-        </div>
-      )}
-      {save.error && (
-        <div className="mt-3">
-          <ErrorState error={save.error} compact />
         </div>
       )}
     </Card>

@@ -41,6 +41,8 @@ export const qk = {
   moderation: (params) => ['moderation', 'list', params],
   report: (id) => ['moderation', 'detail', id],
 
+  blocks: (params) => ['blocks', 'list', params],
+
   templates: ['notifications', 'templates'],
   notificationHistory: (params) => ['notifications', 'history', params],
 

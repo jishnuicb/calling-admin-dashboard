@@ -169,6 +169,14 @@ export const moderationApi = {
   review: (id, body) => post(`/admin/moderation/reports/${id}/review`, body),
 };
 
+// --- Listener → caller blocks (admin-managed) ------------------------------
+
+export const blocksApi = {
+  list: (params) => get('/admin/listener-blocks', params),
+  create: (body) => post('/admin/listener-blocks', body),
+  remove: (id) => del(`/admin/listener-blocks/${id}`),
+};
+
 // --- Notifications ----------------------------------------------------------
 
 export const notificationsApi = {

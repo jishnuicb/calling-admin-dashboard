@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Ban,
   Package,
   PhoneCall,
   ScrollText,
@@ -76,6 +77,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/calls', label: 'Calls', icon: PhoneCall, permission: P.CALLS_READ },
       { to: '/moderation', label: 'Moderation', icon: Flag, permission: P.MODERATION_READ },
+      { to: '/listener-blocks', label: 'Listener blocks', icon: Ban, permission: P.BLOCKS_READ },
       { to: '/notifications', label: 'Notifications', icon: Bell, permission: P.NOTIFICATIONS_READ },
     ],
   },
