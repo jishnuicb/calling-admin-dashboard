@@ -169,6 +169,22 @@ export const moderationApi = {
   review: (id, body) => post(`/admin/moderation/reports/${id}/review`, body),
 };
 
+// --- Listener → caller blocks (admin-managed) ------------------------------
+
+export const blocksApi = {
+  list: (params) => get('/admin/listener-blocks', params),
+  create: (body) => post('/admin/listener-blocks', body),
+  remove: (id) => del(`/admin/listener-blocks/${id}`),
+};
+
+// --- Account deletion requests ---------------------------------------------
+
+export const accountDeletionApi = {
+  list: (params) => get('/admin/account-deletion-requests', params),
+  approve: (id, body) => post(`/admin/account-deletion-requests/${id}/approve`, body),
+  reject: (id, body) => post(`/admin/account-deletion-requests/${id}/reject`, body),
+};
+
 // --- Notifications ----------------------------------------------------------
 
 export const notificationsApi = {

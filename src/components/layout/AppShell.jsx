@@ -16,6 +16,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Ban,
   Package,
   PhoneCall,
   ScrollText,
@@ -25,6 +26,7 @@ import {
   IndianRupee,
   Scale,
   Users,
+  UserX,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -76,6 +78,13 @@ const NAV_SECTIONS = [
     items: [
       { to: '/calls', label: 'Calls', icon: PhoneCall, permission: P.CALLS_READ },
       { to: '/moderation', label: 'Moderation', icon: Flag, permission: P.MODERATION_READ },
+      { to: '/listener-blocks', label: 'Listener blocks', icon: Ban, permission: P.BLOCKS_READ },
+      {
+        to: '/account-deletion',
+        label: 'Account deletion',
+        icon: UserX,
+        permission: P.ACCOUNT_DELETION_READ,
+      },
       { to: '/notifications', label: 'Notifications', icon: Bell, permission: P.NOTIFICATIONS_READ },
     ],
   },

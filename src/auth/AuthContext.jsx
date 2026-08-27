@@ -6,6 +6,22 @@ import { tokenStore, onSessionExpired } from '../api/client';
 const AuthContext = createContext(null);
 
 /**
+ * Hydrate admin from localStorage so a browser refresh keeps the current route
+ * mounted (no full-app “Restoring session…” remount). `/admin/auth/me` still
+ * revalidates permissions in the background.
+ */
+const readCachedSession = () => {
+  const session = tokenStore.read();
+  if (!session?.accessToken) {
+    return { admin: null, status: 'anonymous' };
+  }
+  if (session.admin) {
+    return { admin: session.admin, status: 'authenticated' };
+  }
+  return { admin: null, status: 'loading' };
+};
+
+/**
  * Admin session state.
  *
  * The session is persisted in localStorage so a page refresh does not force a
@@ -16,9 +32,21 @@ const AuthContext = createContext(null);
  */
 export function AuthProvider({ children }) {
   const queryClient = useQueryClient();
-  const [admin, setAdmin] = useState(null);
-  const [status, setStatus] = useState('loading'); // loading | authenticated | anonymous
+  const cached = readCachedSession();
+  const [admin, setAdmin] = useState(cached.admin);
+  const [status, setStatus] = useState(cached.status); // loading | authenticated | anonymous
   const [expiryNotice, setExpiryNotice] = useState(null);
+
+  const persistAdmin = useCallback((nextAdmin) => {
+    const session = tokenStore.read() || {};
+    if (!session.accessToken) return;
+    tokenStore.write({
+      ...session,
+      admin: nextAdmin,
+      permissions: nextAdmin?.permissions || session.permissions || [],
+      sections: nextAdmin?.sections || session.sections || [],
+    });
+  }, []);
 
   const clearSession = useCallback(
     (notice) => {
@@ -31,13 +59,16 @@ export function AuthProvider({ children }) {
     [queryClient],
   );
 
-  // Re-validate a persisted session on mount.
+  // Re-validate a persisted session on mount (soft — keep UI if cache exists).
   useEffect(() => {
     let cancelled = false;
 
     const bootstrap = async () => {
       if (!tokenStore.accessToken) {
-        setStatus('anonymous');
+        if (!cancelled) {
+          setAdmin(null);
+          setStatus('anonymous');
+        }
         return;
       }
       try {
@@ -45,6 +76,7 @@ export function AuthProvider({ children }) {
         if (!cancelled) {
           setAdmin(me);
           setStatus('authenticated');
+          persistAdmin(me);
         }
       } catch {
         // The axios interceptor already tried to refresh; reaching here means the
@@ -57,7 +89,7 @@ export function AuthProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [clearSession]);
+  }, [clearSession, persistAdmin]);
 
   // The API layer tells us when refreshing became impossible.
   useEffect(
@@ -68,19 +100,23 @@ export function AuthProvider({ children }) {
     [clearSession],
   );
 
-  const login = useCallback(async (credentials) => {
-    const result = await authApi.login(credentials);
-    tokenStore.write({
-      accessToken: result.tokens.accessToken,
-      refreshToken: result.tokens.refreshToken,
-      permissions: result.admin.permissions,
-      sections: result.admin.sections,
-    });
-    setAdmin(result.admin);
-    setStatus('authenticated');
-    setExpiryNotice(null);
-    return result.admin;
-  }, []);
+  const login = useCallback(
+    async (credentials) => {
+      const result = await authApi.login(credentials);
+      tokenStore.write({
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+        permissions: result.admin.permissions,
+        sections: result.admin.sections,
+        admin: result.admin,
+      });
+      setAdmin(result.admin);
+      setStatus('authenticated');
+      setExpiryNotice(null);
+      return result.admin;
+    },
+    [],
+  );
 
   const logout = useCallback(
     async (allSessions = false) => {
@@ -97,8 +133,9 @@ export function AuthProvider({ children }) {
   const refreshMe = useCallback(async () => {
     const me = await authApi.me();
     setAdmin(me);
+    persistAdmin(me);
     return me;
-  }, []);
+  }, [persistAdmin]);
 
   const value = useMemo(() => {
     const permissions = new Set(admin?.permissions || []);

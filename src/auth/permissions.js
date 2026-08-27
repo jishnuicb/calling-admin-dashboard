@@ -46,6 +46,12 @@ export const P = {
   MODERATION_READ: 'moderation:read',
   MODERATION_REVIEW: 'moderation:review',
 
+  BLOCKS_READ: 'blocks:read',
+  BLOCKS_WRITE: 'blocks:write',
+
+  ACCOUNT_DELETION_READ: 'account-deletion:read',
+  ACCOUNT_DELETION_REVIEW: 'account-deletion:review',
+
   NOTIFICATIONS_READ: 'notifications:read',
   NOTIFICATIONS_SEND: 'notifications:send',
   NOTIFICATIONS_TEMPLATES: 'notifications:templates',
