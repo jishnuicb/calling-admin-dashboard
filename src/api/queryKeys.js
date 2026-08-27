@@ -43,6 +43,8 @@ export const qk = {
 
   blocks: (params) => ['blocks', 'list', params],
 
+  accountDeletion: (params) => ['accountDeletion', 'list', params],
+
   templates: ['notifications', 'templates'],
   notificationHistory: (params) => ['notifications', 'history', params],
 
