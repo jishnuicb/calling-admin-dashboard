@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Banknote,
   Check,
+  Clock,
   Eye,
   EyeOff,
   PauseCircle,
@@ -423,6 +424,13 @@ export function ListenerDetailPage() {
         description={`${titleCase(application.gender)} · ${application.country || 'Unknown country'}`}
         actions={
           <>
+            <Link
+              to={`/listener-online-time?search=${encodeURIComponent(application.mobileNumber || application.displayName || '')}`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-50"
+            >
+              <Clock className="size-4 text-ink-500" />
+              Online time
+            </Link>
             {can(P.LISTENERS_APPROVE) && (
               <Button variant="secondary" onClick={() => setNotesOpen(true)}>
                 <StickyNote className="size-4" />

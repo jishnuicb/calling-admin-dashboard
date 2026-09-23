@@ -11,6 +11,7 @@ import { UsersPage } from './pages/UsersPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { ListenersPage } from './pages/ListenersPage';
 import { ListenerDetailPage } from './pages/ListenerDetailPage';
+import { ListenerOnlineTimePage } from './pages/ListenerOnlineTimePage';
 import { LanguagesPage } from './pages/LanguagesPage';
 import { AvatarsPage } from './pages/AvatarsPage';
 import { OtpPage } from './pages/OtpPage';
@@ -99,6 +100,10 @@ export function App() {
         <Route
           path="listeners/:id"
           element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerDetailPage />)}
+        />
+        <Route
+          path="listener-online-time"
+          element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerOnlineTimePage />)}
         />
 
         <Route path="languages" element={guard(S.PEOPLE, P.LANGUAGES_READ, <LanguagesPage />)} />
