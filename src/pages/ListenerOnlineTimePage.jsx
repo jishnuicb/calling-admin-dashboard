@@ -87,7 +87,9 @@ const getDateRangePresets = () => {
 /** Modal showing detailed daily breakdown and granular session logs for one listener */
 function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
   const { data, isLoading, error } = useQuery({
-    queryKey: qk.listenerOnlineTimeDetail(listenerId, { from, to }),
+    queryKey: typeof qk?.listenerOnlineTimeDetail === 'function'
+      ? qk.listenerOnlineTimeDetail(listenerId, { from, to })
+      : ['listeners', 'online-time', 'detail', listenerId, { from, to }],
     queryFn: () => listenersApi.getListenerOnlineTime(listenerId, { from, to }),
     enabled: Boolean(listenerId),
   });
@@ -291,7 +293,9 @@ export function ListenerOnlineTimePage() {
   };
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: qk.listenerOnlineTime(queryParams),
+    queryKey: typeof qk?.listenerOnlineTime === 'function'
+      ? qk.listenerOnlineTime(queryParams)
+      : ['listeners', 'online-time', queryParams],
     queryFn: () => listenersApi.getOnlineTime(queryParams),
   });
 
