@@ -333,18 +333,7 @@ export function ListenerOnlineTimePage() {
   const pagination = data?.pagination;
   const weekOptions = summary?.weeksInMonth?.length ? summary.weeksInMonth : weeksForMonth;
   const selectedWeek = weekOptions.find((w) => String(w.week) === String(table.filters.week));
-
-  const monthOptions = useMemo(() => {
-    const options = [];
-    const now = new Date();
-    for (let i = 0; i < 18; i += 1) {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-      const value = toMonthValue(d);
-      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-      options.push({ value, label });
-    }
-    return options;
-  }, []);
+  const maxMonth = toMonthValue();
 
   return (
     <div className="space-y-6">
@@ -378,10 +367,13 @@ export function ListenerOnlineTimePage() {
         <div className="grid grid-cols-1 gap-3 border-t border-ink-100 pt-2 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-600">Month</label>
-            <Select
+            <Input
+              type="month"
               value={table.filters.month}
+              max={maxMonth}
               onChange={(e) => {
                 const nextMonth = e.target.value;
+                if (!nextMonth) return;
                 const nextWeeks = listWeeksForMonthLocal(nextMonth);
                 const nextWeek =
                   nextWeeks.find((w) => w.week === currentWeekNumberForMonth(nextMonth))?.week ||
@@ -389,13 +381,7 @@ export function ListenerOnlineTimePage() {
                   1;
                 table.setManyFilters({ month: nextMonth, week: String(nextWeek) });
               }}
-            >
-              {monthOptions.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </Select>
+            />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-600">Week (Mon–Sun)</label>
