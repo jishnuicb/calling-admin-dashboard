@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -7,6 +7,8 @@ import {
   Radio,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
+  ChevronDown,
   UserCheck,
   TrendingUp,
 } from 'lucide-react';
@@ -27,6 +29,21 @@ import {
 } from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime } from '../lib/format';
+
+const MONTH_LABELS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 
 function MetricCard({ icon: Icon, label, value, sub, tone = 'brand' }) {
   const tones = {
@@ -52,6 +69,162 @@ function MetricCard({ icon: Icon, label, value, sub, tone = 'brand' }) {
 
 const toMonthValue = (d = new Date()) =>
   `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+
+const formatMonthLabel = (monthValue) => {
+  const match = String(monthValue || '').match(/^(\d{4})-(\d{2})$/);
+  if (!match) return 'Select month';
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  if (monthIndex < 0 || monthIndex > 11) return 'Select month';
+  return `${MONTH_LABELS[monthIndex]} ${year}`;
+};
+
+/** Custom month/year calendar — any past year, no future months. */
+function MonthYearPicker({ value, maxValue, onChange }) {
+  const rootRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const max = maxValue || toMonthValue();
+  const maxYear = Number(max.slice(0, 4));
+  const maxMonthIndex = Number(max.slice(5, 7)) - 1;
+
+  const selectedYear = Number(String(value || max).slice(0, 4)) || maxYear;
+  const selectedMonthIndex = Number(String(value || max).slice(5, 7)) - 1;
+  const [viewYear, setViewYear] = useState(selectedYear);
+
+  useEffect(() => {
+    if (open) setViewYear(selectedYear);
+  }, [open, selectedYear]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  const canGoNextYear = viewYear < maxYear;
+  const minYear = 2015;
+
+  const pickMonth = (monthIndex) => {
+    const next = `${viewYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+    if (next > max) return;
+    onChange(next);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 rounded-lg border-0 bg-white px-3 py-2 text-left text-sm text-ink-900 shadow-sm ring-1 ring-inset ring-ink-300 transition hover:bg-ink-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <Calendar className="size-4 shrink-0 text-brand-600" />
+          <span className="truncate font-medium">{formatMonthLabel(value)}</span>
+        </span>
+        <ChevronDown className={`size-4 shrink-0 text-ink-400 transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 z-40 mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-xl ring-1 ring-black/5">
+          <div className="border-b border-ink-100 bg-gradient-to-b from-ink-50 to-white px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                aria-label="Previous year"
+                disabled={viewYear <= minYear}
+                onClick={() => setViewYear((y) => Math.max(minYear, y - 1))}
+                className="inline-flex size-8 items-center justify-center rounded-lg text-ink-600 transition hover:bg-white hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <div className="text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">Year</p>
+                <p className="text-lg font-semibold tabular text-ink-900">{viewYear}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Next year"
+                disabled={!canGoNextYear}
+                onClick={() => setViewYear((y) => Math.min(maxYear, y + 1))}
+                className="inline-flex size-8 items-center justify-center rounded-lg text-ink-600 transition hover:bg-white hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 p-3">
+            {MONTH_LABELS.map((label, monthIndex) => {
+              const candidate = `${viewYear}-${String(monthIndex + 1).padStart(2, '0')}`;
+              const disabled = candidate > max;
+              const selected =
+                viewYear === selectedYear && monthIndex === selectedMonthIndex;
+              const isCurrent =
+                viewYear === maxYear && monthIndex === maxMonthIndex;
+
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => pickMonth(monthIndex)}
+                  className={[
+                    'rounded-lg px-2 py-2.5 text-sm font-medium transition',
+                    disabled
+                      ? 'cursor-not-allowed text-ink-300'
+                      : selected
+                        ? 'bg-brand-600 text-white shadow-sm'
+                        : isCurrent
+                          ? 'bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-100'
+                          : 'text-ink-700 hover:bg-ink-100',
+                  ].join(' ')}
+                >
+                  {label.slice(0, 3)}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between gap-2 border-t border-ink-100 bg-ink-50/70 px-3 py-2">
+            <button
+              type="button"
+              onClick={() => {
+                onChange(max);
+                setViewYear(maxYear);
+                setOpen(false);
+              }}
+              className="text-xs font-medium text-brand-700 hover:text-brand-800"
+            >
+              This month
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-xs font-medium text-ink-500 hover:text-ink-700"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Local preview of Mon–Sun weeks overlapping a month (matches backend UTC week rules). */
 function listWeeksForMonthLocal(month) {
@@ -367,12 +540,10 @@ export function ListenerOnlineTimePage() {
         <div className="grid grid-cols-1 gap-3 border-t border-ink-100 pt-2 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-600">Month</label>
-            <Input
-              type="month"
+            <MonthYearPicker
               value={table.filters.month}
-              max={maxMonth}
-              onChange={(e) => {
-                const nextMonth = e.target.value;
+              maxValue={maxMonth}
+              onChange={(nextMonth) => {
                 if (!nextMonth) return;
                 const nextWeeks = listWeeksForMonthLocal(nextMonth);
                 const nextWeek =
