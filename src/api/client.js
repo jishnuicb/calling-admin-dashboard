@@ -162,6 +162,18 @@ api.interceptors.response.use(
   async (error) => {
     const config = error.config || {};
     const status = error.response?.status;
+    // responseType: 'blob' turns JSON error bodies into Blobs — parse so UI gets message/code.
+    if (error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === 'object') {
+          error.response.data = parsed;
+        }
+      } catch {
+        // keep blob if not JSON
+      }
+    }
     const code = error.response?.data?.error;
 
     const isRefreshable =
