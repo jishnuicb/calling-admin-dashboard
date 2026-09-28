@@ -58,6 +58,7 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
 
   const invalidate = [
     ['manual-weekly-payouts'],
+    ['earnings'],
     qk.manualWeeklyDetail(listenerUserId, weekStart),
   ];
 
@@ -119,6 +120,15 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
                 Mark paid
               </Button>
             </>
+          )}
+          {canWrite && !unpaid && data && (
+            <Button
+              variant="secondary"
+              onClick={() => markPaid.mutate()}
+              loading={markPaid.isPending}
+            >
+              Sync listener paid status
+            </Button>
           )}
           <Button variant="secondary" onClick={onClose}>
             Close
@@ -220,6 +230,7 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
                   ) : (
                     <span className="font-mono">{shortId(e.id)}</span>
                   )}
+                  <StatusBadge status={e.status} />
                   <span>{fmtDurationSafe(e.durationSeconds)}</span>
                   <span className="text-ink-500">{fmtDateTime(e.createdAt)}</span>
                   <span className="font-medium">{fmtPaise(e.amountPaise)}</span>
@@ -242,6 +253,7 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
                   className="flex flex-wrap items-center justify-between gap-2 rounded bg-ink-50 px-2 py-1.5"
                 >
                   <span className="font-mono">{shortId(e.id)}</span>
+                  <StatusBadge status={e.status} />
                   <span className="text-ink-500">{e.referenceId || 'WEEKLY_BONUS'}</span>
                   <span className="text-ink-500">{fmtDateTime(e.createdAt)}</span>
                   <span className="font-medium">{fmtPaise(e.amountPaise)}</span>
