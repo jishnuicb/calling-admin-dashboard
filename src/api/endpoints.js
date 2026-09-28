@@ -32,6 +32,7 @@ export const usersApi = {
   list: (params) => get('/admin/users', params),
   get: (id) => get(`/admin/users/${id}`),
   setBlocked: (id, body) => post(`/admin/users/${id}/block`, body),
+  revealPhone: (id, body) => post(`/admin/users/${id}/phone/reveal`, body),
 };
 
 // --- Listener applications --------------------------------------------------

@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Ban, Coins, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Ban, Coins, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { usersApi, walletApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -196,6 +196,8 @@ export function UserDetailPage() {
   const { can } = useAuth();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [decryptKey, setDecryptKey] = useState('');
+  const [revealedUser, setRevealedUser] = useState(null);
 
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: qk.user(id),
@@ -208,10 +210,30 @@ export function UserDetailPage() {
     enabled: can(P.WALLET_READ) && Boolean(id),
   });
 
+  useEffect(
+    () => () => {
+      setDecryptKey('');
+      setRevealedUser(null);
+    },
+    [],
+  );
+
+  const revealPhone = useApiMutation({
+    mutationFn: () => usersApi.revealPhone(id, { decryptionKey: decryptKey }),
+    successMessage: 'Phone number revealed for this view only',
+    onSuccess: (data) => setRevealedUser(data),
+  });
+
+  const remaskPhone = () => {
+    setDecryptKey('');
+    setRevealedUser(null);
+  };
+
   if (isLoading) return <LoadingBlock label="Loading user…" />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
-  const balance = wallet?.balance ?? user?.wallet?.balance ?? 0;
+  const view = revealedUser || user;
+  const balance = wallet?.balance ?? view?.wallet?.balance ?? 0;
 
   return (
     <>
@@ -241,7 +263,7 @@ export function UserDetailPage() {
             {user.name || 'Unnamed user'}
           </span>
         }
-        description={user.mobile}
+        description={view.mobile}
         actions={
           <>
             {can(P.WALLET_READ) && (
@@ -278,6 +300,46 @@ export function UserDetailPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-3">
+        {can(P.USERS_READ) && (
+          <Card
+            title="Phone number"
+            description="Masked by default (country code + last 2 digits). Enter the permanent decryption key to reveal."
+            className="lg:col-span-3"
+          >
+            <div className="mb-3 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
+              <Field label="Permanent decryption key" hint="Same key as listener bank reveal. Never stored.">
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  value={decryptKey}
+                  onChange={(e) => setDecryptKey(e.target.value)}
+                  placeholder="Enter permanent decryption key"
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={revealPhone.isPending}
+                  disabled={!decryptKey.trim()}
+                  onClick={() => revealPhone.mutate()}
+                >
+                  <Eye className="size-4" />
+                  Reveal phone
+                </Button>
+                {revealedUser && (
+                  <Button size="sm" variant="secondary" onClick={remaskPhone}>
+                    <EyeOff className="size-4" />
+                    Remask
+                  </Button>
+                )}
+              </div>
+              {revealPhone.error && <ErrorState error={revealPhone.error} compact />}
+            </div>
+            <p className="font-mono text-sm text-ink-900">{view.mobile || '—'}</p>
+          </Card>
+        )}
+
         <Card title="Account" className="lg:col-span-2">
           <DescList
             items={[
@@ -287,7 +349,7 @@ export function UserDetailPage() {
                 label: 'Mobile verified',
                 value: user.mobileVerified ? 'Verified' : 'Not verified',
               },
-              { label: 'Mobile', value: user.mobile },
+              { label: 'Mobile', value: view.mobile },
               { label: 'Gender', value: titleCase(user.gender) },
               { label: 'Country', value: user.country },
               {
