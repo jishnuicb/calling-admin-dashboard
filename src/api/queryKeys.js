@@ -54,6 +54,11 @@ export const qk = {
   weeklyAwards: (id, params) => ['bonuses', 'weekly', id, 'awards', params],
   weeklySettings: ['bonuses', 'weekly', 'settings'],
 
+  bulkTopupSettings: ['bulk-topup', 'settings'],
+  bulkTopupRuns: (params) => ['bulk-topup', 'runs', params],
+  bulkTopupAwards: (id, params) => ['bulk-topup', 'awards', id, params],
+  bulkTopupExclusions: (params) => ['bulk-topup', 'exclusions', params],
+
   permissions: ['rbac', 'permissions'],
   sections: ['rbac', 'sections'],
   roles: ['rbac', 'roles'],

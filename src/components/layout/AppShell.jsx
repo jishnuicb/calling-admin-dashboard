@@ -28,6 +28,7 @@ import {
   Scale,
   Users,
   UserX,
+  Wallet,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -72,6 +73,7 @@ const NAV_SECTIONS = [
       { to: '/earnings', label: 'Listener earnings', icon: IndianRupee, permission: P.EARNINGS_READ },
       { to: '/payouts', label: 'Listener payouts', icon: Banknote, permission: P.PAYOUTS_READ },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
+      { to: '/bulk-topup', label: 'Bulk top-up', icon: Wallet, permission: P.BONUSES_READ },
     ],
   },
   {

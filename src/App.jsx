@@ -29,6 +29,7 @@ import { ListenerBlocksPage } from './pages/ListenerBlocksPage';
 import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { BonusesPage } from './pages/BonusesPage';
+import { BulkTopupPage } from './pages/BulkTopupPage';
 import { RbacPage } from './pages/RbacPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { LegalPage } from './pages/LegalPage';
@@ -118,6 +119,7 @@ export function App() {
         <Route path="earnings" element={guard(S.MONEY, P.EARNINGS_READ, <EarningsPage />)} />
         <Route path="payouts" element={guard(S.MONEY, P.PAYOUTS_READ, <PayoutsPage />)} />
         <Route path="bonuses" element={guard(S.MONEY, P.BONUSES_READ, <BonusesPage />)} />
+        <Route path="bulk-topup" element={guard(S.MONEY, P.BONUSES_READ, <BulkTopupPage />)} />
 
         <Route path="calls" element={guard(S.ACTIVITY, P.CALLS_READ, <CallsPage />)} />
         <Route path="calls/:id" element={guard(S.ACTIVITY, P.CALLS_READ, <CallDetailPage />)} />

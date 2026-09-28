@@ -140,7 +140,7 @@ function MonthYearPicker({ value, maxValue, onChange }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 z-40 mt-2 w-[min(100vw-2rem,20rem)] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-xl ring-1 ring-black/5">
+        <div className="absolute left-0 z-40 mt-2 w-[min(100vw-2rem,24rem)] overflow-hidden rounded-xl border border-ink-200 bg-white shadow-xl ring-1 ring-black/5">
           <div className="border-b border-ink-100 bg-gradient-to-b from-ink-50 to-white px-3 py-3">
             <div className="flex items-center justify-between gap-2">
               <button
