@@ -1,21 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Clock,
   Calendar,
-  Search,
-  Activity,
-  UserCheck,
-  TrendingUp,
   Radio,
   ExternalLink,
   ChevronRight,
-  Sparkles,
+  UserCheck,
+  TrendingUp,
 } from 'lucide-react';
 import { listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
-import { DataTable, FilterBar, Pagination } from '../components/DataTable';
+import { Pagination } from '../components/DataTable';
 import {
   Badge,
   Button,
@@ -53,45 +50,64 @@ function MetricCard({ icon: Icon, label, value, sub, tone = 'brand' }) {
   );
 }
 
-/** Quick date range calculation helper */
-const getDateRangePresets = () => {
-  const now = new Date();
-  const formatYmd = (d) => d.toISOString().slice(0, 10);
+const toMonthValue = (d = new Date()) =>
+  `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 
-  const todayStr = formatYmd(now);
+/** Local preview of Mon–Sun weeks overlapping a month (matches backend UTC week rules). */
+function listWeeksForMonthLocal(month) {
+  const match = String(month || '').match(/^(\d{4})-(\d{2})$/);
+  if (!match) return [];
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const monthStart = new Date(Date.UTC(year, monthIndex, 1));
+  const monthEnd = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
 
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = formatYmd(yesterday);
-
-  const last7 = new Date(now);
-  last7.setDate(last7.getDate() - 6);
-  const last7Str = formatYmd(last7);
-
-  const last30 = new Date(now);
-  last30.setDate(last30.getDate() - 29);
-  const last30Str = formatYmd(last30);
-
-  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const startOfMonthStr = formatYmd(startOfMonth);
-
-  return {
-    today: { from: todayStr, to: todayStr, label: 'Today' },
-    yesterday: { from: yesterdayStr, to: yesterdayStr, label: 'Yesterday' },
-    last7: { from: last7Str, to: todayStr, label: 'Last 7 days' },
-    last30: { from: last30Str, to: todayStr, label: 'Last 30 days' },
-    thisMonth: { from: startOfMonthStr, to: todayStr, label: 'This month' },
+  const startOfMonday = (value) => {
+    const day = new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+    const dow = day.getUTCDay();
+    day.setUTCDate(day.getUTCDate() + (dow === 0 ? -6 : 1 - dow));
+    return day;
   };
-};
+  const toKey = (d) => d.toISOString().slice(0, 10);
+
+  let cursor = startOfMonday(monthStart);
+  const weeks = [];
+  while (cursor.getTime() <= monthEnd.getTime()) {
+    const weekStart = new Date(cursor.getTime());
+    const weekEnd = new Date(weekStart.getTime());
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    if (weekEnd.getTime() >= monthStart.getTime()) {
+      weeks.push({
+        week: weeks.length + 1,
+        weekStart: toKey(weekStart),
+        weekEnd: toKey(weekEnd),
+        label: `Week ${weeks.length + 1} (${toKey(weekStart)} → ${toKey(weekEnd)})`,
+      });
+    }
+    cursor = new Date(weekStart.getTime());
+    cursor.setUTCDate(cursor.getUTCDate() + 7);
+  }
+  return weeks;
+}
+
+function currentWeekNumberForMonth(month) {
+  const weeks = listWeeksForMonthLocal(month);
+  if (!weeks.length) return 1;
+  const now = new Date();
+  const dow = now.getUTCDay();
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  monday.setUTCDate(monday.getUTCDate() + (dow === 0 ? -6 : 1 - dow));
+  const key = monday.toISOString().slice(0, 10);
+  return weeks.find((w) => w.weekStart === key)?.week || weeks[weeks.length - 1].week;
+}
 
 /** Modal showing detailed daily breakdown and granular session logs for one listener */
-function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
+function ListenerOnlineTimeDetailModal({ listenerId, month, week, onClose }) {
+  const detailParams = { month, week };
   const { data, isLoading, error } = useQuery({
-    queryKey: typeof qk?.listenerOnlineTimeDetail === 'function'
-      ? qk.listenerOnlineTimeDetail(listenerId, { from, to })
-      : ['listeners', 'online-time', 'detail', listenerId, { from, to }],
-    queryFn: () => listenersApi.getListenerOnlineTime(listenerId, { from, to }),
-    enabled: Boolean(listenerId),
+    queryKey: qk.listenerOnlineTimeDetail(listenerId, detailParams),
+    queryFn: () => listenersApi.getListenerOnlineTime(listenerId, detailParams),
+    enabled: Boolean(listenerId && month && week),
   });
 
   const listener = data?.listener;
@@ -104,7 +120,7 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
       open
       onClose={onClose}
       title={listener ? `${listener.displayName || listener.name} — Online Time` : 'Listener online time'}
-      description="Daily breakdown and individual online session logs for the selected date range."
+      description="Daily breakdown and session logs for the selected Mon–Sun week."
       size="xl"
       footer={
         <Button variant="secondary" onClick={onClose}>
@@ -117,7 +133,6 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
 
       {data && (
         <div className="space-y-6">
-          {/* Listener Header Profile */}
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-ink-200 bg-ink-50/50 p-4">
             <div className="flex items-center gap-3.5">
               <div className="relative">
@@ -145,6 +160,9 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
                   {listener.busy && <Badge tone="warning">In Call</Badge>}
                 </div>
                 <p className="text-xs text-ink-500">{listener.fullMobile}</p>
+                {summary?.weekLabel && (
+                  <p className="mt-1 text-xs font-medium text-ink-600">{summary.weekLabel}</p>
+                )}
               </div>
             </div>
 
@@ -159,12 +177,11 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
             </div>
           </div>
 
-          {/* Quick Summary Cards */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-ink-100 bg-white p-3.5 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wider text-ink-500">Total Online Time</p>
               <p className="mt-1 text-xl font-bold text-ink-900">{summary?.totalOnlineFormatted || '0s'}</p>
-              <p className="text-[11px] text-ink-400">{summary?.totalHours || 0} hrs in range</p>
+              <p className="text-[11px] text-ink-400">{summary?.totalHours || 0} hrs this week</p>
             </div>
             <div className="rounded-xl border border-ink-100 bg-white p-3.5 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wider text-ink-500">Total Sessions</p>
@@ -180,14 +197,13 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
               <p className="text-xs font-medium uppercase tracking-wider text-ink-500">Daily Average</p>
               <p className="mt-1 text-xl font-bold text-ink-900">
                 {summary?.activeDaysCount
-                  ? (summary.totalHours / summary.activeDaysCount).toFixed(1) + ' hrs/day'
+                  ? `${(summary.totalHours / summary.activeDaysCount).toFixed(1)} hrs/day`
                   : '0 hrs'}
               </p>
               <p className="text-[11px] text-ink-400">On active days</p>
             </div>
           </div>
 
-          {/* Daily Breakdown */}
           {dailyBreakdown.length > 0 && (
             <div className="space-y-2.5">
               <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
@@ -220,13 +236,12 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
             </div>
           )}
 
-          {/* Granular Session Logs */}
           <div className="space-y-2.5">
             <h5 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
               Session Interval Logs ({sessions.length})
             </h5>
             {sessions.length === 0 ? (
-              <p className="py-4 text-center text-xs text-ink-400">No session logs found in this date range.</p>
+              <p className="py-4 text-center text-xs text-ink-400">No session logs found in this week.</p>
             ) : (
               <div className="max-h-72 overflow-y-auto rounded-lg border border-ink-200">
                 <table className="min-w-full divide-y divide-ink-200 text-left text-xs">
@@ -244,7 +259,7 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
                       <tr key={s.id} className="hover:bg-ink-50/50">
                         <td className="px-3 py-2 font-mono text-ink-700">{fmtDateTime(s.startedAt)}</td>
                         <td className="px-3 py-2 font-mono text-ink-700">
-                          {s.endedAt ? fmtDateTime(s.endedAt) : <span className="text-emerald-600 font-medium">Ongoing</span>}
+                          {s.endedAt ? fmtDateTime(s.endedAt) : <span className="font-medium text-emerald-600">Ongoing</span>}
                         </td>
                         <td className="px-3 py-2 font-semibold text-ink-900">{s.durationFormatted}</td>
                         <td className="px-3 py-2">
@@ -267,25 +282,41 @@ function ListenerOnlineTimeDetailModal({ listenerId, from, to, onClose }) {
 }
 
 export function ListenerOnlineTimePage() {
-  const presets = useMemo(() => getDateRangePresets(), []);
-  const [selectedPreset, setSelectedPreset] = useState('last7');
+  const initialMonth = toMonthValue();
   const [selectedListenerId, setSelectedListenerId] = useState(null);
 
-  const table = useTableState({
-    from: presets.last7.from,
-    to: presets.last7.to,
-    search: '',
-    gender: '',
-    sortBy: 'totalSeconds',
-    sortOrder: 'desc',
-    limit: 20,
-  });
+  const table = useTableState(
+    {
+      month: initialMonth,
+      week: String(currentWeekNumberForMonth(initialMonth)),
+      search: '',
+      gender: '',
+      sortBy: 'totalSeconds',
+      sortOrder: 'desc',
+    },
+    { limit: 20 },
+  );
+
+  const weeksForMonth = useMemo(
+    () => listWeeksForMonthLocal(table.filters.month),
+    [table.filters.month],
+  );
+
+  // Keep week in range when month changes.
+  useEffect(() => {
+    if (!weeksForMonth.length) return;
+    const current = Number(table.filters.week);
+    if (!weeksForMonth.some((w) => w.week === current)) {
+      table.setFilter('week', String(weeksForMonth[weeksForMonth.length - 1].week));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-clamp when month weeks change
+  }, [table.filters.month, weeksForMonth]);
 
   const queryParams = {
     page: table.page,
-    limit: table.limit,
-    from: table.filters.from,
-    to: table.filters.to,
+    limit: table.pageSize,
+    month: table.filters.month,
+    week: table.filters.week,
     search: table.filters.search || undefined,
     gender: table.filters.gender || undefined,
     sortBy: table.filters.sortBy,
@@ -293,31 +324,33 @@ export function ListenerOnlineTimePage() {
   };
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: typeof qk?.listenerOnlineTime === 'function'
-      ? qk.listenerOnlineTime(queryParams)
-      : ['listeners', 'online-time', queryParams],
+    queryKey: qk.listenerOnlineTime(queryParams),
     queryFn: () => listenersApi.getOnlineTime(queryParams),
   });
 
   const summary = data?.summary;
   const rows = data?.data || [];
   const pagination = data?.pagination;
+  const weekOptions = summary?.weeksInMonth?.length ? summary.weeksInMonth : weeksForMonth;
+  const selectedWeek = weekOptions.find((w) => String(w.week) === String(table.filters.week));
 
-  const handlePresetSelect = (key) => {
-    setSelectedPreset(key);
-    if (presets[key]) {
-      table.setFilters({
-        from: presets[key].from,
-        to: presets[key].to,
-      });
+  const monthOptions = useMemo(() => {
+    const options = [];
+    const now = new Date();
+    for (let i = 0; i < 18; i += 1) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      const value = toMonthValue(d);
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+      options.push({ value, label });
     }
-  };
+    return options;
+  }, []);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Listener online time"
-        description="Monitor active online hours, daily engagement, and session frequencies for approved listeners across custom date ranges."
+        description="Week-wise online hours (Monday–Sunday). Pick a month, then a week. Past weeks stay in history."
         actions={
           <Button variant="secondary" onClick={() => refetch()} loading={isFetching}>
             Refresh data
@@ -325,64 +358,60 @@ export function ListenerOnlineTimePage() {
         }
       />
 
-      {/* Date Presets Toolbar */}
-      <Card className="p-4 space-y-4">
+      <Card className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-500 mr-1 flex items-center gap-1.5">
-              <Calendar className="size-3.5" />
-              Presets:
-            </span>
-            {Object.entries(presets).map(([key, p]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handlePresetSelect(key)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                  selectedPreset === key && table.filters.from === p.from && table.filters.to === p.to
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'bg-ink-100 text-ink-700 hover:bg-ink-200'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            <Calendar className="size-3.5" />
+            Week filter
           </div>
-
-          <div className="flex items-center gap-2 text-xs text-ink-500">
-            <span>Range:</span>
+          <div className="text-xs text-ink-500">
+            Selected:{' '}
             <span className="font-semibold text-ink-800">
-              {table.filters.from} to {table.filters.to}
+              {selectedWeek?.label ||
+                (summary?.weekStart && summary?.weekEnd
+                  ? `${summary.weekStart} → ${summary.weekEnd}`
+                  : '—')}
             </span>
           </div>
         </div>
 
-        {/* Filter Inputs */}
-        <div className="grid grid-cols-1 gap-3 pt-2 border-t border-ink-100 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 border-t border-ink-100 pt-2 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label className="block text-xs font-medium text-ink-600 mb-1">From Date</label>
-            <Input
-              type="date"
-              value={table.filters.from}
+            <label className="mb-1 block text-xs font-medium text-ink-600">Month</label>
+            <Select
+              value={table.filters.month}
               onChange={(e) => {
-                setSelectedPreset('custom');
-                table.setFilter('from', e.target.value);
+                const nextMonth = e.target.value;
+                const nextWeeks = listWeeksForMonthLocal(nextMonth);
+                const nextWeek =
+                  nextWeeks.find((w) => w.week === currentWeekNumberForMonth(nextMonth))?.week ||
+                  nextWeeks[nextWeeks.length - 1]?.week ||
+                  1;
+                table.setManyFilters({ month: nextMonth, week: String(nextWeek) });
               }}
-            />
+            >
+              {monthOptions.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </Select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-ink-600 mb-1">To Date</label>
-            <Input
-              type="date"
-              value={table.filters.to}
-              onChange={(e) => {
-                setSelectedPreset('custom');
-                table.setFilter('to', e.target.value);
-              }}
-            />
+            <label className="mb-1 block text-xs font-medium text-ink-600">Week (Mon–Sun)</label>
+            <Select
+              value={String(table.filters.week)}
+              onChange={(e) => table.setFilter('week', e.target.value)}
+            >
+              {weekOptions.map((w) => (
+                <option key={w.week} value={String(w.week)}>
+                  {w.label}
+                </option>
+              ))}
+            </Select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-ink-600 mb-1">Search Listener</label>
+            <label className="mb-1 block text-xs font-medium text-ink-600">Search Listener</label>
             <Input
               placeholder="Name or mobile…"
               value={table.filters.search}
@@ -390,7 +419,7 @@ export function ListenerOnlineTimePage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-ink-600 mb-1">Gender</label>
+            <label className="mb-1 block text-xs font-medium text-ink-600">Gender</label>
             <Select
               value={table.filters.gender}
               onChange={(e) => table.setFilter('gender', e.target.value)}
@@ -404,12 +433,11 @@ export function ListenerOnlineTimePage() {
         </div>
       </Card>
 
-      {/* KPI Stats Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Total platform online time"
           value={summary ? summary.totalOnlineFormatted : '—'}
-          sub={`${summary ? summary.totalOnlineHms : '00:00:00'} total tracked`}
+          sub={`${summary ? summary.totalOnlineHms : '00:00:00'} this week`}
           icon={Clock}
           tone="brand"
         />
@@ -423,7 +451,7 @@ export function ListenerOnlineTimePage() {
         <MetricCard
           label="Average per listener"
           value={summary ? summary.averageOnlineFormatted : '—'}
-          sub={`${summary ? summary.averageOnlineHours : 0} hrs avg in range`}
+          sub={`${summary ? summary.averageOnlineHours : 0} hrs avg this week`}
           icon={TrendingUp}
           tone="sky"
         />
@@ -436,7 +464,6 @@ export function ListenerOnlineTimePage() {
         />
       </div>
 
-      {/* Listeners Online Time Table */}
       <Card>
         {isLoading && <LoadingBlock label="Calculating online time for listeners…" />}
         {error && <ErrorState error={error} />}
@@ -445,7 +472,7 @@ export function ListenerOnlineTimePage() {
           <EmptyState
             icon={Clock}
             title="No listener activity found"
-            description="No online time records matched the current filters or date range."
+            description="No online time records matched the selected week or filters."
           />
         )}
 
@@ -467,7 +494,7 @@ export function ListenerOnlineTimePage() {
                 </thead>
                 <tbody className="divide-y divide-ink-100 bg-white">
                   {rows.map((row) => (
-                    <tr key={row.listenerId} className="hover:bg-ink-50/60 transition">
+                    <tr key={row.listenerId} className="transition hover:bg-ink-50/60">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="relative size-9 shrink-0">
@@ -549,7 +576,7 @@ export function ListenerOnlineTimePage() {
                   total={pagination.total}
                   totalPages={pagination.totalPages}
                   onPageChange={table.setPage}
-                  onLimitChange={table.setLimit}
+                  onLimitChange={table.changeLimit}
                 />
               </div>
             )}
@@ -557,16 +584,16 @@ export function ListenerOnlineTimePage() {
         )}
       </Card>
 
-      {/* Detail Dialog */}
       {selectedListenerId && (
         <ListenerOnlineTimeDetailModal
           listenerId={selectedListenerId}
-          from={table.filters.from}
-          to={table.filters.to}
+          month={table.filters.month}
+          week={table.filters.week}
           onClose={() => setSelectedListenerId(null)}
         />
       )}
     </div>
   );
 }
+
 export default ListenerOnlineTimePage;
