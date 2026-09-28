@@ -1,4 +1,4 @@
-import { api, get, post, put, patch, del, downloadCsv } from './client';
+import { api, get, post, put, patch, del, downloadCsv, downloadBlobPost } from './client';
 
 /**
  * Every admin endpoint the backend exposes, grouped by module to mirror
@@ -233,6 +233,12 @@ export const manualWeeklyPayoutsApi = {
     patch(`/admin/manual-weekly-payouts/listeners/${listenerUserId}`, body),
   markPaid: (listenerUserId, body) =>
     post(`/admin/manual-weekly-payouts/listeners/${listenerUserId}/mark-paid`, body),
+  export: (body) =>
+    downloadBlobPost(
+      '/admin/manual-weekly-payouts/export',
+      body,
+      `weekly-bank-payouts.${body?.format === 'xlsx' ? 'xlsx' : 'csv'}`,
+    ),
 };
 
 // --- RBAC -------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Download } from 'lucide-react';
 import { manualWeeklyPayoutsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -21,6 +22,7 @@ import {
 } from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, fmtPaise, shortId } from '../lib/format';
+import { useToast } from '../components/ui/Toast';
 
 function fmtDurationSafe(seconds) {
   const s = Math.max(0, Math.trunc(seconds || 0));
@@ -37,6 +39,92 @@ function rupeesInputToPaise(value) {
 
 function paiseToRupeesInput(paise) {
   return Number((Number(paise || 0) / 100).toFixed(2));
+}
+
+function BankCell({ bankDetails }) {
+  if (!bankDetails?.provided) {
+    return <span className="text-xs text-ink-400">No bank</span>;
+  }
+  return (
+    <div className="min-w-0 text-xs">
+      <p className="truncate font-medium text-ink-800">{bankDetails.accountHolderName || '—'}</p>
+      <p className="font-mono text-ink-600">{bankDetails.bankAccountNumberMasked || '—'}</p>
+      <p className="font-mono text-ink-500">
+        {bankDetails.ifscCodeMasked || '—'}
+        {bankDetails.bankName ? ` · ${bankDetails.bankName}` : ''}
+      </p>
+    </div>
+  );
+}
+
+function DownloadExportModal({ open, onClose, scope, filters }) {
+  const toast = useToast();
+  const [format, setFormat] = useState('csv');
+  const [decryptionKey, setDecryptionKey] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const run = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await manualWeeklyPayoutsApi.export({
+        scope,
+        format,
+        decryptionKey: decryptionKey.trim() || undefined,
+        ...filters,
+      });
+      toast.success(
+        decryptionKey.trim()
+          ? 'Downloaded with unmasked bank details'
+          : 'Downloaded (bank details masked)',
+      );
+      onClose();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Download payouts"
+      description="Uses the filters currently applied on this tab. Leave decryption key empty for masked account/IFSC; enter the permanent key to unmask."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={run} loading={busy}>
+            <Download className="size-4" />
+            Download
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && <ErrorState error={error} compact />}
+        <Field label="Format">
+          <Select value={format} onChange={(e) => setFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="xlsx">XLSX (Excel)</option>
+          </Select>
+        </Field>
+        <Field label="Decryption key (optional)">
+          <Input
+            type="password"
+            autoComplete="off"
+            value={decryptionKey}
+            onChange={(e) => setDecryptionKey(e.target.value)}
+            placeholder="Permanent key to unmask bank account & IFSC"
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
 }
 
 function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
@@ -170,6 +258,10 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
               <p className="text-xs text-ink-500">Mobile</p>
               <p className="font-mono text-xs">{data.listener?.mobile || '—'}</p>
             </div>
+            <div className="col-span-2 sm:col-span-3">
+              <p className="text-xs text-ink-500">Bank (masked)</p>
+              <BankCell bankDetails={data.bankDetails} />
+            </div>
             {data.paidAt && (
               <div className="col-span-2">
                 <p className="text-xs text-ink-500">Paid at</p>
@@ -271,6 +363,7 @@ function WeekSheetTab() {
   const { can } = useAuth();
   const canWrite = can(P.PAYOUTS_WRITE);
   const [detail, setDetail] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const weeksQuery = useQuery({
     queryKey: qk.manualWeeklyWeeks({ count: 5 }),
@@ -296,6 +389,15 @@ function WeekSheetTab() {
       search: table.filters.search || undefined,
     }),
     [table.params, table.filters.status, table.filters.search, weekStart],
+  );
+
+  const exportFilters = useMemo(
+    () => ({
+      weekStart: weekStart || undefined,
+      status: table.filters.status || undefined,
+      search: table.filters.search || undefined,
+    }),
+    [weekStart, table.filters.status, table.filters.search],
   );
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -324,6 +426,11 @@ function WeekSheetTab() {
           <p className="font-mono text-[11px] text-ink-500">{row.listener?.mobile || '—'}</p>
         </div>
       ),
+    },
+    {
+      key: 'bank',
+      header: 'Bank (masked)',
+      render: (row) => <BankCell bankDetails={row.bankDetails} />,
     },
     {
       key: 'call',
@@ -379,38 +486,44 @@ function WeekSheetTab() {
   return (
     <>
       <Card>
-        <FilterBar>
-          <Field label="Week (last 5)">
-            <Select
-              value={table.filters.weekStart || defaultWeek}
-              onChange={(e) => table.setFilter('weekStart', e.target.value)}
-            >
-              {weeks.map((w) => (
-                <option key={w.weekStartDate} value={w.weekStartDate}>
-                  {w.label}
-                  {w.isCurrent ? ' (current)' : ''}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Status">
-            <Select
-              value={table.filters.status}
-              onChange={(e) => table.setFilter('status', e.target.value)}
-            >
-              <option value="">All</option>
-              <option value="UNPAID">Unpaid</option>
-              <option value="PAID">Paid</option>
-            </Select>
-          </Field>
-          <Field label="Search">
-            <Input
-              value={table.filters.search}
-              onChange={(e) => table.setFilter('search', e.target.value)}
-              placeholder="Name, mobile, user id"
-            />
-          </Field>
-        </FilterBar>
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <FilterBar>
+            <Field label="Week (last 5)">
+              <Select
+                value={table.filters.weekStart || defaultWeek}
+                onChange={(e) => table.setFilter('weekStart', e.target.value)}
+              >
+                {weeks.map((w) => (
+                  <option key={w.weekStartDate} value={w.weekStartDate}>
+                    {w.label}
+                    {w.isCurrent ? ' (current)' : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Status">
+              <Select
+                value={table.filters.status}
+                onChange={(e) => table.setFilter('status', e.target.value)}
+              >
+                <option value="">All</option>
+                <option value="UNPAID">Unpaid</option>
+                <option value="PAID">Paid</option>
+              </Select>
+            </Field>
+            <Field label="Search">
+              <Input
+                value={table.filters.search}
+                onChange={(e) => table.setFilter('search', e.target.value)}
+                placeholder="Name, mobile, user id"
+              />
+            </Field>
+          </FilterBar>
+          <Button variant="secondary" onClick={() => setExportOpen(true)} disabled={!weekStart}>
+            <Download className="size-4" />
+            Download
+          </Button>
+        </div>
 
         {summary && (
           <div className="mb-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 lg:grid-cols-6">
@@ -457,12 +570,21 @@ function WeekSheetTab() {
           onClose={() => setDetail(null)}
         />
       )}
+      {exportOpen && (
+        <DownloadExportModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          scope="week"
+          filters={exportFilters}
+        />
+      )}
     </>
   );
 }
 
 function HistoryTab() {
   const [detail, setDetail] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const weeksQuery = useQuery({
     queryKey: qk.manualWeeklyWeeks({ count: 5 }),
@@ -486,6 +608,16 @@ function HistoryTab() {
       search: table.filters.search || undefined,
     }),
     [table.params, table.filters],
+  );
+
+  const exportFilters = useMemo(
+    () => ({
+      weekStart: table.filters.weekStart || undefined,
+      from: table.filters.from || undefined,
+      to: table.filters.to || undefined,
+      search: table.filters.search || undefined,
+    }),
+    [table.filters],
   );
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -520,6 +652,11 @@ function HistoryTab() {
           <p className="font-mono text-[11px] text-ink-500">{row.listener?.mobile || '—'}</p>
         </div>
       ),
+    },
+    {
+      key: 'bank',
+      header: 'Bank (masked)',
+      render: (row) => <BankCell bankDetails={row.bankDetails} />,
     },
     {
       key: 'call',
@@ -570,42 +707,48 @@ function HistoryTab() {
   return (
     <>
       <Card>
-        <FilterBar>
-          <Field label="Week">
-            <Select
-              value={table.filters.weekStart}
-              onChange={(e) => table.setFilter('weekStart', e.target.value)}
-            >
-              <option value="">All weeks</option>
-              {weeks.map((w) => (
-                <option key={w.weekStartDate} value={w.weekStartDate}>
-                  {w.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Paid from">
-            <Input
-              type="date"
-              value={table.filters.from}
-              onChange={(e) => table.setFilter('from', e.target.value)}
-            />
-          </Field>
-          <Field label="Paid to">
-            <Input
-              type="date"
-              value={table.filters.to}
-              onChange={(e) => table.setFilter('to', e.target.value)}
-            />
-          </Field>
-          <Field label="Search">
-            <Input
-              value={table.filters.search}
-              onChange={(e) => table.setFilter('search', e.target.value)}
-              placeholder="Name, mobile"
-            />
-          </Field>
-        </FilterBar>
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <FilterBar>
+            <Field label="Week">
+              <Select
+                value={table.filters.weekStart}
+                onChange={(e) => table.setFilter('weekStart', e.target.value)}
+              >
+                <option value="">All weeks</option>
+                {weeks.map((w) => (
+                  <option key={w.weekStartDate} value={w.weekStartDate}>
+                    {w.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Paid from">
+              <Input
+                type="date"
+                value={table.filters.from}
+                onChange={(e) => table.setFilter('from', e.target.value)}
+              />
+            </Field>
+            <Field label="Paid to">
+              <Input
+                type="date"
+                value={table.filters.to}
+                onChange={(e) => table.setFilter('to', e.target.value)}
+              />
+            </Field>
+            <Field label="Search">
+              <Input
+                value={table.filters.search}
+                onChange={(e) => table.setFilter('search', e.target.value)}
+                placeholder="Name, mobile"
+              />
+            </Field>
+          </FilterBar>
+          <Button variant="secondary" onClick={() => setExportOpen(true)}>
+            <Download className="size-4" />
+            Download
+          </Button>
+        </div>
 
         {error && <ErrorState error={error} onRetry={refetch} />}
         <DataTable columns={columns} rows={data?.data || []} loading={isLoading} />
@@ -617,6 +760,14 @@ function HistoryTab() {
           listenerUserId={detail.listenerUserId}
           weekStart={detail.weekStart}
           onClose={() => setDetail(null)}
+        />
+      )}
+      {exportOpen && (
+        <DownloadExportModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          scope="history"
+          filters={exportFilters}
         />
       )}
     </>

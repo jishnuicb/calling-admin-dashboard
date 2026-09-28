@@ -232,3 +232,41 @@ export const downloadCsv = async (url, params, filename) => {
   link.remove();
   URL.revokeObjectURL(blobUrl);
 };
+
+/** POST body → file download (CSV/XLSX). Uses Content-Disposition filename when present. */
+export const downloadBlobPost = async (url, body, fallbackFilename) => {
+  try {
+    const response = await api.post(url, body, { responseType: 'blob' });
+    const disposition = response.headers?.['content-disposition'] || '';
+    const match = /filename="?([^"]+)"?/i.exec(disposition);
+    const filename = match?.[1] || fallbackFilename || 'download.bin';
+    const contentType = response.headers?.['content-type'] || 'application/octet-stream';
+    const blobUrl = URL.createObjectURL(new Blob([response.data], { type: contentType }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(blobUrl);
+    return { filename };
+  } catch (err) {
+    // Axios + responseType:blob turns JSON error bodies into Blobs — unwrap for UI.
+    const data = err?.response?.data;
+    if (data instanceof Blob) {
+      try {
+        const parsed = JSON.parse(await data.text());
+        throw new ApiError({
+          statusCode: parsed.statusCode || err.response?.status || 500,
+          message: parsed.message || err.message || 'Download failed',
+          code: parsed.error || 'REQUEST_FAILED',
+          details: parsed.details,
+          requestId: parsed.requestId || err.response?.headers?.['x-request-id'],
+        });
+      } catch (inner) {
+        if (inner instanceof ApiError) throw inner;
+      }
+    }
+    throw err;
+  }
+};
