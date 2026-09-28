@@ -393,7 +393,11 @@ function EditConfigModal({ entry, onClose }) {
 
         {isBoolean ? (
           <div className="rounded-lg bg-ink-50 px-3.5 py-3">
-            <Toggle checked={Boolean(value)} onChange={setValue} label={meta.label || entry.key} />
+            <Toggle
+              checked={Boolean(value)}
+              onChange={setValue}
+              label={Boolean(value) ? 'Enabled' : 'Disabled'}
+            />
           </div>
         ) : (
           <Field label="Value" required hint={meta.unit}>

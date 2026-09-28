@@ -221,6 +221,20 @@ export const bulkTopupApi = {
   removeExclusion: (userId, scope) => del(`/admin/bulk-topup/exclusions/${userId}/${scope}`),
 };
 
+// --- Manual weekly bank payouts (offline — not Cashfree) --------------------
+
+export const manualWeeklyPayoutsApi = {
+  weeks: (params) => get('/admin/manual-weekly-payouts/weeks', params),
+  list: (params) => get('/admin/manual-weekly-payouts', params),
+  history: (params) => get('/admin/manual-weekly-payouts/history', params),
+  detail: (listenerUserId, params) =>
+    get(`/admin/manual-weekly-payouts/listeners/${listenerUserId}`, params),
+  update: (listenerUserId, body) =>
+    patch(`/admin/manual-weekly-payouts/listeners/${listenerUserId}`, body),
+  markPaid: (listenerUserId, body) =>
+    post(`/admin/manual-weekly-payouts/listeners/${listenerUserId}/mark-paid`, body),
+};
+
 // --- RBAC -------------------------------------------------------------------
 
 export const rbacApi = {

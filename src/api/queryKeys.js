@@ -59,6 +59,16 @@ export const qk = {
   bulkTopupAwards: (id, params) => ['bulk-topup', 'awards', id, params],
   bulkTopupExclusions: (params) => ['bulk-topup', 'exclusions', params],
 
+  manualWeeklyWeeks: (params) => ['manual-weekly-payouts', 'weeks', params],
+  manualWeeklyList: (params) => ['manual-weekly-payouts', 'list', params],
+  manualWeeklyHistory: (params) => ['manual-weekly-payouts', 'history', params],
+  manualWeeklyDetail: (listenerUserId, weekStart) => [
+    'manual-weekly-payouts',
+    'detail',
+    listenerUserId,
+    weekStart,
+  ],
+
   permissions: ['rbac', 'permissions'],
   sections: ['rbac', 'sections'],
   roles: ['rbac', 'roles'],
