@@ -82,6 +82,7 @@ function DownloadExportModal({ open, onClose, scope, filters }) {
       onClose();
     } catch (err) {
       setError(err);
+      toast.error(err);
     } finally {
       setBusy(false);
     }
@@ -117,10 +118,16 @@ function DownloadExportModal({ open, onClose, scope, filters }) {
           <Input
             type="password"
             autoComplete="off"
+            spellCheck={false}
             value={decryptionKey}
             onChange={(e) => setDecryptionKey(e.target.value)}
-            placeholder="Permanent key to unmask bank account & IFSC"
+            placeholder="Same permanent key as Reveal phone & bank"
           />
+          <p className="mt-1 text-[11px] text-ink-500">
+            Leave empty for masked account/IFSC. To unmask, paste the exact permanent key
+            (same as Listener detail → Reveal phone & bank). Extra spaces/hidden characters
+            are stripped; a wrong key always returns Invalid decryption key.
+          </p>
         </Field>
       </div>
     </Modal>
