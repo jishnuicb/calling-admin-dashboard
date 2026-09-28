@@ -138,6 +138,17 @@ const CONFIG_META = {
     note: 'Granted to each qualifying listener when the run completes.',
     group: 'Bonuses',
   },
+  'bulk.topup.enabled': {
+    label: 'Daily bulk wallet top-up enabled',
+    note: 'When on, the 12:30 AM cron credits all ACTIVE users (minus AUTOMATIC exclusions). Prefer Money → Bulk top-up.',
+    group: 'Bonuses',
+  },
+  'bulk.topup.tokens': {
+    label: 'Bulk top-up tokens per user',
+    unit: 'tokens',
+    note: 'Default amount for automatic and manual bulk runs (manual can override).',
+    group: 'Bonuses',
+  },
 };
 
 /** Edited in the dedicated App & support card — hide from the generic list. */

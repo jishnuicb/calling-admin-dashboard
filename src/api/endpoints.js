@@ -207,6 +207,20 @@ export const bonusesApi = {
   runWeekly: (body) => post('/admin/bonuses/weekly/run', body),
 };
 
+// --- Bulk wallet top-up -----------------------------------------------------
+
+export const bulkTopupApi = {
+  settings: () => get('/admin/bulk-topup/settings'),
+  updateSettings: (body) => put('/admin/bulk-topup/settings', body),
+  runManual: (body) => post('/admin/bulk-topup/run', body),
+  runs: (params) => get('/admin/bulk-topup/runs', params),
+  run: (id) => get(`/admin/bulk-topup/runs/${id}`),
+  awards: (id, params) => get(`/admin/bulk-topup/runs/${id}/awards`, params),
+  exclusions: (params) => get('/admin/bulk-topup/exclusions', params),
+  addExclusion: (body) => post('/admin/bulk-topup/exclusions', body),
+  removeExclusion: (userId, scope) => del(`/admin/bulk-topup/exclusions/${userId}/${scope}`),
+};
+
 // --- RBAC -------------------------------------------------------------------
 
 export const rbacApi = {
