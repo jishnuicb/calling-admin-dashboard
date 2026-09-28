@@ -32,6 +32,7 @@ export const usersApi = {
   list: (params) => get('/admin/users', params),
   get: (id) => get(`/admin/users/${id}`),
   setBlocked: (id, body) => post(`/admin/users/${id}/block`, body),
+  revealPhone: (id, body) => post(`/admin/users/${id}/phone/reveal`, body),
 };
 
 // --- Listener applications --------------------------------------------------
@@ -49,6 +50,8 @@ export const listenersApi = {
   addNotes: (id, body) => post(`/admin/listeners/applications/${id}/notes`, body),
   syncBeneficiary: (id, body) =>
     post(`/admin/listeners/applications/${id}/beneficiary/sync`, body || {}),
+  getOnlineTime: (params) => get('/admin/listeners/online-time', params),
+  getListenerOnlineTime: (id, params) => get(`/admin/listeners/${id}/online-time`, params),
 };
 
 export const professionsApi = {

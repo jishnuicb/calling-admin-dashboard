@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Banknote,
   Check,
+  Clock,
   Eye,
   EyeOff,
   PauseCircle,
@@ -361,7 +362,7 @@ export function ListenerDetailPage() {
 
   const revealBank = useApiMutation({
     mutationFn: () => listenersApi.revealBank(id, { decryptionKey: decryptKey }),
-    successMessage: 'Bank details revealed for this view only',
+    successMessage: 'Phone & bank details revealed for this view only',
     onSuccess: (data) => setRevealedApp(data),
   });
 
@@ -423,6 +424,13 @@ export function ListenerDetailPage() {
         description={`${titleCase(application.gender)} · ${application.country || 'Unknown country'}`}
         actions={
           <>
+            <Link
+              to={`/listener-online-time?search=${encodeURIComponent(application.mobileNumber || application.displayName || '')}`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-50"
+            >
+              <Clock className="size-4 text-ink-500" />
+              Online time
+            </Link>
             {can(P.LISTENERS_APPROVE) && (
               <Button variant="secondary" onClick={() => setNotesOpen(true)}>
                 <StickyNote className="size-4" />
@@ -524,7 +532,24 @@ export function ListenerDetailPage() {
 
               
               { label: 'Date of birth', value: fmtDate(application.dateOfBirth) },
-              { label: 'Phone number', value: `${application.user?.countryCode} ${application.user?.mobileNumber}` },
+              {
+                label: 'Phone number',
+                value: (
+                  <span className="font-mono tabular">
+                    {`${view.user?.countryCode || ''} ${view.user?.mobileNumber || ''}`.trim() || '—'}
+                  </span>
+                ),
+              },
+              can(P.LISTENERS_APPROVE) && {
+                label: 'Unmask phone',
+                value: (
+                  <span className="text-xs text-ink-600">
+                    Use <strong>Reveal phone &amp; bank</strong> in Payout details below with the
+                    permanent decryption key (same key as bank fields).
+                  </span>
+                ),
+                full: true,
+              },
               {
                 label: 'Photo',
                 value: application.photoUrl ? (
@@ -633,7 +658,7 @@ export function ListenerDetailPage() {
 
         <Card
           title="Payout details"
-          description="Sensitive fields are masked by default. Enter the permanent decryption key to reveal or sync Cashfree. The key is never stored."
+          description="Bank fields and phone are masked by default. Enter the permanent decryption key to reveal. The key is never stored."
           className="lg:col-span-2"
         >
           {can(P.LISTENERS_APPROVE) && (
@@ -671,7 +696,7 @@ export function ListenerDetailPage() {
                   onClick={() => revealBank.mutate()}
                 >
                   <Eye className="size-4" />
-                  Reveal details
+                  Reveal phone & bank
                 </Button>
                 {(revealedApp || keyStatus.data?.unlocked) && (
                   <Button
