@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Gift, Play, UserMinus } from 'lucide-react';
-import { bulkTopupApi } from '../api/endpoints';
+import { bulkTopupApi, usersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
@@ -22,12 +22,17 @@ import {
   StatusBadge,
   Toggle,
 } from '../components/ui';
-import { useTableState } from '../hooks/useTableState';
+import { useTableState, useDebounced } from '../hooks/useTableState';
 import { fmtDateTime, fmtNumber, fmtTokens, shortId } from '../lib/format';
 
-function SettingsCard() {
+/** Write access for bulk top-up actions (bonuses OR wallet adjust). */
+function useBulkTopupWrite() {
   const { can } = useAuth();
-  const writable = can(P.BONUSES_WRITE);
+  return can(P.BONUSES_WRITE, P.WALLET_ADJUST);
+}
+
+function SettingsCard() {
+  const writable = useBulkTopupWrite();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.bulkTopupSettings,
     queryFn: () => bulkTopupApi.settings(),
@@ -58,13 +63,18 @@ function SettingsCard() {
       description={`${data?.scheduleLabel || 'Daily at 12:30 AM'} · credits all ACTIVE users except AUTOMATIC exclusions.`}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Enabled">
+        {/* Do not wrap Toggle in Field (<label>) — nested labels break the switch. */}
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-ink-700">
+            {form.enabled ? 'Enabled' : 'Disabled'}
+          </p>
           <Toggle
             checked={form.enabled}
             disabled={!writable || save.isPending}
             onChange={(checked) => setForm((f) => ({ ...f, enabled: checked }))}
+            label={form.enabled ? 'On' : 'Off'}
           />
-        </Field>
+        </div>
         <Field label="Tokens per user" hint="Amount credited to each eligible active user.">
           <Input
             type="number"
@@ -77,21 +87,25 @@ function SettingsCard() {
           />
         </Field>
       </div>
-      {writable && (
-        <div className="mt-4">
-          <Button
-            loading={save.isPending}
-            onClick={() =>
-              save.mutate({
-                enabled: form.enabled,
-                tokensPerUser: form.tokensPerUser,
-              })
-            }
-          >
-            Save settings
-          </Button>
-        </div>
-      )}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button
+          disabled={!writable}
+          loading={save.isPending}
+          onClick={() =>
+            save.mutate({
+              enabled: form.enabled,
+              tokensPerUser: form.tokensPerUser,
+            })
+          }
+        >
+          Save settings
+        </Button>
+        {!writable && (
+          <p className="text-xs text-amber-700">
+            You need <code>bonuses:write</code> or <code>wallet:adjust</code> to change settings.
+          </p>
+        )}
+      </div>
       {save.error && (
         <div className="mt-3">
           <ErrorState error={save.error} compact />
@@ -102,8 +116,7 @@ function SettingsCard() {
 }
 
 function ManualRunCard() {
-  const { can } = useAuth();
-  const writable = can(P.BONUSES_WRITE);
+  const writable = useBulkTopupWrite();
   const [tokensPerUser, setTokensPerUser] = useState('');
   const [note, setNote] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -126,8 +139,6 @@ function ManualRunCard() {
     },
   });
 
-  if (!writable) return null;
-
   const effectiveTokens =
     tokensPerUser === '' ? settings.data?.tokensPerUser : Number(tokensPerUser);
 
@@ -144,6 +155,7 @@ function ManualRunCard() {
               min={1}
               placeholder={String(settings.data?.tokensPerUser ?? 10)}
               value={tokensPerUser}
+              disabled={!writable}
               onChange={(e) => setTokensPerUser(e.target.value)}
             />
           </Field>
@@ -152,15 +164,25 @@ function ManualRunCard() {
               value={note}
               maxLength={500}
               placeholder="Reason for this manual run"
+              disabled={!writable}
               onChange={(e) => setNote(e.target.value)}
             />
           </Field>
         </div>
-        <div className="mt-4">
-          <Button variant="secondary" onClick={() => setConfirmOpen(true)}>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            disabled={!writable}
+            onClick={() => setConfirmOpen(true)}
+          >
             <Play className="size-4" />
             Run manual top-up
           </Button>
+          {!writable && (
+            <p className="text-xs text-amber-700">
+              You need <code>bonuses:write</code> or <code>wallet:adjust</code> to run a manual top-up.
+            </p>
+          )}
         </div>
       </Card>
 
@@ -202,10 +224,11 @@ function ManualRunCard() {
 }
 
 function ExclusionsCard() {
-  const { can } = useAuth();
-  const writable = can(P.BONUSES_WRITE);
+  const writable = useBulkTopupWrite();
   const table = useTableState({ scope: 'AUTOMATIC', search: '' }, { limit: 20 });
-  const [userId, setUserId] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const debouncedUserSearch = useDebounced(userSearch, 350);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [reason, setReason] = useState('');
   const [addScope, setAddScope] = useState('AUTOMATIC');
 
@@ -221,12 +244,19 @@ function ExclusionsCard() {
     queryFn: () => bulkTopupApi.exclusions(params),
   });
 
+  const userResults = useQuery({
+    queryKey: ['users', 'bulk-topup-exclude-search', debouncedUserSearch],
+    queryFn: () => usersApi.list({ search: debouncedUserSearch, limit: 10, page: 1 }),
+    enabled: writable && debouncedUserSearch.trim().length >= 2,
+  });
+
   const add = useApiMutation({
     mutationFn: (body) => bulkTopupApi.addExclusion(body),
     successMessage: 'User excluded',
     invalidate: [['bulk-topup', 'exclusions']],
     onSuccess: () => {
-      setUserId('');
+      setUserSearch('');
+      setSelectedUser(null);
       setReason('');
     },
   });
@@ -239,12 +269,101 @@ function ExclusionsCard() {
 
   const rows = data?.data || [];
   const pagination = data?.meta || data?.pagination;
+  const foundUsers = userResults.data?.data || [];
 
   return (
     <Card
       title="Exclusion lists"
       description="AUTOMATIC and MANUAL exclusions are separate — a user can be excluded from one or both."
     >
+      {writable && (
+        <div className="mb-4 space-y-3 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
+          <p className="text-xs font-medium text-ink-600">Add exclusion — search users by name or mobile</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="relative sm:col-span-2">
+              <Field label="Find user">
+                <Input
+                  placeholder="Type at least 2 characters…"
+                  value={selectedUser ? selectedUser.label : userSearch}
+                  onChange={(e) => {
+                    setSelectedUser(null);
+                    setUserSearch(e.target.value);
+                  }}
+                />
+              </Field>
+              {!selectedUser && debouncedUserSearch.trim().length >= 2 && (
+                <div className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-auto rounded-lg border border-ink-200 bg-white shadow-lg">
+                  {userResults.isFetching && (
+                    <p className="px-3 py-2 text-xs text-ink-500">Searching…</p>
+                  )}
+                  {!userResults.isFetching && foundUsers.length === 0 && (
+                    <p className="px-3 py-2 text-xs text-ink-500">No users matched.</p>
+                  )}
+                  {foundUsers.map((u) => {
+                    const label = `${u.name || 'User'} · ${u.mobile || shortId(u.id)}`;
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className="block w-full px-3 py-2 text-left text-sm hover:bg-ink-50"
+                        onClick={() => {
+                          setSelectedUser({ id: u.id, label });
+                          setUserSearch('');
+                        }}
+                      >
+                        <span className="font-medium text-ink-900">{u.name || 'Unnamed'}</span>
+                        <span className="ml-2 font-mono text-xs text-ink-500">
+                          {u.mobile || shortId(u.id)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <Field label="Exclude from">
+              <Select value={addScope} onChange={(e) => setAddScope(e.target.value)}>
+                <option value="AUTOMATIC">Automatic</option>
+                <option value="MANUAL">Manual</option>
+              </Select>
+            </Field>
+            <Field label="Reason">
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+            </Field>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              disabled={!selectedUser}
+              loading={add.isPending}
+              onClick={() =>
+                add.mutate({
+                  userId: selectedUser.id,
+                  scope: addScope,
+                  reason: reason || undefined,
+                })
+              }
+            >
+              <UserMinus className="size-4" />
+              Add exclusion
+            </Button>
+            {selectedUser && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setSelectedUser(null);
+                  setUserSearch('');
+                }}
+              >
+                Clear selection
+              </Button>
+            )}
+          </div>
+          {add.error && <ErrorState error={add.error} compact />}
+        </div>
+      )}
+
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Scope filter">
           <Select
@@ -256,57 +375,14 @@ function ExclusionsCard() {
             <option value="MANUAL">Manual</option>
           </Select>
         </Field>
-        <Field label="Search">
+        <Field label="Search exclusions">
           <Input
-            placeholder="Name or mobile…"
+            placeholder="Name or mobile in exclusion list…"
             value={table.filters.search}
             onChange={(e) => table.setFilter('search', e.target.value)}
           />
         </Field>
       </div>
-
-      {writable && (
-        <div className="mb-4 grid gap-3 rounded-lg border border-ink-100 bg-ink-50/50 p-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="User id">
-            <Input
-              value={userId}
-              placeholder="UUID"
-              onChange={(e) => setUserId(e.target.value.trim())}
-            />
-          </Field>
-          <Field label="Exclude from">
-            <Select value={addScope} onChange={(e) => setAddScope(e.target.value)}>
-              <option value="AUTOMATIC">Automatic</option>
-              <option value="MANUAL">Manual</option>
-            </Select>
-          </Field>
-          <Field label="Reason">
-            <Input value={reason} onChange={(e) => setReason(e.target.value)} />
-          </Field>
-          <div className="flex items-end">
-            <Button
-              size="sm"
-              disabled={!userId}
-              loading={add.isPending}
-              onClick={() =>
-                add.mutate({
-                  userId,
-                  scope: addScope,
-                  reason: reason || undefined,
-                })
-              }
-            >
-              <UserMinus className="size-4" />
-              Add exclusion
-            </Button>
-          </div>
-          {add.error && (
-            <div className="sm:col-span-2 lg:col-span-4">
-              <ErrorState error={add.error} compact />
-            </div>
-          )}
-        </div>
-      )}
 
       {isLoading && <LoadingBlock label="Loading exclusions…" />}
       {error && <ErrorState error={error} onRetry={refetch} />}
@@ -338,7 +414,7 @@ function ExclusionsCard() {
                       {row.user?.mobile || '—'}
                     </td>
                     <td className="px-3 py-2">
-                        <Badge tone={row.scope === 'AUTOMATIC' ? 'info' : 'warning'}>{row.scope}</Badge>
+                      <Badge tone={row.scope === 'AUTOMATIC' ? 'info' : 'warning'}>{row.scope}</Badge>
                     </td>
                     <td className="px-3 py-2 text-ink-600">{row.reason || '—'}</td>
                     <td className="px-3 py-2 text-xs text-ink-500">{fmtDateTime(row.createdAt)}</td>

@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Banknote,
   IndianRupee,
+  Landmark,
   Scale,
   Users,
   UserX,
@@ -72,8 +73,14 @@ const NAV_SECTIONS = [
       { to: '/wallets', label: 'Wallets', icon: Coins, permission: P.WALLET_READ },
       { to: '/earnings', label: 'Listener earnings', icon: IndianRupee, permission: P.EARNINGS_READ },
       { to: '/payouts', label: 'Listener payouts', icon: Banknote, permission: P.PAYOUTS_READ },
+      {
+        to: '/weekly-bank-payouts',
+        label: 'Weekly bank payouts',
+        icon: Landmark,
+        permission: P.PAYOUTS_READ,
+      },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
-      { to: '/bulk-topup', label: 'Bulk top-up', icon: Wallet, permission: P.BONUSES_READ },
+      { to: '/bulk-topup', label: 'Bulk top-up', icon: Wallet, permission: [P.BONUSES_READ, P.WALLET_READ] },
     ],
   },
   {
