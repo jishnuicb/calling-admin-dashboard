@@ -190,6 +190,23 @@ const CONFIG_META = {
     note: 'Rule B: notify offline free listeners when discovery callers > this AND there are no free listed listeners. Default 2.',
     group: 'Demand notify',
   },
+  'listener.onlinePing.enabled': {
+    label: 'Listener online ping enabled',
+    note: 'Hybrid online-time: socket-connected online listeners use continuous sessions (no FCM). Online listeners with no socket get silent FCM pings; each ACK credits one interval (default 30 min). Missed ACKs credit nothing. Turn off to disable FCM chunk proof.',
+    group: 'Listener online ping',
+  },
+  'listener.onlinePing.intervalMs': {
+    label: 'Online ping interval',
+    unit: 'milliseconds',
+    note: 'How often FCM-ping is sent to online listeners with no live socket. ACK credits this same duration (default 1800000 = 30 minutes). Socket-connected listeners are skipped. Min 15000, max 3600000.',
+    group: 'Listener online ping',
+  },
+  'listener.onlinePing.ackTimeoutMs': {
+    label: 'Online ping ACK timeout',
+    unit: 'milliseconds',
+    note: 'How long a no-socket online listener has to POST /listener/online-ack before the chunk is forfeited. Default 300000 (5 min). Min 5000, max 600000.',
+    group: 'Listener online ping',
+  },
 };
 
 /** Edited in the dedicated App & support card — hide from the generic list. */
