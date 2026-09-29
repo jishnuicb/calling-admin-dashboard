@@ -50,7 +50,7 @@ const CONFIG_META = {
   'listener.earnPaisePerSecond': {
     label: 'Listener earn rate',
     unit: 'paise per second',
-    note: 'INR credited to the listener per second of talk time (100 paise = ₹1). Snapshotted onto each call at initiate. Does not change caller token billing.',
+    note: 'INR credited to the listener per second of talk time (100 paise = ₹1). Supports decimals (e.g. 6.66). Snapshotted onto each call at initiate. Amount = round(seconds × rate) in whole paise. Does not change caller token billing.',
     group: 'Listener payouts',
   },
   'payout.schedule': {
@@ -148,6 +148,47 @@ const CONFIG_META = {
     unit: 'tokens',
     note: 'Default amount for automatic and manual bulk runs (manual can override).',
     group: 'Bonuses',
+  },
+  'demand.notify.enabled': {
+    label: 'Demand notify enabled',
+    note: 'When on, the background job can push offline callers/listeners when supply/demand is imbalanced. Turn off to pause all demand pushes without redeploying.',
+    group: 'Demand notify',
+  },
+  'demand.notify.intervalMs': {
+    label: 'Demand notify interval',
+    unit: 'milliseconds',
+    note: 'How often the job checks counts and may send pushes. Default 120000 (2 minutes). Min 30000, max 3600000. Changes apply within ~15 seconds — no server restart.',
+    group: 'Demand notify',
+  },
+  'demand.notify.cooldownSeconds': {
+    label: 'Per-user cooldown',
+    unit: 'seconds',
+    note: 'Same user will not get another demand push until this many seconds pass. Default 1800 (30 minutes).',
+    group: 'Demand notify',
+  },
+  'demand.notify.batchSize': {
+    label: 'Max recipients per tick',
+    unit: 'users',
+    note: 'Upper bound of offline users notified in one tick (random rotation among eligible). Default 25.',
+    group: 'Demand notify',
+  },
+  'demand.notify.minListedForCallers': {
+    label: 'Min listed listeners (exclusive) to notify callers',
+    unit: 'listeners',
+    note: 'Rule A: notify offline callers when listed listeners is greater than this AND free ratio is high enough. Default 4 (so need 5+ listed).',
+    group: 'Demand notify',
+  },
+  'demand.notify.freeRatio': {
+    label: 'Free-listener ratio to notify callers',
+    unit: '0–1',
+    note: 'Rule A: free / listed must be ≥ this (0.5 = 50% free). Busy listeners do not count as free.',
+    group: 'Demand notify',
+  },
+  'demand.notify.minCallersForListeners': {
+    label: 'Min online callers (exclusive) to notify listeners',
+    unit: 'callers',
+    note: 'Rule B: notify offline free listeners when discovery callers > this AND there are no free listed listeners. Default 2.',
+    group: 'Demand notify',
   },
 };
 
