@@ -192,13 +192,13 @@ const CONFIG_META = {
   },
   'listener.onlinePing.enabled': {
     label: 'Listener online ping enabled',
-    note: 'Hybrid online-time: socket-connected online listeners use continuous sessions (no FCM). Online listeners with no socket get silent FCM pings; each ACK credits one interval (default 30 min). Missed ACKs credit nothing. Turn off to disable FCM chunk proof.',
+    note: 'Hybrid: socket-connected online listeners use continuous websocket time (no FCM). Online + no socket get FCM pings; ACK credits min(interval, time since last credited end). Missed ACKs credit nothing.',
     group: 'Listener online ping',
   },
   'listener.onlinePing.intervalMs': {
     label: 'Online ping interval',
     unit: 'milliseconds',
-    note: 'How often FCM-ping is sent to online listeners with no live socket. ACK credits this same duration (default 1800000 = 30 minutes). Socket-connected listeners are skipped. Min 15000, max 3600000.',
+    note: 'Ping cadence for online listeners with no socket, and max seconds credited per ACK (default 1800000 = 30 min). If the gap since last credited time is smaller, only that difference is added. Socket-connected listeners are skipped.',
     group: 'Listener online ping',
   },
   'listener.onlinePing.ackTimeoutMs': {
