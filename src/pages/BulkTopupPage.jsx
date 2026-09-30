@@ -38,13 +38,20 @@ function SettingsCard() {
     queryFn: () => bulkTopupApi.settings(),
   });
 
-  const [form, setForm] = useState({ enabled: false, tokensPerUser: 10 });
+  const [form, setForm] = useState({
+    enabled: false,
+    tokensPerUser: 10,
+    excludeListeners: true,
+    requirePreviousDaySpend: true,
+  });
 
   useEffect(() => {
     if (!data) return;
     setForm({
       enabled: Boolean(data.enabled),
       tokensPerUser: data.tokensPerUser ?? 10,
+      excludeListeners: data.excludeListeners !== false,
+      requirePreviousDaySpend: data.requirePreviousDaySpend !== false,
     });
   }, [data]);
 
@@ -60,7 +67,13 @@ function SettingsCard() {
   return (
     <Card
       title="Daily automatic top-up"
-      description={`${data?.scheduleLabel || 'Daily at 12:30 AM'} · credits all ACTIVE users except AUTOMATIC exclusions.`}
+      description={`${data?.scheduleLabel || 'Daily at 12:30 AM'} · ACTIVE users, minus exclusions${
+        form.excludeListeners ? ', approved listeners' : ''
+      }${
+        form.requirePreviousDaySpend
+          ? ', and users who spent less than the bonus on the previous day'
+          : ''
+      }.`}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Do not wrap Toggle in Field (<label>) — nested labels break the switch. */}
@@ -86,6 +99,35 @@ function SettingsCard() {
             }
           />
         </Field>
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-ink-700">Exclude approved listeners</p>
+          <Toggle
+            checked={form.excludeListeners}
+            disabled={!writable || save.isPending}
+            onChange={(checked) => setForm((f) => ({ ...f, excludeListeners: checked }))}
+            label={form.excludeListeners ? 'Listeners skipped' : 'Listeners included'}
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            When on, approved listeners never receive bulk top-up (automatic or manual).
+          </p>
+        </div>
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-ink-700">
+            Require previous-day spend (automatic)
+          </p>
+          <Toggle
+            checked={form.requirePreviousDaySpend}
+            disabled={!writable || save.isPending}
+            onChange={(checked) =>
+              setForm((f) => ({ ...f, requirePreviousDaySpend: checked }))
+            }
+            label={form.requirePreviousDaySpend ? 'Spend gate on' : 'Spend gate off'}
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            Automatic only: credit only if the user spent ≥ tokens-per-user via calls on the
+            previous calendar day ({data?.timezone || 'job timezone'}). Manual runs ignore this.
+          </p>
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button
@@ -95,6 +137,8 @@ function SettingsCard() {
             save.mutate({
               enabled: form.enabled,
               tokensPerUser: form.tokensPerUser,
+              excludeListeners: form.excludeListeners,
+              requirePreviousDaySpend: form.requirePreviousDaySpend,
             })
           }
         >
@@ -146,7 +190,11 @@ function ManualRunCard() {
     <>
       <Card
         title="Manual bulk top-up"
-        description="Credits all ACTIVE users now, respecting the MANUAL exclusion list (separate from automatic)."
+        description={`Credits ACTIVE users now (MANUAL exclusion list)${
+          settings.data?.excludeListeners !== false
+            ? '; approved listeners skipped when that setting is on'
+            : ''
+        }. Previous-day spend gate applies only to automatic runs.`}
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Tokens per user" hint="Leave blank to use the saved setting.">

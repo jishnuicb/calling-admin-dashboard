@@ -76,6 +76,7 @@ export const qk = {
 
   config: ['config'],
   appSettings: ['config', 'app-settings'],
+  ipBlocks: (params) => ['security', 'ip-blocks', params],
 
   legalList: ['legal', 'list'],
   legal: (slug) => ['legal', 'detail', slug],
