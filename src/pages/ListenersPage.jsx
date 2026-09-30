@@ -1,16 +1,89 @@
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, Pencil } from 'lucide-react';
 import { languagesApi, listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
-import { Badge, Card, Field, PageHeader, SearchInput, Select, StatusBadge } from '../components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  Input,
+  Modal,
+  PageHeader,
+  SearchInput,
+  Select,
+  StatusBadge,
+} from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
+import { useApiMutation } from '../hooks/useApiMutation';
+import { useAuth } from '../auth/AuthContext';
+import { P } from '../auth/permissions';
 import { fmtRelative, titleCase } from '../lib/format';
+
+function RenameListenerModal({ application, onClose }) {
+  const [displayName, setDisplayName] = useState(application.displayName || '');
+
+  const mutation = useApiMutation({
+    mutationFn: () =>
+      listenersApi.updateDisplayName(application.id, {
+        displayName: displayName.trim(),
+      }),
+    successMessage: 'Listener name updated',
+    invalidate: [['listeners']],
+    onSuccess: onClose,
+  });
+
+  const valid = displayName.trim().length >= 2 && displayName.trim().length <= 120;
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Change listener name"
+      description="Updates the public listener display name only. Does not change account login name or status."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!valid}
+            loading={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            Save
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+        <Field label="Display name" hint="2–120 characters">
+          <Input
+            value={displayName}
+            maxLength={120}
+            autoFocus
+            onChange={(e) => setDisplayName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && valid && !mutation.isPending) mutation.mutate();
+            }}
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
 
 export function ListenersPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { can } = useAuth();
+  const canRename = can(P.LISTENERS_APPROVE);
+  const [renameRow, setRenameRow] = useState(null);
 
   // Deep links from the dashboard (?status=PENDING) should land pre-filtered.
   const table = useTableState({
@@ -180,6 +253,29 @@ export function ListenersPage() {
           <span className="text-xs text-ink-400">0</span>
         ),
     },
+    ...(canRename
+      ? [
+          {
+            key: 'actions',
+            header: '',
+            align: 'right',
+            render: (row) => (
+              <Button
+                size="sm"
+                variant="secondary"
+                title="Change listener name"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRenameRow(row);
+                }}
+              >
+                <Pencil className="size-3.5" />
+                Rename
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -276,6 +372,10 @@ export function ListenersPage() {
           onLimitChange={table.changeLimit}
         />
       </Card>
+
+      {renameRow && (
+        <RenameListenerModal application={renameRow} onClose={() => setRenameRow(null)} />
+      )}
     </>
   );
 }
