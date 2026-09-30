@@ -22,6 +22,9 @@ export const P = {
   OTP_READ: 'otp:read',
   OTP_UNLOCK: 'otp:unlock',
 
+  SECURITY_READ: 'security:read',
+  SECURITY_WRITE: 'security:write',
+
   LANGUAGES_READ: 'languages:read',
   LANGUAGES_WRITE: 'languages:write',
   LANGUAGES_DELETE: 'languages:delete',

@@ -62,6 +62,10 @@ export const securityApi = {
   sensitiveKeyStatus: () => get('/admin/security/sensitive-key/status'),
   unlockSensitiveKey: (body) => post('/admin/security/sensitive-key/unlock', body),
   lockSensitiveKey: () => post('/admin/security/sensitive-key/lock'),
+  listIpBlocks: (params) => get('/admin/security/ip-blocks', params),
+  blockIp: (body) => post('/admin/security/ip-blocks', body),
+  unblockIp: (id) => post(`/admin/security/ip-blocks/${id}/unblock`),
+  ipBlockSettings: () => get('/admin/security/ip-blocks/settings'),
 };
 
 // --- Listener earnings & Cashfree payouts -----------------------------------

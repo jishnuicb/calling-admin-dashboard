@@ -15,6 +15,7 @@ import { ListenerOnlineTimePage } from './pages/ListenerOnlineTimePage';
 import { LanguagesPage } from './pages/LanguagesPage';
 import { AvatarsPage } from './pages/AvatarsPage';
 import { OtpPage } from './pages/OtpPage';
+import { IpBlocksPage } from './pages/IpBlocksPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
 import { PackagesPage } from './pages/PackagesPage';
@@ -152,6 +153,7 @@ export function App() {
         />
 
         <Route path="config" element={guard(S.SYSTEM, P.CONFIG_READ, <ConfigPage />)} />
+        <Route path="ip-blocks" element={guard(S.SYSTEM, P.SECURITY_READ, <IpBlocksPage />)} />
         <Route path="legal" element={guard(S.SYSTEM, P.LEGAL_READ, <LegalPage />)} />
         <Route path="rbac" element={guard(S.SYSTEM, P.ADMINS_READ, <RbacPage />)} />
         <Route path="audit" element={guard(S.SYSTEM, P.AUDIT_READ, <AuditPage />)} />

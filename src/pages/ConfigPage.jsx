@@ -140,13 +140,23 @@ const CONFIG_META = {
   },
   'bulk.topup.enabled': {
     label: 'Daily bulk wallet top-up enabled',
-    note: 'When on, the 12:30 AM cron credits all ACTIVE users (minus AUTOMATIC exclusions). Prefer Money → Bulk top-up.',
+    note: 'When on, the 12:30 AM cron credits eligible ACTIVE users. Prefer Money → Bulk top-up.',
     group: 'Bonuses',
   },
   'bulk.topup.tokens': {
     label: 'Bulk top-up tokens per user',
     unit: 'tokens',
-    note: 'Default amount for automatic and manual bulk runs (manual can override).',
+    note: 'Default amount for automatic and manual bulk runs (manual can override). Also the previous-day spend threshold when that gate is on.',
+    group: 'Bonuses',
+  },
+  'bulk.topup.excludeListeners': {
+    label: 'Bulk top-up exclude listeners',
+    note: 'When on, approved listeners never receive automatic or manual bulk top-up tokens.',
+    group: 'Bonuses',
+  },
+  'bulk.topup.requirePreviousDaySpend': {
+    label: 'Bulk top-up require previous-day spend',
+    note: 'Automatic only: credit only if CALL_DEDUCTION spend on the previous calendar day (job timezone) is ≥ tokens per user. Manual runs ignore this.',
     group: 'Bonuses',
   },
   'demand.notify.enabled': {
@@ -206,6 +216,44 @@ const CONFIG_META = {
     unit: 'milliseconds',
     note: 'How long a no-socket online listener has to POST /listener/online-ack before the chunk is forfeited. Default 300000 (5 min). Min 5000, max 600000.',
     group: 'Listener online ping',
+  },
+  'security.ipBlock.enabled': {
+    label: 'IP block enabled',
+    note: 'When on, IPs that exceed rate/OTP limits are auto-blocked (and manual blocks apply). Blocked IPs get 403 IP_BLOCKED on API and socket.',
+    group: 'IP security',
+  },
+  'security.ipBlock.rateWindowMs': {
+    label: 'IP request window',
+    unit: 'milliseconds',
+    note: 'Window for counting non-admin API requests per IP. Default 60000 (1 min).',
+    group: 'IP security',
+  },
+  'security.ipBlock.rateMax': {
+    label: 'IP request max',
+    note: 'Max non-admin API requests per IP in the window before auto RATE_LIMIT block. Default 120.',
+    group: 'IP security',
+  },
+  'security.ipBlock.otpMax': {
+    label: 'OTP sends per IP max',
+    note: 'Max OTP send attempts from one IP (any mobile numbers) in the OTP window before OTP_ABUSE block. Default 15.',
+    group: 'IP security',
+  },
+  'security.ipBlock.otpUniqueMobilesMax': {
+    label: 'OTP unique mobiles per IP',
+    note: 'Max distinct phone numbers an IP may OTP in the window before OTP_SPRAY block. Default 5.',
+    group: 'IP security',
+  },
+  'security.ipBlock.otpWindowMs': {
+    label: 'OTP IP window',
+    unit: 'milliseconds',
+    note: 'Window for OTP-per-IP and unique-mobile counting. Default 900000 (15 min).',
+    group: 'IP security',
+  },
+  'security.ipBlock.banTtlSeconds': {
+    label: 'Auto-ban duration',
+    unit: 'seconds',
+    note: 'How long auto-blocks last (0 = until admin unblocks). Default 3600 (1 hour). Manual blocks default to until unblock.',
+    group: 'IP security',
   },
 };
 
