@@ -61,14 +61,24 @@ function DateTimeFields({ label, value, onChange }) {
     ? `${date || '—'} ${time || '00:00'}`
     : 'Pick date & time';
 
-  const apply = () => {
+  const close = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    setOpen(false);
+  };
+
+  const apply = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     if (!draftDate) return;
     onChange(joinDateTime(draftDate, draftTime || '00:00'));
     setOpen(false);
   };
 
   return (
-    <Field label={label}>
+    // Do not wrap in <Field>/<label> — clicks on Done/Cancel would re-activate the toggle.
+    <div className="block">
+      <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>
       <div className="relative">
         <button
           type="button"
@@ -79,9 +89,13 @@ function DateTimeFields({ label, value, onChange }) {
           <span className="text-xs text-ink-500">{open ? 'Close' : 'Change'}</span>
         </button>
         {open && (
-          <div className="absolute left-0 right-0 z-20 mt-1.5 rounded-xl border border-ink-200 bg-white p-3 shadow-lg">
+          <div
+            className="absolute left-0 right-0 z-20 mt-1.5 rounded-xl border border-ink-200 bg-white p-3 shadow-lg"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="grid gap-2 sm:grid-cols-2">
-              <label className="block text-xs font-medium text-ink-600">
+              <div className="block text-xs font-medium text-ink-600">
                 Date
                 <Input
                   type="date"
@@ -89,8 +103,8 @@ function DateTimeFields({ label, value, onChange }) {
                   value={draftDate}
                   onChange={(e) => setDraftDate(e.target.value)}
                 />
-              </label>
-              <label className="block text-xs font-medium text-ink-600">
+              </div>
+              <div className="block text-xs font-medium text-ink-600">
                 Time
                 <Input
                   type="time"
@@ -98,10 +112,10 @@ function DateTimeFields({ label, value, onChange }) {
                   value={draftTime}
                   onChange={(e) => setDraftTime(e.target.value)}
                 />
-              </label>
+              </div>
             </div>
             <div className="mt-3 flex justify-end gap-2">
-              <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(false)}>
+              <Button type="button" size="sm" variant="secondary" onClick={close}>
                 Cancel
               </Button>
               <Button type="button" size="sm" disabled={!draftDate} onClick={apply}>
@@ -111,7 +125,7 @@ function DateTimeFields({ label, value, onChange }) {
           </div>
         )}
       </div>
-    </Field>
+    </div>
   );
 }
 
