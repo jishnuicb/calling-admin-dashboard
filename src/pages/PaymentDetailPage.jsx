@@ -177,6 +177,16 @@ export function PaymentDetailPage() {
               { label: 'Cashfree order id', value: payment.cfOrderId, mono: true },
               { label: 'Cashfree payment id', value: payment.cfPaymentId, mono: true },
               { label: 'Payment method', value: payment.paymentMethod },
+              {
+                label: 'Failure reason',
+                value: payment.failureReason ? (
+                  <span className="text-rose-700">{payment.failureReason}</span>
+                ) : payment.status === 'FAILED' || payment.status === 'CANCELLED' ? (
+                  <span className="text-ink-500">
+                    No reason stored — usually failed before Cashfree returned an order/payment id
+                  </span>
+                ) : null,
+              },
               { label: 'Amount', value: fmtMoney(payment.amount, payment.currency) },
               { label: 'Currency', value: payment.currency },
               { label: 'Tokens', value: fmtTokens(payment.tokens) },

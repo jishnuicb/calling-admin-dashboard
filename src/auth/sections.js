@@ -37,6 +37,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/notifications', section: S.ACTIVITY, permission: P.NOTIFICATIONS_READ },
   { path: '/config', section: S.SYSTEM, permission: P.CONFIG_READ },
   { path: '/legal', section: S.SYSTEM, permission: P.LEGAL_READ },
+  { path: '/banners', section: S.SYSTEM, permission: P.BANNERS_READ },
   { path: '/rbac', section: S.SYSTEM, permission: P.ADMINS_READ },
   { path: '/audit', section: S.SYSTEM, permission: P.AUDIT_READ },
 ];

@@ -68,6 +68,9 @@ export const P = {
   LEGAL_READ: 'legal:read',
   LEGAL_WRITE: 'legal:write',
 
+  BANNERS_READ: 'banners:read',
+  BANNERS_WRITE: 'banners:write',
+
   ADMINS_READ: 'admins:read',
   ADMINS_WRITE: 'admins:write',
   AUDIT_READ: 'audit:read',

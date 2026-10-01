@@ -35,6 +35,7 @@ import { ManualWeeklyPayoutsPage } from './pages/ManualWeeklyPayoutsPage';
 import { RbacPage } from './pages/RbacPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { LegalPage } from './pages/LegalPage';
+import { BannersPage } from './pages/BannersPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { AuditPage } from './pages/AuditPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -155,6 +156,7 @@ export function App() {
         <Route path="config" element={guard(S.SYSTEM, P.CONFIG_READ, <ConfigPage />)} />
         <Route path="ip-blocks" element={guard(S.SYSTEM, P.SECURITY_READ, <IpBlocksPage />)} />
         <Route path="legal" element={guard(S.SYSTEM, P.LEGAL_READ, <LegalPage />)} />
+        <Route path="banners" element={guard(S.SYSTEM, P.BANNERS_READ, <BannersPage />)} />
         <Route path="rbac" element={guard(S.SYSTEM, P.ADMINS_READ, <RbacPage />)} />
         <Route path="audit" element={guard(S.SYSTEM, P.AUDIT_READ, <AuditPage />)} />
         <Route path="reports" element={guard(S.OVERVIEW, P.REPORTS_GENERATE, <ReportsPage />)} />

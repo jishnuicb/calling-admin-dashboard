@@ -282,6 +282,14 @@ export const legalApi = {
   upsert: (slug, body) => put(`/admin/legal/${slug}`, body),
 };
 
+export const bannersApi = {
+  list: (params) => get('/admin/banners', params),
+  get: (id) => get(`/admin/banners/${id}`),
+  create: (body) => post('/admin/banners', body),
+  update: (id, body) => patch(`/admin/banners/${id}`, body),
+  remove: (id) => del(`/admin/banners/${id}`),
+};
+
 // --- Reports ----------------------------------------------------------------
 
 export const reportsApi = {
