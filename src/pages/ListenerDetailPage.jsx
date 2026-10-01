@@ -571,6 +571,32 @@ export function ListenerDetailPage() {
                 ),
                 full: true,
               },
+              {
+                label: 'Voice note',
+                value: application.voiceNoteUrl ? (
+                  <div className="space-y-2">
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={application.voiceNoteUrl}
+                      className="w-full max-w-md"
+                    >
+                      Your browser does not support audio playback.
+                    </audio>
+                    <a
+                      href={application.voiceNoteUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block text-xs font-medium text-brand-600 hover:underline"
+                    >
+                      Open / download
+                    </a>
+                  </div>
+                ) : (
+                  <span className="text-ink-500">Not submitted</span>
+                ),
+                full: true,
+              },
               { label: 'Application id', value: application.id, mono: true },
               { label: 'User id', value: application.userId, mono: true },
               { label: 'Submitted', value: fmtDateTime(application.submittedAt) },

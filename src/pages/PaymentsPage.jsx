@@ -107,6 +107,23 @@ export function PaymentsPage() {
       render: (row) => <span className="text-xs text-ink-600">{row.paymentMethod || '—'}</span>,
     },
     {
+      key: 'failureReason',
+      header: 'Failure reason',
+      render: (row) =>
+        row.failureReason ? (
+          <span
+            className="line-clamp-2 max-w-[14rem] text-xs text-rose-700"
+            title={row.failureReason}
+          >
+            {row.failureReason}
+          </span>
+        ) : row.status === 'FAILED' || row.status === 'CANCELLED' ? (
+          <span className="text-xs text-ink-400">No reason stored</span>
+        ) : (
+          <span className="text-xs text-ink-400">—</span>
+        ),
+    },
+    {
       key: 'createdAt',
       header: 'Created',
       render: (row) => <span className="text-xs text-ink-600">{fmtDateTime(row.createdAt)}</span>,

@@ -160,6 +160,20 @@ export function PaymentDetailPage() {
         }
       />
 
+      {(payment.status === 'FAILED' ||
+        payment.status === 'CANCELLED' ||
+        payment.failureReason) && (
+        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-5 py-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-rose-600">
+            Failure details
+          </p>
+          <p className="mt-1.5 whitespace-pre-wrap text-sm text-rose-800">
+            {payment.failureReason ||
+              'No reason stored — usually failed before Cashfree returned an order/payment id.'}
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Transaction" className="lg:col-span-2">
           <DescList
@@ -180,12 +194,13 @@ export function PaymentDetailPage() {
               {
                 label: 'Failure reason',
                 value: payment.failureReason ? (
-                  <span className="text-rose-700">{payment.failureReason}</span>
+                  <span className="whitespace-pre-wrap text-rose-700">{payment.failureReason}</span>
                 ) : payment.status === 'FAILED' || payment.status === 'CANCELLED' ? (
                   <span className="text-ink-500">
                     No reason stored — usually failed before Cashfree returned an order/payment id
                   </span>
                 ) : null,
+                full: true,
               },
               { label: 'Amount', value: fmtMoney(payment.amount, payment.currency) },
               { label: 'Currency', value: payment.currency },

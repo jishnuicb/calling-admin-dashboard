@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Pencil } from 'lucide-react';
+import { BadgeCheck, Mic, Pencil } from 'lucide-react';
 import { languagesApi, listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
@@ -133,6 +133,26 @@ export function ListenersPage() {
       ),
     },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'voiceNote',
+      header: 'Voice',
+      render: (row) =>
+        row.voiceNoteUrl ? (
+          <a
+            href={row.voiceNoteUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
+            title="Play voice note"
+          >
+            <Mic className="size-3.5" />
+            Play
+          </a>
+        ) : (
+          <span className="text-xs text-ink-400">—</span>
+        ),
+    },
     {
       key: 'isProfessionalVerified',
       header: 'Profession verified',
