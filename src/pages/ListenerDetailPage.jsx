@@ -425,11 +425,11 @@ export function ListenerDetailPage() {
         actions={
           <>
             <Link
-              to={`/listener-online-time?search=${encodeURIComponent(application.mobileNumber || application.displayName || '')}`}
+              to={`/listener-calling-time?search=${encodeURIComponent(application.mobileNumber || application.displayName || '')}`}
               className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 shadow-sm hover:bg-ink-50"
             >
               <Clock className="size-4 text-ink-500" />
-              Online time
+              Calling time
             </Link>
             {can(P.LISTENERS_APPROVE) && (
               <Button variant="secondary" onClick={() => setNotesOpen(true)}>

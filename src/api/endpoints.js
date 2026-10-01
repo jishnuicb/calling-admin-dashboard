@@ -54,6 +54,8 @@ export const listenersApi = {
     post(`/admin/listeners/applications/${id}/beneficiary/sync`, body || {}),
   getOnlineTime: (params) => get('/admin/listeners/online-time', params),
   getListenerOnlineTime: (id, params) => get(`/admin/listeners/${id}/online-time`, params),
+  getCallingTime: (params) => get('/admin/listeners/calling-time', params),
+  getListenerCallingTime: (id, params) => get(`/admin/listeners/${id}/calling-time`, params),
 };
 
 export const professionsApi = {

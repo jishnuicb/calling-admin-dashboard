@@ -16,6 +16,8 @@ export const qk = {
   listener: (id) => ['listeners', 'detail', id],
   listenerOnlineTime: (params) => ['listeners', 'online-time', params],
   listenerOnlineTimeDetail: (id, params) => ['listeners', 'online-time', 'detail', id, params],
+  listenerCallingTime: (params) => ['listeners', 'calling-time', params],
+  listenerCallingTimeDetail: (id, params) => ['listeners', 'calling-time', 'detail', id, params],
 
   otpSummary: ['otp', 'summary'],
   otpLocks: (params) => ['otp', 'locks', params],

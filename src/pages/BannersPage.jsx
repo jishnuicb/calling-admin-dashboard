@@ -135,6 +135,7 @@ function BannerFormModal({ open, onClose, banner }) {
     title: '',
     description: '',
     image: '',
+    link: '',
     audience: 'BOTH',
     startAt: '',
     endAt: '',
@@ -153,6 +154,7 @@ function BannerFormModal({ open, onClose, banner }) {
         title: banner.title || '',
         description: banner.description || '',
         image: banner.image || '',
+        link: banner.link || '',
         audience: banner.audience || 'BOTH',
         startAt: toLocalInput(banner.startAtLocal || banner.startAt),
         endAt: toLocalInput(banner.endAtLocal || banner.endAt),
@@ -165,6 +167,7 @@ function BannerFormModal({ open, onClose, banner }) {
         title: '',
         description: '',
         image: '',
+        link: '',
         audience: 'BOTH',
         startAt: '',
         endAt: '',
@@ -181,6 +184,7 @@ function BannerFormModal({ open, onClose, banner }) {
         title: form.title.trim(),
         description: form.description.trim(),
         image: form.image.trim() || null,
+        link: form.link.trim() || null,
         audience: form.audience || 'BOTH',
         startAt: form.startAt,
         endAt: form.endAt,
@@ -298,6 +302,15 @@ function BannerFormModal({ open, onClose, banner }) {
               {uploading ? 'Uploading…' : 'Upload image'}
             </label>
           </div>
+        </Field>
+        <Field label="Link (hyperlink)" hint="Optional. Opened when the user taps the banner. Sent as key link.">
+          <Input
+            type="url"
+            value={form.link}
+            maxLength={1000}
+            placeholder="https://…"
+            onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))}
+          />
         </Field>
         <Field label="Audience">
           <Select
@@ -422,6 +435,24 @@ export function BannersPage() {
       key: 'audience',
       header: 'Audience',
       render: (row) => <Badge>{row.audience || 'BOTH'}</Badge>,
+    },
+    {
+      key: 'link',
+      header: 'Link',
+      render: (row) =>
+        row.link ? (
+          <a
+            href={row.link}
+            target="_blank"
+            rel="noreferrer"
+            className="max-w-[10rem] truncate text-xs text-brand-600 hover:underline"
+            title={row.link}
+          >
+            {row.link}
+          </a>
+        ) : (
+          <span className="text-xs text-ink-400">—</span>
+        ),
     },
     {
       key: 'window',

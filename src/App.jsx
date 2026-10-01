@@ -11,7 +11,7 @@ import { UsersPage } from './pages/UsersPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { ListenersPage } from './pages/ListenersPage';
 import { ListenerDetailPage } from './pages/ListenerDetailPage';
-import { ListenerOnlineTimePage } from './pages/ListenerOnlineTimePage';
+import { ListenerCallingTimePage } from './pages/ListenerCallingTimePage';
 import { LanguagesPage } from './pages/LanguagesPage';
 import { AvatarsPage } from './pages/AvatarsPage';
 import { OtpPage } from './pages/OtpPage';
@@ -106,8 +106,12 @@ export function App() {
           element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerDetailPage />)}
         />
         <Route
+          path="listener-calling-time"
+          element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerCallingTimePage />)}
+        />
+        <Route
           path="listener-online-time"
-          element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerOnlineTimePage />)}
+          element={<Navigate to="/listener-calling-time" replace />}
         />
 
         <Route path="languages" element={guard(S.PEOPLE, P.LANGUAGES_READ, <LanguagesPage />)} />

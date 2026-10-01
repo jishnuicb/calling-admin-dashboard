@@ -60,7 +60,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/users', label: 'Users', icon: Users, permission: P.USERS_READ },
       { to: '/listeners', label: 'Listener applications', icon: BadgeCheck, permission: P.LISTENERS_READ },
-      { to: '/listener-online-time', label: 'Listener online time', icon: Clock, permission: P.LISTENERS_READ },
+      { to: '/listener-calling-time', label: 'Listener calling time', icon: Clock, permission: P.LISTENERS_READ },
       { to: '/languages', label: 'Language master', icon: Languages, permission: P.LANGUAGES_READ },
       { to: '/avatars', label: 'Profile avatars', icon: ImagePlus, permission: P.AVATARS_READ },
       { to: '/otp', label: 'OTP & lockouts', icon: KeyRound, permission: P.OTP_READ },
