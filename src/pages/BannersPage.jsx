@@ -31,6 +31,90 @@ function toLocalInput(value) {
   return String(value).slice(0, 16);
 }
 
+function splitDateTime(value) {
+  const v = toLocalInput(value);
+  if (!v || !v.includes('T')) return { date: '', time: '' };
+  const [date, time] = v.split('T');
+  return { date: date || '', time: (time || '').slice(0, 5) };
+}
+
+function joinDateTime(date, time) {
+  if (!date) return '';
+  return `${date}T${time || '00:00'}`;
+}
+
+/** Separate date + time inputs with an explicit Done control (native datetime-local pickers often have no OK). */
+function DateTimeFields({ label, value, onChange }) {
+  const { date, time } = splitDateTime(value);
+  const [draftDate, setDraftDate] = useState(date);
+  const [draftTime, setDraftTime] = useState(time || '00:00');
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setDraftDate(date);
+      setDraftTime(time || '00:00');
+    }
+  }, [date, time, open]);
+
+  const display = value
+    ? `${date || '—'} ${time || '00:00'}`
+    : 'Pick date & time';
+
+  const apply = () => {
+    if (!draftDate) return;
+    onChange(joinDateTime(draftDate, draftTime || '00:00'));
+    setOpen(false);
+  };
+
+  return (
+    <Field label={label}>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between rounded-lg border border-ink-200 bg-white px-3 py-2 text-left text-sm text-ink-900 shadow-sm hover:border-ink-300"
+        >
+          <span className={value ? 'tabular' : 'text-ink-400'}>{display}</span>
+          <span className="text-xs text-ink-500">{open ? 'Close' : 'Change'}</span>
+        </button>
+        {open && (
+          <div className="absolute left-0 right-0 z-20 mt-1.5 rounded-xl border border-ink-200 bg-white p-3 shadow-lg">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="block text-xs font-medium text-ink-600">
+                Date
+                <Input
+                  type="date"
+                  className="mt-1"
+                  value={draftDate}
+                  onChange={(e) => setDraftDate(e.target.value)}
+                />
+              </label>
+              <label className="block text-xs font-medium text-ink-600">
+                Time
+                <Input
+                  type="time"
+                  className="mt-1"
+                  value={draftTime}
+                  onChange={(e) => setDraftTime(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button type="button" size="sm" variant="secondary" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" size="sm" disabled={!draftDate} onClick={apply}>
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Field>
+  );
+}
+
 function BannerFormModal({ open, onClose, banner }) {
   const editing = Boolean(banner);
   const [form, setForm] = useState({
@@ -212,20 +296,16 @@ function BannerFormModal({ open, onClose, banner }) {
           </Select>
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Start (date & time)">
-            <Input
-              type="datetime-local"
-              value={form.startAt}
-              onChange={(e) => setForm((f) => ({ ...f, startAt: e.target.value }))}
-            />
-          </Field>
-          <Field label="End (date & time)">
-            <Input
-              type="datetime-local"
-              value={form.endAt}
-              onChange={(e) => setForm((f) => ({ ...f, endAt: e.target.value }))}
-            />
-          </Field>
+          <DateTimeFields
+            label="Start (date & time)"
+            value={form.startAt}
+            onChange={(startAt) => setForm((f) => ({ ...f, startAt }))}
+          />
+          <DateTimeFields
+            label="End (date & time)"
+            value={form.endAt}
+            onChange={(endAt) => setForm((f) => ({ ...f, endAt }))}
+          />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Timezone" hint="IANA zone used for the wall times above">
