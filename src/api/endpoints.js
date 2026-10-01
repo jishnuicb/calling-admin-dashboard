@@ -95,6 +95,11 @@ export const otpApi = {
   locks: (params) => get('/admin/otp/locks', params),
   // Clears the lock and resets the counter. 400 OTP_NOT_LOCKED if already clear.
   unlock: (id) => post(`/admin/otp/locks/${id}/unlock`),
+  // IP access log for /auth/otp/send and /auth/otp/verify only.
+  ipLogs: (params) => get('/admin/otp/ip-logs', params),
+  allowedCountries: () => get('/admin/otp/allowed-countries'),
+  addAllowedCountry: (body) => post('/admin/otp/allowed-countries', body),
+  removeAllowedCountry: (id) => del(`/admin/otp/allowed-countries/${id}`),
 };
 
 // --- Language master --------------------------------------------------------
