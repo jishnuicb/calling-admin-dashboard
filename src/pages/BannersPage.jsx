@@ -125,6 +125,7 @@ function BannerFormModal({ open, onClose, banner }) {
     <Modal
       open={open}
       onClose={onClose}
+      size="lg"
       title={editing ? 'Edit banner' : 'Create banner'}
       description={`Times are interpreted in ${form.timezone || DEFAULT_TZ}. Only enabled banners inside the window appear in the app list.`}
       footer={
