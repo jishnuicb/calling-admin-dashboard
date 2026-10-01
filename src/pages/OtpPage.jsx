@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { KeyRound, LockOpen, ShieldAlert } from 'lucide-react';
+import { KeyRound, LockOpen, Plus, ShieldAlert, Trash2 } from 'lucide-react';
 import { configApi, otpApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
@@ -170,16 +170,90 @@ function UnlockModal({ row, onClose }) {
   );
 }
 
+function AddAllowedCountryModal({ onClose }) {
+  const [form, setForm] = useState({ countryCode: '+', name: '' });
+
+  const mutation = useApiMutation({
+    mutationFn: () =>
+      otpApi.addAllowedCountry({
+        countryCode: form.countryCode.trim(),
+        name: form.name.trim(),
+      }),
+    successMessage: 'Country added to OTP allow-list',
+    invalidate: [['otp']],
+    onSuccess: onClose,
+  });
+
+  const valid =
+    /^\+?[1-9]\d{0,3}$/.test(form.countryCode.trim()) && form.name.trim().length >= 2;
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Add allowed country"
+      description="Only numbers with these dial codes can send or verify OTP."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!valid}
+            loading={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            <Plus className="size-4" />
+            Add country
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+        <Field label="Dial code" hint="e.g. +91, +971" required>
+          <Input
+            value={form.countryCode}
+            onChange={(e) => setForm((f) => ({ ...f, countryCode: e.target.value }))}
+            placeholder="+91"
+          />
+        </Field>
+        <Field label="Country name" required>
+          <Input
+            value={form.name}
+            maxLength={120}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="India"
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
 export function OtpPage() {
   const { can } = useAuth();
   const [editingField, setEditingField] = useState(null);
   const [unlocking, setUnlocking] = useState(null);
+  const [addCountryOpen, setAddCountryOpen] = useState(false);
 
   const table = useTableState({ locked: 'true', search: '' });
+  const ipTable = useTableState({ action: '', success: '', search: '', ip: '' }, { limit: 20 });
 
   const { data: summary } = useQuery({
     queryKey: qk.otpSummary,
     queryFn: () => otpApi.summary(),
+  });
+
+  const { data: allowedCountries, isLoading: countriesLoading } = useQuery({
+    queryKey: qk.otpAllowedCountries,
+    queryFn: () => otpApi.allowedCountries(),
+  });
+
+  const removeCountry = useApiMutation({
+    mutationFn: (id) => otpApi.removeAllowedCountry(id),
+    successMessage: 'Country removed from OTP allow-list',
+    invalidate: [['otp']],
   });
 
   // `locked` is a string in filter state so the Select can round-trip it; the
@@ -192,6 +266,28 @@ export function OtpPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.otpLocks(params),
     queryFn: () => otpApi.locks(params),
+  });
+
+  const ipParams = {
+    page: ipTable.page,
+    limit: ipTable.pageSize,
+    action: ipTable.filters.action || undefined,
+    success:
+      ipTable.filters.success === ''
+        ? undefined
+        : ipTable.filters.success === 'true',
+    search: ipTable.filters.search || undefined,
+    ip: ipTable.filters.ip || undefined,
+  };
+
+  const {
+    data: ipLogs,
+    isLoading: ipLoading,
+    error: ipError,
+    refetch: ipRefetch,
+  } = useQuery({
+    queryKey: qk.otpIpLogs(ipParams),
+    queryFn: () => otpApi.ipLogs(ipParams),
   });
 
   const canUnlock = can(P.OTP_UNLOCK);
@@ -282,6 +378,62 @@ export function OtpPage() {
     },
   ];
 
+  const ipColumns = [
+    {
+      key: 'createdAt',
+      header: 'When',
+      render: (row) => (
+        <span className="text-xs text-ink-600" title={fmtDateTime(row.createdAt)}>
+          {fmtRelative(row.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      render: (row) => <Badge tone={row.action === 'VERIFY' ? 'brand' : 'neutral'}>{row.action}</Badge>,
+    },
+    {
+      key: 'ip',
+      header: 'IP',
+      render: (row) => <span className="font-mono text-xs text-ink-800">{row.ip || '—'}</span>,
+    },
+    {
+      key: 'mobile',
+      header: 'Mobile',
+      render: (row) => <span className="tabular text-sm text-ink-800">{row.mobile || '—'}</span>,
+    },
+    {
+      key: 'success',
+      header: 'Result',
+      render: (row) =>
+        row.success ? (
+          <Badge tone="success">OK</Badge>
+        ) : (
+          <Badge tone="danger" title={row.failureReason || ''}>
+            Failed
+          </Badge>
+        ),
+    },
+    {
+      key: 'failureReason',
+      header: 'Error',
+      render: (row) =>
+        row.failureReason ? (
+          <span className="line-clamp-2 max-w-xs text-xs text-rose-700" title={row.failureReason}>
+            {row.failureReason}
+          </span>
+        ) : (
+          <span className="text-xs text-ink-400">—</span>
+        ),
+    },
+    {
+      key: 'purpose',
+      header: 'Purpose',
+      render: (row) => <span className="text-xs text-ink-600">{row.purpose || '—'}</span>,
+    },
+  ];
+
   return (
     <>
       <PageHeader
@@ -334,6 +486,63 @@ export function OtpPage() {
         </div>
       )}
 
+      <Card
+        className="mb-6"
+        title="Allowed countries for OTP"
+        description="Send/verify OTP is limited to these dial codes. Seeded with the previous hardcoded list; add or remove as needed."
+        actions={
+          canUnlock ? (
+            <Button size="sm" onClick={() => setAddCountryOpen(true)}>
+              <Plus className="size-3.5" />
+              Add country
+            </Button>
+          ) : null
+        }
+      >
+        {countriesLoading ? (
+          <p className="text-sm text-ink-500">Loading…</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {(allowedCountries?.data || []).map((row) => (
+              <span
+                key={row.id}
+                className="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-ink-50 px-3 py-1 text-sm text-ink-800"
+              >
+                <span className="font-medium">{row.name}</span>
+                <span className="font-mono text-xs text-ink-500">{row.countryCode}</span>
+                {canUnlock && (
+                  <button
+                    type="button"
+                    title="Remove"
+                    className="rounded p-0.5 text-ink-400 hover:bg-ink-200 hover:text-rose-600"
+                    disabled={removeCountry.isPending}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Remove ${row.name} (${row.countryCode}) from OTP allow-list?`,
+                        )
+                      ) {
+                        removeCountry.mutate(row.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
+              </span>
+            ))}
+            {!countriesLoading && !(allowedCountries?.data || []).length && (
+              <p className="text-sm text-ink-500">No countries configured.</p>
+            )}
+          </div>
+        )}
+        {removeCountry.error && (
+          <div className="mt-3">
+            <ErrorState error={removeCountry.error} compact />
+          </div>
+        )}
+      </Card>
+
       <Card bodyClassName="">
         <FilterBar onReset={table.isFiltered ? table.reset : undefined}>
           <Field label="Search" className="w-full sm:w-56">
@@ -382,6 +591,67 @@ export function OtpPage() {
         />
       </Card>
 
+      <div className="mt-6">
+        <PageHeader
+          title="OTP IP logs"
+          description="Every send and verify attempt with client IP. Logging is best-effort and never blocks OTP for users."
+        />
+        <Card bodyClassName="">
+          <FilterBar onReset={ipTable.isFiltered ? ipTable.reset : undefined}>
+            <Field label="Search" className="w-full sm:w-56">
+              <SearchInput
+                value={ipTable.filters.search}
+                onChange={(v) => ipTable.setFilter('search', v)}
+                placeholder="Mobile or IP"
+              />
+            </Field>
+            <Field label="Action" className="w-40">
+              <Select
+                value={ipTable.filters.action}
+                onChange={(e) => ipTable.setFilter('action', e.target.value)}
+              >
+                <option value="">All</option>
+                <option value="SEND">Send</option>
+                <option value="VERIFY">Verify</option>
+              </Select>
+            </Field>
+            <Field label="Result" className="w-40">
+              <Select
+                value={ipTable.filters.success}
+                onChange={(e) => ipTable.setFilter('success', e.target.value)}
+              >
+                <option value="">All</option>
+                <option value="true">Success</option>
+                <option value="false">Failed</option>
+              </Select>
+            </Field>
+            <Field label="IP" className="w-44">
+              <SearchInput
+                value={ipTable.filters.ip}
+                onChange={(v) => ipTable.setFilter('ip', v)}
+                placeholder="Exact / partial IP"
+              />
+            </Field>
+          </FilterBar>
+
+          <DataTable
+            columns={ipColumns}
+            rows={ipLogs?.data}
+            loading={ipLoading}
+            error={ipError}
+            onRetry={ipRefetch}
+            emptyIcon={KeyRound}
+            emptyTitle="No OTP IP logs yet"
+          />
+
+          <Pagination
+            meta={ipLogs?.meta}
+            onPageChange={ipTable.setPage}
+            onLimitChange={ipTable.changeLimit}
+          />
+        </Card>
+      </div>
+
       {editingField && (
         <EditPolicyModal
           field={editingField}
@@ -390,6 +660,7 @@ export function OtpPage() {
         />
       )}
       {unlocking && <UnlockModal row={unlocking} onClose={() => setUnlocking(null)} />}
+      {addCountryOpen && <AddAllowedCountryModal onClose={() => setAddCountryOpen(false)} />}
     </>
   );
 }

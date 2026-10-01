@@ -19,6 +19,8 @@ export const qk = {
 
   otpSummary: ['otp', 'summary'],
   otpLocks: (params) => ['otp', 'locks', params],
+  otpIpLogs: (params) => ['otp', 'ip-logs', params],
+  otpAllowedCountries: ['otp', 'allowed-countries'],
 
   languages: (params) => ['languages', params],
 
