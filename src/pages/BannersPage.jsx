@@ -36,6 +36,7 @@ function BannerFormModal({ open, onClose, banner }) {
   const [form, setForm] = useState({
     title: '',
     description: '',
+    image: '',
     audience: 'BOTH',
     startAt: '',
     endAt: '',
@@ -43,13 +44,17 @@ function BannerFormModal({ open, onClose, banner }) {
     enabled: true,
     sortOrder: 0,
   });
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   useEffect(() => {
     if (!open) return;
+    setUploadError(null);
     if (banner) {
       setForm({
         title: banner.title || '',
         description: banner.description || '',
+        image: banner.image || '',
         audience: banner.audience || 'BOTH',
         startAt: toLocalInput(banner.startAtLocal || banner.startAt),
         endAt: toLocalInput(banner.endAtLocal || banner.endAt),
@@ -61,6 +66,7 @@ function BannerFormModal({ open, onClose, banner }) {
       setForm({
         title: '',
         description: '',
+        image: '',
         audience: 'BOTH',
         startAt: '',
         endAt: '',
@@ -76,6 +82,7 @@ function BannerFormModal({ open, onClose, banner }) {
       const body = {
         title: form.title.trim(),
         description: form.description.trim(),
+        image: form.image.trim() || null,
         audience: form.audience || 'BOTH',
         startAt: form.startAt,
         endAt: form.endAt,
@@ -89,6 +96,24 @@ function BannerFormModal({ open, onClose, banner }) {
     invalidate: [['banners']],
     onSuccess: onClose,
   });
+
+  const onPickImage = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await bannersApi.uploadImage(fd);
+      setForm((f) => ({ ...f, image: res.image || '' }));
+    } catch (err) {
+      setUploadError(err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const valid =
     form.title.trim().length >= 1 &&
@@ -108,7 +133,7 @@ function BannerFormModal({ open, onClose, banner }) {
             Cancel
           </Button>
           <Button
-            disabled={!valid}
+            disabled={!valid || uploading}
             loading={mutation.isPending}
             onClick={() => mutation.mutate()}
           >
@@ -119,6 +144,7 @@ function BannerFormModal({ open, onClose, banner }) {
     >
       <div className="space-y-3">
         {mutation.error && <ErrorState error={mutation.error} compact />}
+        {uploadError && <ErrorState error={uploadError} compact />}
         <Field label="Title">
           <Input
             value={form.title}
@@ -133,6 +159,46 @@ function BannerFormModal({ open, onClose, banner }) {
             maxLength={5000}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
+        </Field>
+        <Field
+          label="Image"
+          hint="Optional. Upload a file or paste a public URL. Sent to the app as key image."
+        >
+          <div className="space-y-2">
+            {form.image ? (
+              <div className="flex items-start gap-3">
+                <img
+                  src={form.image}
+                  alt=""
+                  className="h-20 w-32 rounded-lg object-cover ring-1 ring-ink-200"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setForm((f) => ({ ...f, image: '' }))}
+                >
+                  Remove
+                </Button>
+              </div>
+            ) : null}
+            <Input
+              type="url"
+              value={form.image}
+              placeholder="https://…"
+              onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
+            />
+            <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-brand-600 hover:underline">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                disabled={uploading}
+                onChange={onPickImage}
+              />
+              {uploading ? 'Uploading…' : 'Upload image'}
+            </label>
+          </div>
         </Field>
         <Field label="Audience">
           <Select
@@ -242,9 +308,18 @@ export function BannersPage() {
       key: 'title',
       header: 'Banner',
       render: (row) => (
-        <div className="min-w-0 max-w-sm">
-          <p className="truncate font-medium text-ink-900">{row.title}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs text-ink-500">{row.description}</p>
+        <div className="flex min-w-0 max-w-sm items-start gap-2.5">
+          {row.image ? (
+            <img
+              src={row.image}
+              alt=""
+              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-ink-200"
+            />
+          ) : null}
+          <div className="min-w-0">
+            <p className="truncate font-medium text-ink-900">{row.title}</p>
+            <p className="mt-0.5 line-clamp-2 text-xs text-ink-500">{row.description}</p>
+          </div>
         </div>
       ),
     },

@@ -288,6 +288,19 @@ export const bannersApi = {
   create: (body) => post('/admin/banners', body),
   update: (id, body) => patch(`/admin/banners/${id}`, body),
   remove: (id) => del(`/admin/banners/${id}`),
+  uploadImage: (formData) =>
+    api
+      .post('/admin/banners/upload-image', formData, {
+        transformRequest: [
+          (data, headers) => {
+            if (headers && typeof headers === 'object') {
+              delete headers['Content-Type'];
+            }
+            return data;
+          },
+        ],
+      })
+      .then((r) => r.data),
 };
 
 // --- Reports ----------------------------------------------------------------
