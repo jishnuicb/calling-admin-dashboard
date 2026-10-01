@@ -318,21 +318,14 @@ function BannerFormModal({ open, onClose, banner }) {
         </Field>
         <Field
           label="Page route"
-          hint="Optional in-app screen. Sent as key page_route. App opens this path on tap."
+          hint="Optional in-app screen path (e.g. /wallet). Sent as key page_route."
         >
-          <Select
+          <Input
             value={form.page_route}
+            maxLength={200}
+            placeholder="/wallet"
             onChange={(e) => setForm((f) => ({ ...f, page_route: e.target.value }))}
-          >
-            <option value="">— None —</option>
-            <option value="/home">/home — Home</option>
-            <option value="/wallet">/wallet — Wallet</option>
-            <option value="/call-history">/call-history — Call history</option>
-            <option value="/profile">/profile — Profile</option>
-            <option value="/buy-tokens">/buy-tokens — Buy tokens</option>
-            <option value="/today-earnings">/today-earnings — Today's earnings</option>
-            <option value="/call-time">/call-time — Call time</option>
-          </Select>
+          />
         </Field>
         <Field label="Audience">
           <Select
