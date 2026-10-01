@@ -136,6 +136,7 @@ function BannerFormModal({ open, onClose, banner }) {
     description: '',
     image: '',
     link: '',
+    page_route: '',
     audience: 'BOTH',
     startAt: '',
     endAt: '',
@@ -155,6 +156,7 @@ function BannerFormModal({ open, onClose, banner }) {
         description: banner.description || '',
         image: banner.image || '',
         link: banner.link || '',
+        page_route: banner.page_route || '',
         audience: banner.audience || 'BOTH',
         startAt: toLocalInput(banner.startAtLocal || banner.startAt),
         endAt: toLocalInput(banner.endAtLocal || banner.endAt),
@@ -168,6 +170,7 @@ function BannerFormModal({ open, onClose, banner }) {
         description: '',
         image: '',
         link: '',
+        page_route: '',
         audience: 'BOTH',
         startAt: '',
         endAt: '',
@@ -185,6 +188,7 @@ function BannerFormModal({ open, onClose, banner }) {
         description: form.description.trim(),
         image: form.image.trim() || null,
         link: form.link.trim() || null,
+        page_route: form.page_route.trim() || null,
         audience: form.audience || 'BOTH',
         startAt: form.startAt,
         endAt: form.endAt,
@@ -303,7 +307,7 @@ function BannerFormModal({ open, onClose, banner }) {
             </label>
           </div>
         </Field>
-        <Field label="Link (hyperlink)" hint="Optional. Opened when the user taps the banner. Sent as key link.">
+        <Field label="Link (hyperlink)" hint="Optional. External URL. Sent as key link.">
           <Input
             type="url"
             value={form.link}
@@ -311,6 +315,24 @@ function BannerFormModal({ open, onClose, banner }) {
             placeholder="https://…"
             onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))}
           />
+        </Field>
+        <Field
+          label="Page route"
+          hint="Optional in-app screen. Sent as key page_route. App opens this path on tap."
+        >
+          <Select
+            value={form.page_route}
+            onChange={(e) => setForm((f) => ({ ...f, page_route: e.target.value }))}
+          >
+            <option value="">— None —</option>
+            <option value="/home">/home — Home</option>
+            <option value="/wallet">/wallet — Wallet</option>
+            <option value="/call-history">/call-history — Call history</option>
+            <option value="/profile">/profile — Profile</option>
+            <option value="/buy-tokens">/buy-tokens — Buy tokens</option>
+            <option value="/today-earnings">/today-earnings — Today's earnings</option>
+            <option value="/call-time">/call-time — Call time</option>
+          </Select>
         </Field>
         <Field label="Audience">
           <Select
@@ -450,6 +472,16 @@ export function BannersPage() {
           >
             {row.link}
           </a>
+        ) : (
+          <span className="text-xs text-ink-400">—</span>
+        ),
+    },
+    {
+      key: 'page_route',
+      header: 'Page route',
+      render: (row) =>
+        row.page_route ? (
+          <span className="font-mono text-xs text-ink-700">{row.page_route}</span>
         ) : (
           <span className="text-xs text-ink-400">—</span>
         ),
