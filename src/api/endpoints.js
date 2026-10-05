@@ -102,6 +102,12 @@ export const otpApi = {
   removeAllowedCountry: (id) => del(`/admin/otp/allowed-countries/${id}`),
 };
 
+// --- App crashes (Crashlytics → BigQuery) -----------------------------------
+
+export const crashesApi = {
+  list: (params) => get('/admin/crashes', params),
+};
+
 // --- Language master --------------------------------------------------------
 
 export const languagesApi = {
