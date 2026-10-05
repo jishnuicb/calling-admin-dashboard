@@ -146,13 +146,21 @@ export function AppCrashesPage() {
         }
       />
 
-      {!meta?.configured && (
+      {meta && meta.configured === false ? (
         <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           BigQuery is not configured or credentials are missing. Link Crashlytics → BigQuery in
           Firebase, grant the service account <strong>BigQuery Data Viewer</strong>, and set{' '}
-          <code className="font-mono">CRASHLYTICS_BQ_*</code> (or reuse <code className="font-mono">FIREBASE_*</code>).
+          <code className="font-mono">CRASHLYTICS_BQ_*</code> (or reuse{' '}
+          <code className="font-mono">FIREBASE_*</code>).
         </Card>
-      )}
+      ) : null}
+
+      {meta?.tableMissing ? (
+        <Card className="border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+          {meta.note ||
+            'Crashlytics BigQuery table is not created yet. Force a crash from a staging release build, then wait for Firebase export.'}
+        </Card>
+      ) : null}
 
       <FilterBar>
         <Field label="Environment" className="w-36">
