@@ -33,6 +33,7 @@ import {
   UserX,
   Wallet,
   X,
+  Bug,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { P } from '../../auth/permissions';
@@ -90,6 +91,7 @@ const NAV_SECTIONS = [
     title: 'Activity',
     items: [
       { to: '/calls', label: 'Calls', icon: PhoneCall, permission: P.CALLS_READ },
+      { to: '/crashes', label: 'App crashes', icon: Bug, permission: P.CRASHES_READ },
       { to: '/moderation', label: 'Moderation', icon: Flag, permission: P.MODERATION_READ },
       { to: '/listener-blocks', label: 'Listener blocks', icon: Ban, permission: P.BLOCKS_READ },
       {

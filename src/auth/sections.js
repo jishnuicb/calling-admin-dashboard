@@ -31,6 +31,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/weekly-bank-payouts', section: S.MONEY, permission: P.PAYOUTS_READ },
   { path: '/bonuses', section: S.MONEY, permission: P.BONUSES_READ },
   { path: '/calls', section: S.ACTIVITY, permission: P.CALLS_READ },
+  { path: '/crashes', section: S.ACTIVITY, permission: P.CRASHES_READ },
   { path: '/moderation', section: S.ACTIVITY, permission: P.MODERATION_READ },
   { path: '/listener-blocks', section: S.ACTIVITY, permission: P.BLOCKS_READ },
   { path: '/account-deletion', section: S.ACTIVITY, permission: P.ACCOUNT_DELETION_READ },

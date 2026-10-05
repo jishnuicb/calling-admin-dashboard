@@ -24,6 +24,8 @@ export const qk = {
   otpIpLogs: (params) => ['otp', 'ip-logs', params],
   otpAllowedCountries: ['otp', 'allowed-countries'],
 
+  crashes: (params) => ['crashes', params],
+
   languages: (params) => ['languages', params],
 
   avatars: (params) => ['avatars', params],

@@ -264,6 +264,7 @@ const APP_SETTINGS_KEYS = new Set([
   'app.version.patch',
   'app.releaseType',
   'company.whatsappNumber',
+  'company.supportEmail',
   'payment.mode',
 ]);
 
@@ -278,6 +279,7 @@ function AppSettingsCard({ writable }) {
   const [patch, setPatch] = useState(0);
   const [releaseType, setReleaseType] = useState('MINOR');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
   const [paymentMode, setPaymentMode] = useState('SANDBOX');
 
   useEffect(() => {
@@ -287,6 +289,7 @@ function AppSettingsCard({ writable }) {
     setPatch(data.version?.patch ?? 0);
     setReleaseType(data.version?.releaseType || 'MINOR');
     setWhatsappNumber(data.whatsappNumber || '');
+    setSupportEmail(data.supportEmail || '');
     setPaymentMode(data.payment?.mode || 'SANDBOX');
   }, [data]);
 
@@ -298,6 +301,7 @@ function AppSettingsCard({ writable }) {
         patch: Number(patch),
         releaseType,
         whatsappNumber: whatsappNumber.trim(),
+        supportEmail: supportEmail.trim(),
         paymentMode,
       }),
     successMessage: 'App settings saved',
@@ -314,11 +318,12 @@ function AppSettingsCard({ writable }) {
     Number(patch) !== (data.version?.patch ?? 0) ||
     releaseType !== (data.version?.releaseType || 'MINOR') ||
     whatsappNumber.trim() !== (data.whatsappNumber || '') ||
+    supportEmail.trim() !== (data.supportEmail || '') ||
     paymentMode !== (data.payment?.mode || 'SANDBOX');
 
   return (
     <Card
-      title="App version, WhatsApp & payments"
+      title="App version, support contact & payments"
       description="Shown to the mobile app via GET /app/settings. Edit without a redeploy."
       actions={
         writable ? (
@@ -388,24 +393,39 @@ function AppSettingsCard({ writable }) {
 
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
-            Company WhatsApp
+            Support contact
           </p>
-          <Field
-            label="WhatsApp number"
-            hint="Include country code. Flutter opens wa.me from this value."
-          >
-            <Input
-              type="tel"
-              placeholder="+91 98765 43210"
-              value={whatsappNumber}
-              disabled={!writable}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
-              maxLength={32}
-            />
-          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="WhatsApp number"
+              hint="Include country code. Flutter opens wa.me from this value."
+            >
+              <Input
+                type="tel"
+                placeholder="+91 98765 43210"
+                value={whatsappNumber}
+                disabled={!writable}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                maxLength={32}
+              />
+            </Field>
+            <Field
+              label="Support email"
+              hint="Shown when OTP is locked (OTP_LOCKED) and on GET /app/settings."
+            >
+              <Input
+                type="email"
+                placeholder="support@example.com"
+                value={supportEmail}
+                disabled={!writable}
+                onChange={(e) => setSupportEmail(e.target.value)}
+                maxLength={200}
+              />
+            </Field>
+          </div>
           {data.whatsappLink && (
             <p className="mt-2 text-xs text-ink-500">
-              Link:{' '}
+              WhatsApp link:{' '}
               <a
                 className="font-medium text-brand-700 underline"
                 href={data.whatsappLink}

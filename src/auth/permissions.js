@@ -46,6 +46,8 @@ export const P = {
   CALLS_READ: 'calls:read',
   CALLS_TERMINATE: 'calls:terminate',
 
+  CRASHES_READ: 'crashes:read',
+
   MODERATION_READ: 'moderation:read',
   MODERATION_REVIEW: 'moderation:review',
 
