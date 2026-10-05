@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { KeyRound, LockOpen, Plus, ShieldAlert, Trash2 } from 'lucide-react';
 import { configApi, otpApi } from '../api/endpoints';
@@ -21,6 +21,7 @@ import { useTableState } from '../hooks/useTableState';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
 import { fmtDateTime, fmtRelative } from '../lib/format';
+import { searchWorldCountries } from '../data/worldCountries';
 
 /**
  * The three thresholds that drive the resend policy, stored as SystemConfig rows
@@ -171,7 +172,10 @@ function UnlockModal({ row, onClose }) {
 }
 
 function AddAllowedCountryModal({ onClose }) {
-  const [form, setForm] = useState({ countryCode: '+', name: '', flag: '' });
+  const [search, setSearch] = useState('');
+  const [form, setForm] = useState({ countryCode: '', name: '', flag: '' });
+
+  const matches = useMemo(() => searchWorldCountries(search), [search]);
 
   const mutation = useApiMutation({
     mutationFn: () =>
@@ -188,12 +192,21 @@ function AddAllowedCountryModal({ onClose }) {
   const valid =
     /^\+?[1-9]\d{0,3}$/.test(form.countryCode.trim()) && form.name.trim().length >= 2;
 
+  const selectCountry = (row) => {
+    setForm({
+      countryCode: row.countryCode,
+      name: row.name,
+      flag: row.flag || '',
+    });
+    setSearch(`${row.flag} ${row.name} (${row.countryCode})`);
+  };
+
   return (
     <Modal
       open
       onClose={onClose}
       title="Add allowed country"
-      description="Only numbers with these dial codes can send or verify OTP."
+      description="Search by name or dial code, then add. Flag, name, and code fill automatically."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -212,29 +225,69 @@ function AddAllowedCountryModal({ onClose }) {
     >
       <div className="space-y-3">
         {mutation.error && <ErrorState error={mutation.error} compact />}
-        <Field label="Dial code" hint="e.g. +91, +971" required>
-          <Input
-            value={form.countryCode}
-            onChange={(e) => setForm((f) => ({ ...f, countryCode: e.target.value }))}
-            placeholder="+91"
+
+        <Field
+          label="Search country"
+          hint="Type a name (India) or code (+91 / 91). Results are filtered instantly on this device."
+          required
+        >
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search name or country code…"
+            autoFocus
           />
+          <ul
+            className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-ink-200 bg-white divide-y divide-ink-100"
+            role="listbox"
+          >
+            {matches.map((row) => {
+              const selected =
+                form.countryCode === row.countryCode && form.name === row.name;
+              return (
+                <li key={`${row.iso2}-${row.countryCode}-${row.name}`}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-brand-50 ${
+                      selected ? 'bg-brand-50' : ''
+                    }`}
+                    onClick={() => selectCountry(row)}
+                  >
+                    <span className="text-lg leading-none" aria-hidden>
+                      {row.flag || '🏳️'}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate font-medium text-ink-900">
+                      {row.name}
+                    </span>
+                    <span className="shrink-0 font-mono text-xs text-ink-500">
+                      {row.countryCode}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+            {!matches.length && (
+              <li className="px-3 py-3 text-sm text-ink-500">No countries match.</li>
+            )}
+          </ul>
         </Field>
-        <Field label="Country name" required>
-          <Input
-            value={form.name}
-            maxLength={120}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="India"
-          />
-        </Field>
-        <Field label="Flag" hint="Optional emoji, e.g. 🇮🇳 — shown in the app country picker.">
-          <Input
-            value={form.flag}
-            maxLength={16}
-            onChange={(e) => setForm((f) => ({ ...f, flag: e.target.value }))}
-            placeholder="🇮🇳"
-          />
-        </Field>
+
+        <div className="rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-ink-500">
+            Selected (auto-filled)
+          </p>
+          {form.name ? (
+            <div className="mt-1.5 flex items-center gap-2 text-sm text-ink-900">
+              <span className="text-xl leading-none">{form.flag || '🏳️'}</span>
+              <span className="font-medium">{form.name}</span>
+              <span className="font-mono text-xs text-ink-500">{form.countryCode}</span>
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-ink-500">Pick a country from the list above.</p>
+          )}
+        </div>
       </div>
     </Modal>
   );
