@@ -171,13 +171,14 @@ function UnlockModal({ row, onClose }) {
 }
 
 function AddAllowedCountryModal({ onClose }) {
-  const [form, setForm] = useState({ countryCode: '+', name: '' });
+  const [form, setForm] = useState({ countryCode: '+', name: '', flag: '' });
 
   const mutation = useApiMutation({
     mutationFn: () =>
       otpApi.addAllowedCountry({
         countryCode: form.countryCode.trim(),
         name: form.name.trim(),
+        flag: form.flag.trim() || null,
       }),
     successMessage: 'Country added to OTP allow-list',
     invalidate: [['otp']],
@@ -224,6 +225,14 @@ function AddAllowedCountryModal({ onClose }) {
             maxLength={120}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             placeholder="India"
+          />
+        </Field>
+        <Field label="Flag" hint="Optional emoji, e.g. 🇮🇳 — shown in the app country picker.">
+          <Input
+            value={form.flag}
+            maxLength={16}
+            onChange={(e) => setForm((f) => ({ ...f, flag: e.target.value }))}
+            placeholder="🇮🇳"
           />
         </Field>
       </div>
@@ -508,6 +517,9 @@ export function OtpPage() {
                 key={row.id}
                 className="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-ink-50 px-3 py-1 text-sm text-ink-800"
               >
+                <span className="text-base leading-none" aria-hidden>
+                  {row.flag || '🏳️'}
+                </span>
                 <span className="font-medium">{row.name}</span>
                 <span className="font-mono text-xs text-ink-500">{row.countryCode}</span>
                 {canUnlock && (
