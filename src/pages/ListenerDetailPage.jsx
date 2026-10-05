@@ -9,21 +9,25 @@ import {
   Eye,
   EyeOff,
   PauseCircle,
+  Pencil,
   PlayCircle,
   RefreshCw,
   ShieldCheck,
   StickyNote,
+  Bell,
   X,
 } from 'lucide-react';
-import { earningsApi, listenersApi, payoutsApi, securityApi } from '../api/endpoints';
+import { earningsApi, languagesApi, listenersApi, payoutsApi, securityApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
+import { SendNotificationModal } from '../components/SendNotificationModal';
 import {
   Badge,
   Button,
   Card,
+  Checkbox,
   DescList,
   ErrorState,
   Field,
@@ -97,6 +101,127 @@ const DECISIONS = {
       'Cashfree account could not be created because the bank account details are invalid.',
   },
 };
+
+function EditProfileModal({ application, onClose }) {
+  const [bio, setBio] = useState(application.bio || '');
+  const [selectedIds, setSelectedIds] = useState(
+    () => new Set((application.languages || []).map((l) => l.id).filter(Boolean)),
+  );
+
+  const { data: languagesData, isLoading: languagesLoading } = useQuery({
+    queryKey: qk.languages({ active: true }),
+    queryFn: () => languagesApi.list({ active: true }),
+  });
+
+  const activeLanguages = languagesData?.data || [];
+  // Keep currently selected inactive languages visible so admin can see/remove them.
+  const inactiveSelected = (application.languages || []).filter(
+    (l) => l.id && l.active === false && selectedIds.has(l.id),
+  );
+
+  const mutation = useApiMutation({
+    mutationFn: () => {
+      const activeIdSet = new Set(activeLanguages.map((l) => l.id));
+      // Newly selected languages must be active; drop inactive leftovers on save.
+      const languageIds = [...selectedIds].filter((id) => activeIdSet.has(id));
+      return listenersApi.updateProfile(application.id, {
+        bio: bio.trim() || null,
+        languageIds,
+      });
+    },
+    successMessage: 'Listener bio and languages updated',
+    invalidate: [qk.listener(application.id), ['listeners']],
+    onSuccess: () => onClose(),
+  });
+
+  const toggleLanguage = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const activeSelectedCount = [...selectedIds].filter((id) =>
+    activeLanguages.some((l) => l.id === id),
+  ).length;
+  const canSave = activeSelectedCount >= 1;
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Edit bio & languages"
+      description="Changes apply to the same fields the listener app and discovery use."
+      size="lg"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            loading={mutation.isPending}
+            disabled={!canSave}
+            onClick={() => mutation.mutate()}
+          >
+            Save changes
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Bio / description" hint="Shown on the listener profile. Leave empty to clear.">
+          <Textarea
+            rows={4}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={1000}
+            placeholder="Here to listen, judgement free."
+          />
+        </Field>
+
+        <Field
+          label="Languages"
+          required
+          hint="At least one required. Inactive languages can only be removed, not newly added."
+        >
+          {languagesLoading ? (
+            <LoadingBlock />
+          ) : (
+            <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-ink-100 p-3">
+              {activeLanguages.map((l) => (
+                <Checkbox
+                  key={l.id}
+                  label={l.name}
+                  checked={selectedIds.has(l.id)}
+                  onChange={() => toggleLanguage(l.id)}
+                />
+              ))}
+              {inactiveSelected.map((l) => (
+                <Checkbox
+                  key={l.id}
+                  label={`${l.name} (inactive)`}
+                  description="Deactivated in language master — remove or keep until they re-select an active language."
+                  checked={selectedIds.has(l.id)}
+                  onChange={() => toggleLanguage(l.id)}
+                />
+              ))}
+              {!activeLanguages.length && !inactiveSelected.length ? (
+                <p className="text-sm text-ink-500">No languages in the master list.</p>
+              ) : null}
+            </div>
+          )}
+        </Field>
+
+        {!canSave ? (
+          <p className="text-sm text-amber-700">Select at least one language before saving.</p>
+        ) : null}
+        {mutation.error ? <ErrorState error={mutation.error} compact /> : null}
+      </div>
+    </Modal>
+  );
+}
 
 function ManualPayoutModal({ application, onClose }) {
   const [notes, setNotes] = useState('');
@@ -311,6 +436,8 @@ export function ListenerDetailPage() {
   const [decision, setDecision] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
   const [decryptKey, setDecryptKey] = useState('');
   const [revealedApp, setRevealedApp] = useState(null);
 
@@ -431,10 +558,22 @@ export function ListenerDetailPage() {
               <Clock className="size-4 text-ink-500" />
               Calling time
             </Link>
+            {can(P.NOTIFICATIONS_SEND) && application.userId && (
+              <Button variant="secondary" onClick={() => setNotifyOpen(true)}>
+                <Bell className="size-4" />
+                Send notification
+              </Button>
+            )}
             {can(P.LISTENERS_APPROVE) && (
               <Button variant="secondary" onClick={() => setNotesOpen(true)}>
                 <StickyNote className="size-4" />
                 Add notes
+              </Button>
+            )}
+            {can(P.LISTENERS_APPROVE) && (
+              <Button variant="secondary" onClick={() => setEditProfileOpen(true)}>
+                <Pencil className="size-4" />
+                Edit bio & languages
               </Button>
             )}
             {canReject && (
@@ -648,6 +787,14 @@ export function ListenerDetailPage() {
           <Card
             title="Languages"
             description="At least one is mandatory. Deactivated languages remain listed here."
+            actions={
+              can(P.LISTENERS_APPROVE) ? (
+                <Button size="sm" variant="secondary" onClick={() => setEditProfileOpen(true)}>
+                  <Pencil className="size-3.5" />
+                  Edit
+                </Button>
+              ) : null
+            }
           >
             {application.languages?.length ? (
               <div className="flex flex-wrap gap-2">
@@ -663,6 +810,14 @@ export function ListenerDetailPage() {
                 No languages selected. Approval will be refused until the applicant re-applies with
                 at least one.
               </p>
+            )}
+            {can(P.LISTENERS_APPROVE) && (
+              <div className="mt-3 border-t border-ink-100 pt-3">
+                <p className="mb-1 text-xs font-medium text-ink-500">Bio</p>
+                <p className="whitespace-pre-wrap text-sm text-ink-800">
+                  {application.bio?.trim() ? application.bio : '—'}
+                </p>
+              </div>
             )}
           </Card>
 
@@ -830,6 +985,17 @@ export function ListenerDetailPage() {
         />
       )}
       {notesOpen && <NotesModal application={application} onClose={() => setNotesOpen(false)} />}
+      {editProfileOpen && (
+        <EditProfileModal application={application} onClose={() => setEditProfileOpen(false)} />
+      )}
+      {notifyOpen && application.userId && (
+        <SendNotificationModal
+          open={notifyOpen}
+          onClose={() => setNotifyOpen(false)}
+          userId={application.userId}
+          userLabel={application.displayName || application.mobileNumber || application.userId}
+        />
+      )}
       {payoutOpen && (
         <ManualPayoutModal application={application} onClose={() => setPayoutOpen(false)} />
       )}

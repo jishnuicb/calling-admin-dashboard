@@ -50,6 +50,7 @@ export const listenersApi = {
   addNotes: (id, body) => post(`/admin/listeners/applications/${id}/notes`, body),
   updateDisplayName: (id, body) =>
     patch(`/admin/listeners/applications/${id}/display-name`, body),
+  updateProfile: (id, body) => patch(`/admin/listeners/applications/${id}/profile`, body),
   syncBeneficiary: (id, body) =>
     post(`/admin/listeners/applications/${id}/beneficiary/sync`, body || {}),
   getOnlineTime: (params) => get('/admin/listeners/online-time', params),
@@ -213,6 +214,7 @@ export const notificationsApi = {
   templates: () => get('/admin/notifications/templates'),
   upsertTemplate: (key, body) => put(`/admin/notifications/templates/${key}`, body),
   send: (body) => post('/admin/notifications/send', body),
+  sendToUser: (userId, body) => post(`/admin/notifications/users/${userId}/send`, body),
   history: (params) => get('/admin/notifications/history', params),
 };
 

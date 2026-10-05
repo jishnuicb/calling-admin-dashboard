@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Ban, Coins, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Ban, Bell, Coins, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { usersApi, walletApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
+import { SendNotificationModal } from '../components/SendNotificationModal';
 import {
   Badge,
   Button,
@@ -196,6 +197,7 @@ export function UserDetailPage() {
   const { can } = useAuth();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [notifyOpen, setNotifyOpen] = useState(false);
   const [decryptKey, setDecryptKey] = useState('');
   const [revealedUser, setRevealedUser] = useState(null);
 
@@ -266,6 +268,12 @@ export function UserDetailPage() {
         description={view.mobile}
         actions={
           <>
+            {can(P.NOTIFICATIONS_SEND) && (
+              <Button variant="secondary" onClick={() => setNotifyOpen(true)}>
+                <Bell className="size-4" />
+                Send notification
+              </Button>
+            )}
             {can(P.WALLET_READ) && (
               <Button variant="secondary" onClick={() => navigate(`/wallets/${id}`)}>
                 <Coins className="size-4" />
@@ -486,6 +494,12 @@ export function UserDetailPage() {
         onClose={() => setAdjustOpen(false)}
         userId={id}
         currentBalance={balance}
+      />
+      <SendNotificationModal
+        open={notifyOpen}
+        onClose={() => setNotifyOpen(false)}
+        userId={id}
+        userLabel={user?.name || user?.mobile || id}
       />
       <BlockUserModal open={blockOpen} onClose={() => setBlockOpen(false)} user={user} />
     </>
