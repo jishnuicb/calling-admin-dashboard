@@ -76,8 +76,8 @@ function DownloadExportModal({ open, onClose, scope, filters }) {
       });
       toast.success(
         decryptionKey.trim()
-          ? 'Downloaded with unmasked bank details'
-          : 'Downloaded (bank details masked)',
+          ? 'Downloaded with unmasked mobile and bank details'
+          : 'Downloaded (mobile and bank details masked)',
       );
       onClose();
     } catch (err) {
@@ -93,7 +93,7 @@ function DownloadExportModal({ open, onClose, scope, filters }) {
       open={open}
       onClose={onClose}
       title="Download payouts"
-      description="Uses the filters currently applied on this tab. Leave decryption key empty for masked account/IFSC; enter the permanent key to unmask."
+      description="Uses the filters currently applied on this tab. Leave decryption key empty for masked mobile/account/IFSC; enter the permanent key to unmask."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -124,9 +124,10 @@ function DownloadExportModal({ open, onClose, scope, filters }) {
             placeholder="Same permanent key as Reveal phone & bank"
           />
           <p className="mt-1 text-[11px] text-ink-500">
-            Leave empty for masked account/IFSC. To unmask, paste the exact permanent key
-            (same as Listener detail → Reveal phone & bank). Extra spaces/hidden characters
-            are stripped; a wrong key always returns Invalid decryption key.
+            Leave empty for masked mobile + account/IFSC. To unmask, paste the exact permanent key
+            (same as Listener detail → Reveal phone & bank). Prefer XLSX for Excel. Extra
+            spaces/hidden characters are stripped; a wrong key always returns Invalid decryption
+            key.
           </p>
         </Field>
       </div>
