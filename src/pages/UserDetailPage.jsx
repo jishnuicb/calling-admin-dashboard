@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Ban, Bell, Coins, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Ban, Bell, Coins, Eye, EyeOff, ShieldCheck, Trash2 } from 'lucide-react';
 import { usersApi, walletApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -191,12 +191,67 @@ function BlockUserModal({ open, onClose, user }) {
   );
 }
 
+function DeleteUserModal({ open, onClose, user }) {
+  const [reason, setReason] = useState('');
+
+  const mutation = useApiMutation({
+    mutationFn: () => usersApi.delete(user.id, { reason }),
+    successMessage: 'User account deleted. The phone number can re-register as a new account.',
+    invalidate: [['users']],
+    onSuccess: () => {
+      setReason('');
+      onClose();
+    },
+  });
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Delete this account"
+      description="Soft-deletes the account, frees the phone for a new signup, and blocks a second welcome bonus for that number. Old data stays hidden under the deleted account."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => mutation.mutate()}
+            loading={mutation.isPending}
+            disabled={reason.trim().length < 3}
+          >
+            Delete account
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+        <Field label="Reason" required hint="Required. Stored on the account and in the audit log.">
+          <Textarea
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Support request — permanent account removal"
+          />
+        </Field>
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+          This cannot be undone from the admin UI. The same phone can log in again only as a brand-new
+          account (no welcome bonus).
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
 export function UserDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { can } = useAuth();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [decryptKey, setDecryptKey] = useState('');
   const [revealedUser, setRevealedUser] = useState(null);
@@ -285,7 +340,7 @@ export function UserDetailPage() {
                 Adjust balance
               </Button>
             )}
-            {can(P.USERS_BLOCK) && (
+            {can(P.USERS_BLOCK) && user.status !== 'DELETED' && (
               <Button
                 variant={user.status === 'BLOCKED' ? 'primary' : 'danger'}
                 onClick={() => setBlockOpen(true)}
@@ -301,6 +356,12 @@ export function UserDetailPage() {
                     Block
                   </>
                 )}
+              </Button>
+            )}
+            {can(P.USERS_DELETE) && user.status !== 'DELETED' && (
+              <Button variant="danger" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="size-4" />
+                Delete account
               </Button>
             )}
           </>
@@ -502,6 +563,7 @@ export function UserDetailPage() {
         userLabel={user?.name || user?.mobile || id}
       />
       <BlockUserModal open={blockOpen} onClose={() => setBlockOpen(false)} user={user} />
+      <DeleteUserModal open={deleteOpen} onClose={() => setDeleteOpen(false)} user={user} />
     </>
   );
 }

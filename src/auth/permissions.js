@@ -14,6 +14,7 @@ export const P = {
   USERS_READ: 'users:read',
   USERS_WRITE: 'users:write',
   USERS_BLOCK: 'users:block',
+  USERS_DELETE: 'users:delete',
 
   LISTENERS_READ: 'listeners:read',
   LISTENERS_APPROVE: 'listeners:approve',
