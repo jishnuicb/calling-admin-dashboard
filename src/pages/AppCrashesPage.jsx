@@ -24,7 +24,7 @@ import { fmtDateTime } from '../lib/format';
 export function AppCrashesPage() {
   const table = useTableState(
     {
-      flavor: 'prod',
+      flavor: 'staging',
       days: '14',
       fatal: 'all',
       action: '',
@@ -38,7 +38,7 @@ export function AppCrashesPage() {
   const params = useMemo(() => {
     const { flavor, days, fatal, action, trail, search, limit } = table.filters;
     return {
-      flavor: flavor || 'prod',
+      flavor: flavor || 'staging',
       days: Number(days) || 14,
       limit: Number(limit) || 100,
       fatal: fatal === 'all' ? undefined : fatal === 'true',
@@ -160,8 +160,8 @@ export function AppCrashesPage() {
             value={table.filters.flavor}
             onChange={(e) => table.setFilter('flavor', e.target.value)}
           >
-            <option value="prod">Production</option>
             <option value="staging">Staging</option>
+            <option value="prod">Production</option>
           </Select>
         </Field>
         <Field label="Days" className="w-28">
