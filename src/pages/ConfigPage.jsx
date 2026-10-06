@@ -200,6 +200,24 @@ const CONFIG_META = {
     note: 'Rule B: notify offline free listeners when discovery callers > this AND there are no free listed listeners. Default 2.',
     group: 'Demand notify',
   },
+  'listener.notifyCaller.cooldownSeconds': {
+    label: 'Notify-caller cooldown',
+    unit: 'seconds',
+    note: 'After a listener notifies any past caller from call history, they must wait this many seconds before notifying again (same or another user). Default 60 (1 minute). Min 10, max 3600.',
+    group: 'Listener notify',
+  },
+  'listener.notifyCaller.maxPerCallerPerDay': {
+    label: 'Max notifies to same caller / day',
+    unit: 'per UTC day',
+    note: 'How many times one listener may notify the same caller in one UTC calendar day. Default 5. Min 1, max 100.',
+    group: 'Listener notify',
+  },
+  'listener.notifyCaller.maxPerListenerPerDay': {
+    label: 'Max notifies from listener / day',
+    unit: 'per UTC day',
+    note: 'Total notify-caller pushes one listener may send to any callers in one UTC calendar day. Default 10. Min 1, max 500.',
+    group: 'Listener notify',
+  },
   'listener.onlinePing.enabled': {
     label: 'Listener online ping enabled',
     note: 'Hybrid: socket-connected online listeners use continuous websocket time (no FCM). Online + no socket get FCM pings; ACK credits min(interval, time since last credited end). Missed ACKs credit nothing.',

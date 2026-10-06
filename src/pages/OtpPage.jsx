@@ -163,6 +163,11 @@ function UnlockModal({ row, onClose }) {
         )}
 
         <p className="text-xs text-ink-500">
+          Unlock sets attempts back to 0 and clears the lock. The next OTP is treated as a fresh
+          first request (no resend cooldown until they send again).
+        </p>
+
+        <p className="text-xs text-ink-500">
           Recorded in the audit log as <code className="font-mono">otp.unlock</code> against your
           admin account.
         </p>
