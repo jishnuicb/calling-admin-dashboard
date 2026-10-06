@@ -127,6 +127,21 @@ export function UsersPage() {
         ),
     },
     {
+      key: 'lastLoginMethod',
+      header: 'Login via',
+      render: (row) => {
+        const method = row.lastLoginMethod;
+        if (!method) return <span className="text-xs text-ink-400">—</span>;
+        if (method === 'BACKUP_OTP') {
+          return <Badge tone="warning">Backup OTP</Badge>;
+        }
+        if (method === 'MSG91') {
+          return <Badge tone="info">MSG91</Badge>;
+        }
+        return <Badge tone="neutral">{method}</Badge>;
+      },
+    },
+    {
       key: 'createdAt',
       header: 'Registered',
       render: (row) => (

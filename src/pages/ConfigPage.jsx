@@ -88,6 +88,12 @@ const CONFIG_META = {
     note: 'Once this many /otp/send preflights succeed the number is locked. An admin can unlock it under OTP & lockouts; a successful widget verify also clears the lock and the counter.',
     group: 'OTP & verification',
   },
+  'otp.backup.expirySeconds': {
+    label: 'Backup OTP expiry',
+    unit: 'seconds',
+    note: 'How long the support backup OTP (issued on send or by admin) remains valid. Default 300 (5 minutes). Range 60–3600.',
+    group: 'OTP & verification',
+  },
   'discovery.defaultLanguage': {
     label: 'Default discovery language',
     note: 'Applied when a caller browses listeners without choosing a language. Must match a language name in the master list, or no default is applied.',

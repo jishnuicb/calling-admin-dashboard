@@ -34,6 +34,8 @@ export const usersApi = {
   setBlocked: (id, body) => post(`/admin/users/${id}/block`, body),
   delete: (id, body) => del(`/admin/users/${id}`, { data: body }),
   revealPhone: (id, body) => post(`/admin/users/${id}/phone/reveal`, body),
+  getBackupOtp: (id) => get(`/admin/users/${id}/backup-otp`),
+  generateBackupOtp: (id) => post(`/admin/users/${id}/backup-otp/generate`),
 };
 
 // --- Listener applications --------------------------------------------------
