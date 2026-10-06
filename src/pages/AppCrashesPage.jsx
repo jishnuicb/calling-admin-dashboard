@@ -19,12 +19,11 @@ import { fmtDateTime } from '../lib/format';
 
 /**
  * App Crashes — Firebase Crashlytics rows via BigQuery (backend only).
- * Phones never POST crashes to this API.
+ * Environment is fixed by the API deploy (staging vs production) — not selectable.
  */
 export function AppCrashesPage() {
   const table = useTableState(
     {
-      flavor: 'staging',
       days: '14',
       fatal: 'all',
       action: '',
@@ -36,9 +35,8 @@ export function AppCrashesPage() {
   );
 
   const params = useMemo(() => {
-    const { flavor, days, fatal, action, trail, search, limit } = table.filters;
+    const { days, fatal, action, trail, search, limit } = table.filters;
     return {
-      flavor: flavor || 'staging',
       days: Number(days) || 14,
       limit: Number(limit) || 100,
       fatal: fatal === 'all' ? undefined : fatal === 'true',
@@ -56,6 +54,7 @@ export function AppCrashesPage() {
   const rows = data?.data || [];
   const meta = data?.meta;
   const source = data?.source;
+  const environment = meta?.environment || source?.environment || null;
 
   const columns = [
     {
@@ -126,11 +125,6 @@ export function AppCrashesPage() {
       header: 'Version',
       render: (row) => <span className="text-xs tabular">{row.appVersion || '—'}</span>,
     },
-    {
-      key: 'flavor',
-      header: 'Flavor',
-      render: (row) => <span className="text-xs text-ink-500">{row.flavor || params.flavor}</span>,
-    },
   ];
 
   return (
@@ -146,6 +140,16 @@ export function AppCrashesPage() {
         }
       />
 
+      {environment ? (
+        <p className="text-sm text-ink-600">
+          Environment:{' '}
+          <Badge tone={meta?.flavor === 'prod' ? 'danger' : 'brand'}>{environment}</Badge>
+          <span className="ml-2 text-xs text-ink-400">
+            Fixed by this API deploy — not selectable.
+          </span>
+        </p>
+      ) : null}
+
       {meta && meta.configured === false ? (
         <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           BigQuery is not configured or credentials are missing. Link Crashlytics → BigQuery in
@@ -158,20 +162,11 @@ export function AppCrashesPage() {
       {meta?.tableMissing ? (
         <Card className="border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
           {meta.note ||
-            'Crashlytics BigQuery table is not created yet. Force a crash from a staging release build, then wait for Firebase export.'}
+            'Crashlytics BigQuery table is not created yet. Force a crash from a release build, then wait for Firebase export.'}
         </Card>
       ) : null}
 
       <FilterBar>
-        <Field label="Environment" className="w-36">
-          <Select
-            value={table.filters.flavor}
-            onChange={(e) => table.setFilter('flavor', e.target.value)}
-          >
-            <option value="staging">Staging</option>
-            <option value="prod">Production</option>
-          </Select>
-        </Field>
         <Field label="Days" className="w-28">
           <Select
             value={table.filters.days}
@@ -234,6 +229,7 @@ export function AppCrashesPage() {
       {source?.table ? (
         <p className="text-[11px] text-ink-400">
           Source: <span className="font-mono">{source.table}</span>
+          {environment ? ` · ${environment}` : null}
           {meta?.total != null ? ` · showing ${meta.total} row(s)` : null}
         </p>
       ) : null}
