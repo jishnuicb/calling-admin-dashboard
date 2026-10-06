@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Ban, Bell, Coins, Eye, EyeOff, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Ban, Bell, Coins, Copy, Eye, EyeOff, KeyRound, ShieldCheck, Trash2 } from 'lucide-react';
 import { usersApi, walletApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -23,6 +23,23 @@ import {
   Textarea,
 } from '../components/ui';
 import { fmtDateTime, fmtNumber, fmtSigned, fmtTokens, titleCase } from '../lib/format';
+
+function loginMethodLabel(method) {
+  if (!method) return '—';
+  if (method === 'MSG91') return 'MSG91';
+  if (method === 'BACKUP_OTP') return 'Backup OTP';
+  return method;
+}
+
+async function copyText(value) {
+  if (!value) return false;
+  try {
+    await navigator.clipboard.writeText(String(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /** Manual wallet credit/debit. `reason` is mandatory and lands in the audit log. */
 function AdjustWalletModal({ open, onClose, userId, currentBalance }) {
@@ -255,16 +272,35 @@ export function UserDetailPage() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [decryptKey, setDecryptKey] = useState('');
   const [revealedUser, setRevealedUser] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: qk.user(id),
     queryFn: () => usersApi.get(id),
   });
 
+  const {
+    data: backupOtp,
+    isLoading: backupLoading,
+    error: backupError,
+    refetch: refetchBackup,
+  } = useQuery({
+    queryKey: ['users', 'backup-otp', id],
+    queryFn: () => usersApi.getBackupOtp(id),
+    enabled: can(P.USERS_READ) && Boolean(id),
+    refetchInterval: 30_000,
+  });
+
   const { data: wallet } = useQuery({
     queryKey: qk.wallet(id),
     queryFn: () => walletApi.get(id),
     enabled: can(P.WALLET_READ) && Boolean(id),
+  });
+
+  const generateBackup = useApiMutation({
+    mutationFn: () => usersApi.generateBackupOtp(id),
+    successMessage: 'Backup OTP generated',
+    invalidate: [['users', 'backup-otp', id]],
   });
 
   useEffect(
@@ -409,6 +445,82 @@ export function UserDetailPage() {
           </Card>
         )}
 
+        {can(P.USERS_READ) && (
+          <Card
+            title="Backup OTP"
+            description="Support fallback code stored when MSG91 sends OTP. Used only if MSG91 verify fails. Never shown to the app."
+            className="lg:col-span-3"
+          >
+            {backupLoading ? (
+              <p className="text-sm text-ink-500">Loading backup OTP…</p>
+            ) : backupError ? (
+              <ErrorState error={backupError} onRetry={refetchBackup} compact />
+            ) : (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {backupOtp?.expired || !backupOtp?.code ? (
+                      <Badge tone="danger">Expired / none</Badge>
+                    ) : (
+                      <Badge tone="success">Active</Badge>
+                    )}
+                    {backupOtp?.source && (
+                      <Badge tone="neutral">
+                        {backupOtp.source === 'ADMIN' ? 'Admin generated' : 'From send OTP'}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="font-mono text-2xl tracking-widest text-ink-900">
+                    {backupOtp?.code || '••••••'}
+                  </p>
+                  <p className="text-xs text-ink-500">
+                    {backupOtp?.expiresAt
+                      ? `Expires ${fmtDateTime(backupOtp.expiresAt)}`
+                      : 'No backup OTP issued yet'}
+                    {backupOtp?.expirySeconds
+                      ? ` · config ${backupOtp.expirySeconds}s`
+                      : ''}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!backupOtp?.code}
+                    onClick={async () => {
+                      const ok = await copyText(backupOtp?.code);
+                      if (ok) {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 1500);
+                      }
+                    }}
+                  >
+                    <Copy className="size-4" />
+                    {copied ? 'Copied' : 'Copy OTP'}
+                  </Button>
+                  {can(P.USERS_WRITE) && user.status !== 'DELETED' && (
+                    <Button
+                      size="sm"
+                      loading={generateBackup.isPending}
+                      onClick={() => generateBackup.mutate()}
+                    >
+                      <KeyRound className="size-4" />
+                      {backupOtp?.expired || !backupOtp?.code
+                        ? 'Generate OTP'
+                        : 'Regenerate OTP'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            {generateBackup.error && (
+              <div className="mt-3">
+                <ErrorState error={generateBackup.error} compact />
+              </div>
+            )}
+          </Card>
+        )}
+
         <Card title="Account" className="lg:col-span-2">
           <DescList
             items={[
@@ -439,6 +551,20 @@ export function UserDetailPage() {
               },
               { label: 'Registered', value: fmtDateTime(user.createdAt) },
               { label: 'Last login', value: fmtDateTime(user.lastLoginAt) },
+              {
+                label: 'Last login via',
+                value: (
+                  <span className="inline-flex items-center gap-2">
+                    {user.lastLoginMethod === 'BACKUP_OTP' ? (
+                      <Badge tone="warning">Backup OTP</Badge>
+                    ) : user.lastLoginMethod === 'MSG91' ? (
+                      <Badge tone="info">MSG91</Badge>
+                    ) : (
+                      loginMethodLabel(user.lastLoginMethod)
+                    )}
+                  </span>
+                ),
+              },
               user.blockedAt && { label: 'Blocked at', value: fmtDateTime(user.blockedAt) },
               user.blockedReason && {
                 label: 'Blocked reason',
