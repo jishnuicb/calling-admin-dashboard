@@ -134,7 +134,7 @@ export function DashboardPage() {
           value={fmtNumber(listeners.pendingApplications)}
           sub="Awaiting review"
           tone={listeners.pendingApplications > 0 ? 'amber' : 'brand'}
-          to="/pending-users"
+          to="/listeners?status=PENDING"
         />
         <StatCard
           icon={Flag}

@@ -8,8 +8,13 @@ import { Badge, Card, Field, PageHeader, SearchInput, Select, StatusBadge } from
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, fmtNumber, fmtRelative, fmtTokens } from '../lib/format';
 
-export function UsersPage() {
+/**
+ * @param {'all'|'pendingOtp'} [variant]
+ */
+export function UsersPage({ variant = 'all' }) {
   const navigate = useNavigate();
+  const isPendingOtp = variant === 'pendingOtp';
+
   const table = useTableState({
     search: '',
     status: '',
@@ -18,9 +23,24 @@ export function UsersPage() {
     isListener: '',
   });
 
+  const listParams = {
+    ...table.params,
+    ...(isPendingOtp
+      ? {
+          mobileVerified: false,
+          excludeDeleted: true,
+          // Pending OTP page locks to non-deleted; ignore status "All"/DELETED.
+          status:
+            table.filters.status && table.filters.status !== 'DELETED'
+              ? table.filters.status
+              : undefined,
+        }
+      : {}),
+  };
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: qk.users(table.params),
-    queryFn: () => usersApi.list(table.params),
+    queryKey: qk.users({ variant, ...listParams }),
+    queryFn: () => usersApi.list(listParams),
   });
 
   const columns = [
@@ -52,15 +72,11 @@ export function UsersPage() {
       header: 'Gender',
       render: (row) => {
         const gender = row.gender || 'UNDISCLOSED';
-    
+
         return (
           <Badge
             tone={
-              gender === 'FEMALE'
-                ? 'success'
-                : gender === 'MALE'
-                  ? 'info'
-                  : 'neutral'
+              gender === 'FEMALE' ? 'success' : gender === 'MALE' ? 'info' : 'neutral'
             }
           >
             {gender.charAt(0) + gender.slice(1).toLowerCase()}
@@ -76,7 +92,11 @@ export function UsersPage() {
         row.listenerStatus ? (
           <div className="flex items-center gap-1.5">
             <StatusBadge status={row.listenerStatus} />
-            {row.listenerOnline && <Badge tone="success" dot>online</Badge>}
+            {row.listenerOnline && (
+              <Badge tone="success" dot>
+                online
+              </Badge>
+            )}
           </div>
         ) : (
           <span className="text-xs text-ink-400">Caller only</span>
@@ -118,7 +138,7 @@ export function UsersPage() {
     },
     {
       key: 'verified',
-      header: 'Verified',
+      header: 'OTP verified',
       render: (row) =>
         row.mobileVerified ? (
           <Badge tone="success">Yes</Badge>
@@ -155,8 +175,12 @@ export function UsersPage() {
   return (
     <>
       <PageHeader
-        title="Users"
-        description="Every account on the platform. Each user is a caller by default; the listener column shows whether they also hold an application."
+        title={isPendingOtp ? 'Pending users' : 'Users'}
+        description={
+          isPendingOtp
+            ? 'Registered accounts that have not completed OTP verification yet. Deleted accounts are excluded.'
+            : 'Every account on the platform. Each user is a caller by default; the listener column shows whether they also hold an application.'
+        }
       />
 
       <Card bodyClassName="">
@@ -177,20 +201,22 @@ export function UsersPage() {
               <option value="">All</option>
               <option value="ACTIVE">Active</option>
               <option value="BLOCKED">Blocked</option>
-              <option value="DELETED">Deleted</option>
+              {!isPendingOtp && <option value="DELETED">Deleted</option>}
             </Select>
           </Field>
 
-          <Field label="Is listener" className="w-36">
-            <Select
-              value={table.filters.isListener}
-              onChange={(e) => table.setFilter('isListener', e.target.value)}
-            >
-              <option value="">All</option>
-              <option value="true">Listeners</option>
-              <option value="false">Callers only</option>
-            </Select>
-          </Field>
+          {!isPendingOtp && (
+            <Field label="Is listener" className="w-36">
+              <Select
+                value={table.filters.isListener}
+                onChange={(e) => table.setFilter('isListener', e.target.value)}
+              >
+                <option value="">All</option>
+                <option value="true">Listeners</option>
+                <option value="false">Callers only</option>
+              </Select>
+            </Field>
+          )}
 
           <Field label="Gender" className="w-36">
             <Select
@@ -222,8 +248,16 @@ export function UsersPage() {
           onRetry={refetch}
           onRowClick={(row) => navigate(`/users/${row.id}`)}
           emptyIcon={Users}
-          emptyTitle="No users match these filters"
-          emptyDescription="Try widening the search or clearing the filters."
+          emptyTitle={
+            isPendingOtp
+              ? 'No users awaiting OTP verification'
+              : 'No users match these filters'
+          }
+          emptyDescription={
+            isPendingOtp
+              ? 'Users appear here after register and leave once OTP verify succeeds.'
+              : 'Try widening the search or clearing the filters.'
+          }
         />
 
         <Pagination
@@ -234,4 +268,8 @@ export function UsersPage() {
       </Card>
     </>
   );
+}
+
+export function PendingUsersPage() {
+  return <UsersPage variant="pendingOtp" />;
 }

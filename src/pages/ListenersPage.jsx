@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Mic, Pencil, UserCheck, UserRoundSearch } from 'lucide-react';
+import { BadgeCheck, Mic, Pencil, UserCheck } from 'lucide-react';
 import { languagesApi, listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
@@ -51,17 +51,6 @@ const PAGE_VARIANTS = {
     statusOptions: null,
     excludeDeleted: true,
     showAvailability: true,
-  },
-  pending: {
-    title: 'Pending users',
-    description:
-      'Listener applications awaiting verification. Deleted accounts are excluded.',
-    emptyTitle: 'No pending applications',
-    emptyIcon: UserRoundSearch,
-    defaultStatuses: ['PENDING'],
-    statusOptions: null,
-    excludeDeleted: true,
-    showAvailability: false,
   },
 };
 
@@ -393,8 +382,4 @@ export function ListenersPage({ variant = 'applications' }) {
 
 export function ActiveListenersPage() {
   return <ListenersPage variant="active" />;
-}
-
-export function PendingUsersPage() {
-  return <ListenersPage variant="pending" />;
 }
