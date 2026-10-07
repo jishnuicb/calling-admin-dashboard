@@ -27,16 +27,11 @@ const ACTIONS = [
   { value: 'NONE', label: 'No action', hint: 'Logged, but nothing is enforced.' },
   { value: 'WARNING_ISSUED', label: 'Issue a warning', hint: 'Notifies the reported user.' },
   {
-    value: 'LISTENER_SUSPENDED',
-    label: 'Suspend the listener',
-    hint: 'Drops their sockets and removes them from discovery. They remain a caller.',
+    value: 'LISTENER_CALLER_BLOCK',
+    label: 'Block the reported user',
+    hint:
+      'Same as Listener blocks: the caller no longer sees that listener in discovery and cannot call them. Neither account is banned. Unblock anytime under Activity → Listener blocks.',
   },
-  {
-    value: 'USER_BLOCKED',
-    label: 'Block the user account',
-    hint: 'Revokes all sessions. The account cannot call or be called.',
-  },
-  { value: 'CONTENT_REMOVED', label: 'Content removed', hint: 'Recorded for the audit trail.' },
 ];
 
 function ReviewModal({ report, onClose }) {
@@ -54,19 +49,19 @@ function ReviewModal({ report, onClose }) {
         investigationNotes: form.investigationNotes || undefined,
       }),
     successMessage: 'Report updated',
-    invalidate: [['moderation'], ['users'], ['listeners'], ['dashboard']],
+    invalidate: [['moderation'], ['users'], ['listeners'], ['dashboard'], ['blocks']],
     onSuccess: onClose,
   });
 
   const selectedAction = ACTIONS.find((a) => a.value === form.actionTaken);
-  const enforcing = ['LISTENER_SUSPENDED', 'USER_BLOCKED'].includes(form.actionTaken);
+  const enforcing = form.actionTaken === 'LISTENER_CALLER_BLOCK';
 
   return (
     <Modal
       open
       onClose={onClose}
       title="Review this report"
-      description="Moving to a terminal status applies the chosen enforcement action."
+      description="Moving to Resolved applies the chosen enforcement action. Rejected never applies an action."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -88,7 +83,14 @@ function ReviewModal({ report, onClose }) {
         <Field label="New status" required>
           <Select
             value={form.status}
-            onChange={(e) => setForm({ ...form, status: e.target.value })}
+            onChange={(e) => {
+              const status = e.target.value;
+              setForm({
+                ...form,
+                status,
+                actionTaken: status === 'RESOLVED' ? form.actionTaken : 'NONE',
+              });
+            }}
           >
             <option value="UNDER_REVIEW">Under review — investigating</option>
             <option value="RESOLVED">Resolved — complaint substantiated or handled</option>
@@ -100,6 +102,7 @@ function ReviewModal({ report, onClose }) {
           <Select
             value={form.actionTaken}
             onChange={(e) => setForm({ ...form, actionTaken: e.target.value })}
+            disabled={form.status !== 'RESOLVED'}
           >
             {ACTIONS.map((a) => (
               <option key={a.value} value={a.value}>
@@ -118,9 +121,11 @@ function ReviewModal({ report, onClose }) {
           />
         </Field>
 
-        {enforcing && (
-          <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-            This takes effect immediately and is recorded in the audit log with your admin id.
+        {enforcing && form.status === 'RESOLVED' && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Creates the same listener→caller block as <strong>Activity → Listener blocks</strong>.
+            The caller stops seeing that listener in their list and cannot start a call. Unblock
+            from Listener blocks when needed. Does not ban either account.
           </p>
         )}
       </div>
@@ -179,6 +184,18 @@ export function ModerationDetailPage() {
                   report.actionTaken && report.actionTaken !== 'NONE' ? (
                     <Badge tone="info">{titleCase(report.actionTaken)}</Badge>
                   ) : null,
+              },
+              report.actionTaken === 'LISTENER_CALLER_BLOCK' && {
+                label: 'Unblock',
+                value: (
+                  <Link
+                    to="/listener-blocks"
+                    className="text-sm font-medium text-brand-600 hover:underline"
+                  >
+                    Open Listener blocks to remove this pair block
+                  </Link>
+                ),
+                full: true,
               },
               { label: 'Report id', value: report.id, mono: true },
               { label: 'Reason', value: titleCase(report.reason) },

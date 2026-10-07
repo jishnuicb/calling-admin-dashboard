@@ -9,7 +9,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { UserDetailPage } from './pages/UserDetailPage';
-import { ListenersPage } from './pages/ListenersPage';
+import { ListenersPage, ActiveListenersPage, PendingUsersPage } from './pages/ListenersPage';
 import { ListenerDetailPage } from './pages/ListenerDetailPage';
 import { ListenerCallingTimePage } from './pages/ListenerCallingTimePage';
 import { LanguagesPage } from './pages/LanguagesPage';
@@ -102,6 +102,14 @@ export function App() {
         <Route path="users/:id" element={guard(S.PEOPLE, P.USERS_READ, <UserDetailPage />)} />
 
         <Route path="listeners" element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenersPage />)} />
+        <Route
+          path="active-listeners"
+          element={guard(S.PEOPLE, P.LISTENERS_READ, <ActiveListenersPage />)}
+        />
+        <Route
+          path="pending-users"
+          element={guard(S.PEOPLE, P.LISTENERS_READ, <PendingUsersPage />)}
+        />
         <Route
           path="listeners/:id"
           element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerDetailPage />)}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Mic, Pencil } from 'lucide-react';
+import { BadgeCheck, Mic, Pencil, UserCheck, UserRoundSearch } from 'lucide-react';
 import { languagesApi, listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
@@ -23,6 +23,47 @@ import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
 import { fmtRelative, titleCase } from '../lib/format';
+
+const PAGE_VARIANTS = {
+  applications: {
+    title: 'Listener applications',
+    description:
+      'Pending, rejected, and suspended applications. Approved listeners are under Active listeners.',
+    emptyTitle: 'No applications match these filters',
+    emptyIcon: BadgeCheck,
+    // Locked set when status filter is empty ("All" within this page).
+    defaultStatuses: ['PENDING', 'REJECTED', 'SUSPENDED'],
+    statusOptions: [
+      { value: '', label: 'All (pending / rejected / suspended)' },
+      { value: 'PENDING', label: 'Pending' },
+      { value: 'REJECTED', label: 'Rejected' },
+      { value: 'SUSPENDED', label: 'Suspended' },
+    ],
+    excludeDeleted: true,
+    showAvailability: false,
+  },
+  active: {
+    title: 'Active listeners',
+    description: 'Approved listeners only. Manage presence, payouts, and profile from the detail page.',
+    emptyTitle: 'No active listeners match these filters',
+    emptyIcon: UserCheck,
+    defaultStatuses: ['APPROVED'],
+    statusOptions: null,
+    excludeDeleted: true,
+    showAvailability: true,
+  },
+  pending: {
+    title: 'Pending users',
+    description:
+      'Listener applications awaiting verification. Deleted accounts are excluded.',
+    emptyTitle: 'No pending applications',
+    emptyIcon: UserRoundSearch,
+    defaultStatuses: ['PENDING'],
+    statusOptions: null,
+    excludeDeleted: true,
+    showAvailability: false,
+  },
+};
 
 function RenameListenerModal({ application, onClose }) {
   const [displayName, setDisplayName] = useState(application.displayName || '');
@@ -78,16 +119,26 @@ function RenameListenerModal({ application, onClose }) {
   );
 }
 
-export function ListenersPage() {
+/**
+ * @param {'applications'|'active'|'pending'} [variant]
+ */
+export function ListenersPage({ variant = 'applications' }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { can } = useAuth();
   const canRename = can(P.LISTENERS_APPROVE);
   const [renameRow, setRenameRow] = useState(null);
+  const config = PAGE_VARIANTS[variant] || PAGE_VARIANTS.applications;
 
-  // Deep links from the dashboard (?status=PENDING) should land pre-filtered.
+  const allowedStatusValues = new Set(
+    (config.statusOptions || []).map((o) => o.value).filter(Boolean),
+  );
+  const urlStatus = searchParams.get('status') || '';
+  const initialStatus =
+    config.statusOptions && allowedStatusValues.has(urlStatus) ? urlStatus : '';
+
   const table = useTableState({
-    status: searchParams.get('status') || '',
+    status: initialStatus,
     search: '',
     country: '',
     gender: '',
@@ -95,12 +146,27 @@ export function ListenersPage() {
     availabilityEnabled: '',
   });
 
+  const listParams = {
+    ...table.params,
+    excludeDeleted: config.excludeDeleted ? true : undefined,
+  };
+
+  if (table.filters.status) {
+    listParams.status = table.filters.status;
+    delete listParams.statuses;
+  } else if (config.defaultStatuses?.length === 1) {
+    listParams.status = config.defaultStatuses[0];
+    delete listParams.statuses;
+  } else if (config.defaultStatuses?.length) {
+    listParams.statuses = config.defaultStatuses.join(',');
+    delete listParams.status;
+  }
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: qk.listeners(table.params),
-    queryFn: () => listenersApi.list(table.params),
+    queryKey: qk.listeners({ variant, ...listParams }),
+    queryFn: () => listenersApi.list(listParams),
   });
 
-  // Populates the language filter from the master list rather than hardcoding.
   const { data: languages } = useQuery({
     queryKey: qk.languages({ active: true }),
     queryFn: () => languagesApi.list({ active: true }),
@@ -124,155 +190,79 @@ export function ListenersPage() {
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate font-medium text-ink-900">{row.displayName}</p>
-            <p className="truncate text-xs text-ink-500">
-              {titleCase(row.gender)} · {row.country || 'Unknown country'}
-            </p>
+            <p className="truncate font-medium text-ink-900">{row.displayName || 'Unnamed'}</p>
+            <p className="truncate text-xs text-ink-500">{row.user?.name || row.userId}</p>
           </div>
         </div>
       ),
     },
-    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
-      key: 'voiceNote',
-      header: 'Voice',
-      render: (row) =>
-        row.voiceNoteUrl ? (
-          <a
-            href={row.voiceNoteUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
-            title="Play voice note"
-          >
-            <Mic className="size-3.5" />
-            Play
-          </a>
-        ) : (
-          <span className="text-xs text-ink-400">—</span>
-        ),
+      key: 'status',
+      header: 'Status',
+      render: (row) => (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusBadge status={row.status} />
+          {row.isReopened && <Badge tone="warning">Reopened</Badge>}
+        </div>
+      ),
     },
     {
-      key: 'isProfessionalVerified',
-      header: 'Profession verified',
-      render: (row) =>
-        row.isProfessionalVerified ? (
-          <Badge tone="success" dot>
-            Verified
-          </Badge>
-        ) : (
-          <Badge tone="neutral">Not verified</Badge>
-        ),
+      key: 'gender',
+      header: 'Gender',
+      render: (row) => titleCase(row.gender) || '—',
     },
     {
       key: 'languages',
       header: 'Languages',
       render: (row) =>
         row.languages?.length ? (
-          <div className="flex flex-wrap gap-1">
-            {row.languages.slice(0, 3).map((l) => (
-              <Badge key={l.id || l.name} tone="brand">
-                {l.name}
-              </Badge>
-            ))}
-            {row.languages.length > 3 && (
-              <Badge tone="neutral">+{row.languages.length - 3}</Badge>
-            )}
-          </div>
+          <span className="text-xs text-ink-700">
+            {row.languages.map((l) => l.name).join(', ')}
+          </span>
         ) : (
-          // An approved listener cannot have zero languages; the backend blocks
-          // approval in that state. Seeing this on a PENDING row is normal.
-          <span className="text-xs text-amber-600">None selected</span>
+          <span className="text-xs text-ink-400">—</span>
         ),
     },
     {
-      key: 'online',
-      header: 'Availability',
-      render: (row) => {
-        if (row.status !== 'APPROVED') return <span className="text-xs text-ink-400">—</span>;
-        if (row.online && row.busy) {
-          return (
-            <Badge tone="warning" dot>
-              Busy
-            </Badge>
-          );
-        }
-        if (row.online) {
-          return (
-            <div className="min-w-0">
-              <Badge tone="success" dot>
-                Online
-              </Badge>
-              <p className="mt-0.5 text-[11px] text-ink-500" title={row.lastSeenAt || ''}>
-                {row.lastSeenAt ? `seen ${fmtRelative(row.lastSeenAt)}` : 'manual online'}
-              </p>
-            </div>
-          );
-        }
-        // Offline is only a manual choice. Socket disconnect does not flip this.
-        return (
-          <div className="min-w-0">
-            <Badge tone="neutral">Offline</Badge>
-            <p className="mt-0.5 text-[11px] text-ink-500" title={row.lastSeenAt || ''}>
-              {row.lastSeenAt ? `seen ${fmtRelative(row.lastSeenAt)}` : 'not taking calls'}
-            </p>
-          </div>
-        );
-      },
+      key: 'country',
+      header: 'Country',
+      render: (row) => row.country || <span className="text-ink-400">—</span>,
     },
     {
-      key: 'age',
-      header: 'Age',
-      align: 'right',
+      key: 'voice',
+      header: 'Voice',
       render: (row) =>
-        row.age == null ? (
-          // Pre-dates the 18+ requirement; they must re-apply with a date of
-          // birth before they can be approved.
-          <span className="text-xs text-amber-600" title="No date of birth on file">
-            n/a
-          </span>
+        row.voiceNoteUrl ? (
+          <Mic className="size-4 text-brand-600" title="Has voice note" />
         ) : (
-          <span className="tabular text-sm text-ink-800">{row.age}</span>
-        ),
-    },
-    {
-      key: 'mobileNumber',
-      header: 'Mobile Number',
-      render: (row) => (
-        <span className="tabular text-sm text-ink-700">
-          {row.user?.mobile ?? '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'payout',
-      header: 'Payout',
-      render: (row) =>
-        row.bankDetails?.provided ? (
-          <span className="text-xs tabular text-ink-600" title={row.bankDetails.bankName || ''}>
-            {row.bankDetails.bankAccountNumberMasked}
-          </span>
-        ) : (
-          <Badge tone="warning">Missing</Badge>
+          <span className="text-xs text-ink-400">—</span>
         ),
     },
     {
       key: 'submittedAt',
       header: 'Submitted',
-      render: (row) => <span className="text-xs text-ink-600">{fmtRelative(row.submittedAt)}</span>,
+      render: (row) => (
+        <span className="text-xs text-ink-600" title={row.submittedAt}>
+          {fmtRelative(row.submittedAt)}
+        </span>
+      ),
     },
-    {
-      key: 'reapply',
-      header: 'Re-applies',
-      align: 'right',
-      render: (row) =>
-        row.reapplyCount ? (
-          <Badge tone="warning">{row.reapplyCount}</Badge>
-        ) : (
-          <span className="text-xs text-ink-400">0</span>
-        ),
-    },
+    ...(config.showAvailability
+      ? [
+          {
+            key: 'online',
+            header: 'Online',
+            render: (row) =>
+              row.online ? (
+                <Badge tone="success" dot>
+                  online
+                </Badge>
+              ) : (
+                <span className="text-xs text-ink-400">offline</span>
+              ),
+          },
+        ]
+      : []),
     ...(canRename
       ? [
           {
@@ -300,10 +290,7 @@ export function ListenersPage() {
 
   return (
     <>
-      <PageHeader
-        title="Listener applications"
-        description="Review the pipeline. Applicants must be 18+ with payout details on file, approval requires at least one selected language, and an approved listener is never forced online."
-      />
+      <PageHeader title={config.title} description={config.description} />
 
       <Card bodyClassName="">
         <FilterBar onReset={table.isFiltered ? table.reset : undefined}>
@@ -315,18 +302,20 @@ export function ListenersPage() {
             />
           </Field>
 
-          <Field label="Status" className="w-40">
-            <Select
-              value={table.filters.status}
-              onChange={(e) => table.setFilter('status', e.target.value)}
-            >
-              <option value="">All</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="SUSPENDED">Suspended</option>
-            </Select>
-          </Field>
+          {config.statusOptions && (
+            <Field label="Status" className="w-56">
+              <Select
+                value={table.filters.status}
+                onChange={(e) => table.setFilter('status', e.target.value)}
+              >
+                {config.statusOptions.map((opt) => (
+                  <option key={opt.value || 'all'} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
 
           <Field label="Language" className="w-40">
             <Select
@@ -355,16 +344,18 @@ export function ListenersPage() {
             </Select>
           </Field>
 
-          <Field label="Availability" className="w-44">
-            <Select
-              value={table.filters.availabilityEnabled}
-              onChange={(e) => table.setFilter('availabilityEnabled', e.target.value)}
-            >
-              <option value="">Any</option>
-              <option value="true">Go-online enabled</option>
-              <option value="false">Not taking calls</option>
-            </Select>
-          </Field>
+          {config.showAvailability && (
+            <Field label="Availability" className="w-44">
+              <Select
+                value={table.filters.availabilityEnabled}
+                onChange={(e) => table.setFilter('availabilityEnabled', e.target.value)}
+              >
+                <option value="">Any</option>
+                <option value="true">Go-online enabled</option>
+                <option value="false">Not taking calls</option>
+              </Select>
+            </Field>
+          )}
 
           <Field label="Country" className="w-36">
             <SearchInput
@@ -382,8 +373,8 @@ export function ListenersPage() {
           error={error}
           onRetry={refetch}
           onRowClick={(row) => navigate(`/listeners/${row.id}`)}
-          emptyIcon={BadgeCheck}
-          emptyTitle="No applications match these filters"
+          emptyIcon={config.emptyIcon}
+          emptyTitle={config.emptyTitle}
         />
 
         <Pagination
@@ -398,4 +389,12 @@ export function ListenersPage() {
       )}
     </>
   );
+}
+
+export function ActiveListenersPage() {
+  return <ListenersPage variant="active" />;
+}
+
+export function PendingUsersPage() {
+  return <ListenersPage variant="pending" />;
 }

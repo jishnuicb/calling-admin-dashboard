@@ -118,7 +118,7 @@ export function DashboardPage() {
           value={fmtNumber(listeners.onlineNow)}
           sub={`${fmtNumber(listeners.approved)} approved in total`}
           tone="emerald"
-          to="/listeners?status=APPROVED"
+          to="/active-listeners"
         />
         <StatCard
           icon={Activity}
@@ -134,7 +134,7 @@ export function DashboardPage() {
           value={fmtNumber(listeners.pendingApplications)}
           sub="Awaiting review"
           tone={listeners.pendingApplications > 0 ? 'amber' : 'brand'}
-          to="/listeners?status=PENDING"
+          to="/pending-users"
         />
         <StatCard
           icon={Flag}
