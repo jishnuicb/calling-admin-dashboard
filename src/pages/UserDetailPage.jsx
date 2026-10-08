@@ -27,6 +27,7 @@ import { fmtDateTime, fmtNumber, fmtSigned, fmtTokens, titleCase } from '../lib/
 function loginMethodLabel(method) {
   if (!method) return '—';
   if (method === 'MSG91') return 'MSG91';
+  if (method === 'MSG91_WHATSAPP') return 'MSG91 WhatsApp';
   if (method === 'BACKUP_OTP') return 'Backup OTP';
   return method;
 }
@@ -557,6 +558,8 @@ export function UserDetailPage() {
                   <span className="inline-flex items-center gap-2">
                     {user.lastLoginMethod === 'BACKUP_OTP' ? (
                       <Badge tone="warning">Backup OTP</Badge>
+                    ) : user.lastLoginMethod === 'MSG91_WHATSAPP' ? (
+                      <Badge tone="info">MSG91 WhatsApp</Badge>
                     ) : user.lastLoginMethod === 'MSG91' ? (
                       <Badge tone="info">MSG91</Badge>
                     ) : (
@@ -621,6 +624,20 @@ export function UserDetailPage() {
             )}
           </Card>
 
+          <Card title="Preferred languages">
+            {user.userLanguages?.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {user.userLanguages.map((l) => (
+                  <Badge key={l.id || l.name} tone="brand">
+                    {l.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-ink-500">None selected</p>
+            )}
+          </Card>
+
           <Card title="Listener profile">
             {user.listener ? (
               <div className="space-y-3">
@@ -648,15 +665,17 @@ export function UserDetailPage() {
                   </p>
                 )}
 
-                {/* `languages` is returned at the top level, not nested on the
-                    listener object. */}
+                {/* Listener speaking languages (separate from preferred userLanguages). */}
                 {user.languages?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {user.languages.map((l) => (
-                      <Badge key={l.id || l.name} tone="brand">
-                        {l.name}
-                      </Badge>
-                    ))}
+                  <div>
+                    <p className="mb-1.5 text-xs text-ink-500">Listener languages</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {user.languages.map((l) => (
+                        <Badge key={l.id || l.name} tone="brand">
+                          {l.name}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
 

@@ -124,6 +124,18 @@ export const languagesApi = {
   update: (id, body) => patch(`/admin/languages/${id}`, body),
   // Returns 409 LANGUAGE_IN_USE while any listener references the language.
   remove: (id) => del(`/admin/languages/${id}`),
+  uploadIllustration: (id, formData) =>
+    api.post(`/admin/languages/${id}/illustration`, formData, {
+      transformRequest: [
+        (data, headers) => {
+          if (headers && typeof headers === 'object') {
+            delete headers['Content-Type'];
+          }
+          return data;
+        },
+      ],
+    }),
+  clearIllustration: (id) => del(`/admin/languages/${id}/illustration`),
 };
 
 // --- Profile avatars (USER / LISTENER catalogs by gender) -------------------
