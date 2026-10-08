@@ -180,6 +180,23 @@ export const paymentsApi = {
   downloadReport: (params) => downloadCsv('/admin/payments/report', params, 'payments-report.csv'),
 };
 
+export const paymentGatewaysApi = {
+  list: () => get('/admin/payments/gateways'),
+  update: (id, body) => patch(`/admin/payments/gateways/${id}`, body),
+  uploadImage: (id, formData) =>
+    api.post(`/admin/payments/gateways/${id}/image`, formData, {
+      transformRequest: [
+        (data, headers) => {
+          if (headers && typeof headers === 'object') {
+            delete headers['Content-Type'];
+          }
+          return data;
+        },
+      ],
+    }),
+  clearImage: (id) => del(`/admin/payments/gateways/${id}/image`),
+};
+
 // --- Token packages ---------------------------------------------------------
 
 export const packagesApi = {

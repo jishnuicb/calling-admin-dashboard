@@ -26,6 +26,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/otp', section: S.PEOPLE, permission: P.OTP_READ },
   { path: '/ip-blocks', section: S.SYSTEM, permission: P.SECURITY_READ },
   { path: '/payments', section: S.MONEY, permission: P.PAYMENTS_READ },
+  { path: '/payment-gateways', section: S.MONEY, permission: P.PAYMENTS_READ },
   { path: '/packages', section: S.MONEY, permission: P.PACKAGES_WRITE },
   { path: '/wallets', section: S.MONEY, permission: P.WALLET_READ },
   { path: '/earnings', section: S.MONEY, permission: P.EARNINGS_READ },

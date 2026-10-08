@@ -76,6 +76,12 @@ const NAV_SECTIONS = [
     title: 'Money',
     items: [
       { to: '/payments', label: 'Payments', icon: CreditCard, permission: P.PAYMENTS_READ },
+      {
+        to: '/payment-gateways',
+        label: 'Payment gateways',
+        icon: Landmark,
+        permission: P.PAYMENTS_READ,
+      },
       { to: '/packages', label: 'Token packages', icon: Package, permission: P.PACKAGES_WRITE },
       { to: '/wallets', label: 'Wallets', icon: Coins, permission: P.WALLET_READ },
       { to: '/earnings', label: 'Listener earnings', icon: IndianRupee, permission: P.EARNINGS_READ },

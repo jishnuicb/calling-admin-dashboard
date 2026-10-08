@@ -18,6 +18,7 @@ import { OtpPage } from './pages/OtpPage';
 import { IpBlocksPage } from './pages/IpBlocksPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
+import { PaymentGatewaysPage } from './pages/PaymentGatewaysPage';
 import { PackagesPage } from './pages/PackagesPage';
 import { WalletsPage } from './pages/WalletsPage';
 import { EarningsPage } from './pages/EarningsPage';
@@ -129,6 +130,10 @@ export function App() {
 
         <Route path="payments" element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentsPage />)} />
         <Route path="payments/:id" element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentDetailPage />)} />
+        <Route
+          path="payment-gateways"
+          element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentGatewaysPage />)}
+        />
         <Route path="packages" element={guard(S.MONEY, P.PACKAGES_WRITE, <PackagesPage />)} />
         <Route path="wallets" element={guard(S.MONEY, P.WALLET_READ, <WalletsPage />)} />
         <Route path="wallets/:userId" element={guard(S.MONEY, P.WALLET_READ, <WalletsPage />)} />

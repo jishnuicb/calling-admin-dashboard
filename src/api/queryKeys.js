@@ -35,6 +35,7 @@ export const qk = {
 
   payments: (params) => ['payments', 'list', params],
   payment: (id) => ['payments', 'detail', id],
+  paymentGateways: ['paymentGateways'],
 
   packages: ['packages'],
 
