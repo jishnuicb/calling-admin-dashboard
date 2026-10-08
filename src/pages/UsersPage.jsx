@@ -152,6 +152,9 @@ export function UsersPage({ variant = 'all' }) {
       render: (row) => {
         const method = row.lastLoginMethod;
         if (!method) return <span className="text-xs text-ink-400">—</span>;
+        if (method === 'MSG91_WHATSAPP') {
+          return <Badge tone="info">WhatsApp</Badge>;
+        }
         if (method === 'BACKUP_OTP') {
           return <Badge tone="warning">Backup OTP</Badge>;
         }

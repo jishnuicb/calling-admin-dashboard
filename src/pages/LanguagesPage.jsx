@@ -35,6 +35,8 @@ function LanguageFormModal({ open, onClose, language }) {
         }
       : { name: '', code: '', active: true, sortOrder: 0 },
   );
+  const [illustrationUrl, setIllustrationUrl] = useState(language?.illustrationUrl || null);
+  const [svgError, setSvgError] = useState('');
 
   const mutation = useApiMutation({
     mutationFn: (body) =>
@@ -44,6 +46,27 @@ function LanguageFormModal({ open, onClose, language }) {
     onSuccess: onClose,
   });
 
+  const uploadMutation = useApiMutation({
+    mutationFn: (file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return languagesApi.uploadIllustration(language.id, fd);
+    },
+    successMessage: 'Illustration uploaded',
+    invalidate: [['languages'], ['dashboard']],
+    onSuccess: (data) => {
+      setIllustrationUrl(data?.illustrationUrl || null);
+      setSvgError('');
+    },
+  });
+
+  const clearMutation = useApiMutation({
+    mutationFn: () => languagesApi.clearIllustration(language.id),
+    successMessage: 'Illustration removed',
+    invalidate: [['languages'], ['dashboard']],
+    onSuccess: () => setIllustrationUrl(null),
+  });
+
   const submit = () =>
     mutation.mutate({
       name: form.name.trim(),
@@ -51,6 +74,19 @@ function LanguageFormModal({ open, onClose, language }) {
       active: form.active,
       sortOrder: Number(form.sortOrder) || 0,
     });
+
+  const onPickSvg = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const name = String(file.name || '').toLowerCase();
+    if (!name.endsWith('.svg') && file.type !== 'image/svg+xml') {
+      setSvgError('Only SVG files are allowed');
+      return;
+    }
+    setSvgError('');
+    uploadMutation.mutate(file);
+  };
 
   const fieldErrors = mutation.error?.fieldErrors || {};
 
@@ -104,6 +140,50 @@ function LanguageFormModal({ open, onClose, language }) {
             />
           </Field>
         </div>
+
+        {editing && (
+          <Field
+            label="Illustration"
+            hint="SVG only (max 1 MB). Shown in language lists and profiles."
+            error={svgError || uploadMutation.error?.message}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-ink-50 ring-1 ring-ink-200">
+                {illustrationUrl ? (
+                  <img src={illustrationUrl} alt="" className="size-10 object-contain" />
+                ) : (
+                  <Languages className="size-5 text-ink-300" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <input
+                  type="file"
+                  accept=".svg,image/svg+xml"
+                  onChange={onPickSvg}
+                  disabled={uploadMutation.isPending}
+                  className="block w-full text-xs text-ink-600 file:mr-3 file:rounded-md file:border-0 file:bg-ink-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-ink-800 hover:file:bg-ink-200"
+                />
+                {illustrationUrl && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-600 hover:bg-red-50"
+                    loading={clearMutation.isPending}
+                    onClick={() => clearMutation.mutate()}
+                  >
+                    Remove illustration
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Field>
+        )}
+
+        {!editing && (
+          <p className="rounded-lg bg-ink-50 px-3.5 py-2.5 text-xs text-ink-600">
+            Create the language first, then edit it to upload an SVG illustration.
+          </p>
+        )}
 
         <div className="rounded-lg bg-ink-50 px-3.5 py-3">
           <Toggle
@@ -241,13 +321,22 @@ export function LanguagesPage() {
       key: 'name',
       header: 'Language',
       render: (row) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-ink-900">{row.name}</span>
-          {row.code && (
-            <span className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[11px] text-ink-600">
-              {row.code}
-            </span>
-          )}
+        <div className="flex items-center gap-2.5">
+          <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink-50 ring-1 ring-ink-200">
+            {row.illustrationUrl ? (
+              <img src={row.illustrationUrl} alt="" className="size-6 object-contain" />
+            ) : (
+              <Languages className="size-4 text-ink-300" />
+            )}
+          </div>
+          <div className="min-w-0">
+            <span className="font-medium text-ink-900">{row.name}</span>
+            {row.code && (
+              <span className="ml-2 rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[11px] text-ink-600">
+                {row.code}
+              </span>
+            )}
+          </div>
         </div>
       ),
     },
