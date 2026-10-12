@@ -102,6 +102,13 @@ export function PaymentsPage() {
       ),
     },
     {
+      key: 'gateway',
+      header: 'Gateway',
+      render: (row) => (
+        <span className="text-xs font-medium text-ink-700">{row.gateway || '—'}</span>
+      ),
+    },
+    {
       key: 'method',
       header: 'Method',
       render: (row) => <span className="text-xs text-ink-600">{row.paymentMethod || '—'}</span>,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Ban, Bell, Coins, Copy, Eye, EyeOff, KeyRound, ShieldCheck, Trash2 } from 'lucide-react';
 import { usersApi, walletApi } from '../api/endpoints';
@@ -266,6 +266,9 @@ function DeleteUserModal({ open, onClose, user }) {
 export function UserDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = location.state?.from === '/pending-users' ? '/pending-users' : '/users';
+  const backLabel = backTo === '/pending-users' ? 'Back to pending users' : 'Back to users';
   const { can } = useAuth();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
@@ -334,11 +337,11 @@ export function UserDetailPage() {
       <PageHeader
         breadcrumb={
           <Link
-            to="/users"
+            to={backTo}
             className="mb-1.5 inline-flex items-center gap-1 text-xs text-ink-500 hover:text-ink-700"
           >
             <ArrowLeft className="size-3.5" />
-            Back to users
+            {backLabel}
           </Link>
         }
         title={

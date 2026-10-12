@@ -188,6 +188,7 @@ export function PaymentDetailPage() {
                 ),
               },
               { label: 'Our reference', value: payment.transactionRef, mono: true },
+              { label: 'Gateway', value: payment.gateway || '—' },
               { label: 'Cashfree order id', value: payment.cfOrderId, mono: true },
               { label: 'Cashfree payment id', value: payment.cfPaymentId, mono: true },
               { label: 'Payment method', value: payment.paymentMethod },
