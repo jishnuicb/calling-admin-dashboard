@@ -249,7 +249,13 @@ export function UsersPage({ variant = 'all' }) {
           loading={isLoading}
           error={error}
           onRetry={refetch}
-          onRowClick={(row) => navigate(`/users/${row.id}`)}
+          onRowClick={(row) =>
+            navigate(`/users/${row.id}`, {
+              state: {
+                from: isPendingOtp ? '/pending-users' : '/users',
+              },
+            })
+          }
           emptyIcon={Users}
           emptyTitle={
             isPendingOtp
