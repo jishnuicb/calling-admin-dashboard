@@ -250,6 +250,18 @@ export function ListenersPage({ variant = 'applications' }) {
                 <span className="text-xs text-ink-400">offline</span>
               ),
           },
+          {
+            key: 'lastSeenAt',
+            header: 'Last seen',
+            render: (row) =>
+              row.lastSeenAt ? (
+                <span className="text-xs text-ink-600" title={row.lastSeenAt}>
+                  {fmtRelative(row.lastSeenAt)}
+                </span>
+              ) : (
+                <span className="text-xs text-ink-400">—</span>
+              ),
+          },
         ]
       : []),
     ...(canRename
@@ -361,7 +373,13 @@ export function ListenersPage({ variant = 'applications' }) {
           loading={isLoading}
           error={error}
           onRetry={refetch}
-          onRowClick={(row) => navigate(`/listeners/${row.id}`)}
+          onRowClick={(row) =>
+            navigate(`/listeners/${row.id}`, {
+              state: {
+                from: variant === 'active' ? '/active-listeners' : '/listeners',
+              },
+            })
+          }
           emptyIcon={config.emptyIcon}
           emptyTitle={config.emptyTitle}
         />

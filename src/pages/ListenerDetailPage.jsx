@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -92,13 +92,12 @@ const DECISIONS = {
   reopen: {
     title: 'Reopen this application',
     description:
-      'Use when Cashfree cannot create the beneficiary because bank/UPI details are invalid. The listener is notified with your reason and can resubmit corrected details.',
+      'Ask the listener to correct details (bank/UPI, profile, etc.). They stay active online and can keep taking calls; they are notified with your reason.',
     confirmLabel: 'Reopen application',
     variant: 'danger',
     reasonRequired: true,
     reasonLabel: 'Reason for reopening',
-    reasonPlaceholder:
-      'Cashfree account could not be created because the bank account details are invalid.',
+    reasonPlaceholder: 'Please update your details and resubmit.',
   },
 };
 
@@ -432,6 +431,11 @@ function NotesModal({ application, onClose }) {
 
 export function ListenerDetailPage() {
   const { id } = useParams();
+  const location = useLocation();
+  const backTo =
+    location.state?.from === '/active-listeners' ? '/active-listeners' : '/listeners';
+  const backLabel =
+    backTo === '/active-listeners' ? 'Back to active listeners' : 'Back to applications';
   const { can } = useAuth();
   const [decision, setDecision] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
@@ -525,11 +529,11 @@ export function ListenerDetailPage() {
       <PageHeader
         breadcrumb={
           <Link
-            to="/listeners"
+            to={backTo}
             className="mb-1.5 inline-flex items-center gap-1 text-xs text-ink-500 hover:text-ink-700"
           >
             <ArrowLeft className="size-3.5" />
-            Back to applications
+            {backLabel}
           </Link>
         }
         title={

@@ -19,6 +19,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/reports', section: S.OVERVIEW, permission: P.REPORTS_GENERATE },
   { path: '/users', section: S.PEOPLE, permission: P.USERS_READ },
   { path: '/pending-users', section: S.PEOPLE, permission: P.USERS_READ },
+  { path: '/online-callers', section: S.PEOPLE, permission: P.USERS_READ },
   { path: '/listeners', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/active-listeners', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/languages', section: S.PEOPLE, permission: P.LANGUAGES_READ },
