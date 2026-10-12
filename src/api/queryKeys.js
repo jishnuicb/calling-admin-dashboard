@@ -33,6 +33,8 @@ export const qk = {
   wallet: (userId) => ['wallet', userId],
   walletHistory: (userId, params) => ['wallet', userId, 'history', params],
 
+  onlineCallers: ['users', 'onlineCallers'],
+
   payments: (params) => ['payments', 'list', params],
   payment: (id) => ['payments', 'detail', id],
   paymentGateways: ['paymentGateways'],

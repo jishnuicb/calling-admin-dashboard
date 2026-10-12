@@ -20,6 +20,7 @@ import {
   Ban,
   Package,
   PhoneCall,
+  Radio,
   ScrollText,
   Settings,
   ShieldBan,
@@ -63,6 +64,7 @@ const NAV_SECTIONS = [
     items: [
       { to: '/users', label: 'Users', icon: Users, permission: P.USERS_READ },
       { to: '/pending-users', label: 'Pending users', icon: UserRoundSearch, permission: P.USERS_READ },
+      { to: '/online-callers', label: 'Online callers', icon: Radio, permission: P.USERS_READ },
       { to: '/listeners', label: 'Listener applications', icon: BadgeCheck, permission: P.LISTENERS_READ },
       { to: '/active-listeners', label: 'Active listeners', icon: UserCheck, permission: P.LISTENERS_READ },
       { to: '/listener-calling-time', label: 'Listener calling time', icon: Clock, permission: P.LISTENERS_READ },
