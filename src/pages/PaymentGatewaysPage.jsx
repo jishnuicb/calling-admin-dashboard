@@ -25,8 +25,17 @@ function GatewayEditModal({ open, onClose, gateway }) {
           description: gateway.description || '',
           sortOrder: gateway.sortOrder ?? 0,
           enabled: gateway.enabled ?? true,
+          supportsIndian: gateway.supportsIndian ?? true,
+          supportsInternational: gateway.supportsInternational ?? false,
         }
-      : { label: '', description: '', sortOrder: 0, enabled: true },
+      : {
+          label: '',
+          description: '',
+          sortOrder: 0,
+          enabled: true,
+          supportsIndian: true,
+          supportsInternational: false,
+        },
   );
   const [imageUrl, setImageUrl] = useState(gateway?.imageUrl || null);
   const [imageError, setImageError] = useState('');
@@ -65,6 +74,8 @@ function GatewayEditModal({ open, onClose, gateway }) {
       description: form.description.trim() || null,
       sortOrder: Number(form.sortOrder) || 0,
       enabled: form.enabled,
+      supportsIndian: form.supportsIndian,
+      supportsInternational: form.supportsInternational,
     });
 
   const onPickImage = (e) => {
@@ -96,7 +107,9 @@ function GatewayEditModal({ open, onClose, gateway }) {
           <Button
             onClick={submit}
             loading={mutation.isPending}
-            disabled={!form.label.trim()}
+            disabled={
+              !form.label.trim() || (!form.supportsIndian && !form.supportsInternational)
+            }
           >
             Save changes
           </Button>
@@ -171,18 +184,52 @@ function GatewayEditModal({ open, onClose, gateway }) {
           </div>
         </Field>
 
-        <div className="rounded-lg bg-ink-50 px-3.5 py-3">
+        <div className="rounded-lg bg-ink-50 px-3.5 py-3 space-y-3">
           <Toggle
             checked={form.enabled}
             onChange={(v) => setForm({ ...form, enabled: v })}
             label="Enabled (shown in the app)"
           />
           {!form.enabled && (
-            <p className="mt-2 text-xs text-ink-600">
+            <p className="text-xs text-ink-600">
               Disabled gateways are hidden from GET /payments/gateways and rejected on
               create-order.
             </p>
           )}
+          <div className="border-t border-ink-200 pt-3 space-y-2">
+            <p className="text-xs font-medium text-ink-700">Accepted payment methods</p>
+            <label className="flex items-start gap-2 text-sm text-ink-800">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={form.supportsIndian}
+                onChange={(e) => setForm({ ...form, supportsIndian: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">India payments</span>
+                <span className="block text-xs text-ink-500">
+                  UPI, Indian netbanking, and Indian cards
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm text-ink-800">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={form.supportsInternational}
+                onChange={(e) => setForm({ ...form, supportsInternational: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">International payments</span>
+                <span className="block text-xs text-ink-500">
+                  International cards and international netbanking
+                </span>
+              </span>
+            </label>
+            {!form.supportsIndian && !form.supportsInternational && (
+              <p className="text-xs text-rose-600">Select at least one option.</p>
+            )}
+          </div>
         </div>
       </div>
     </Modal>
@@ -237,6 +284,19 @@ export function PaymentGatewaysPage() {
       ),
     },
     {
+      key: 'markets',
+      header: 'Methods',
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          {row.supportsIndian !== false && <Badge tone="neutral">India</Badge>}
+          {row.supportsInternational && <Badge tone="info">International</Badge>}
+          {row.supportsIndian === false && !row.supportsInternational && (
+            <span className="text-xs text-ink-400">—</span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'enabled',
       header: 'Enabled',
       render: (row) => (
@@ -278,7 +338,7 @@ export function PaymentGatewaysPage() {
     <>
       <PageHeader
         title="Payment gateways"
-        description="Toggle Cashfree and PayGlocal, edit the labels the app shows, and upload gateway images."
+        description="Toggle gateways, mark India vs international support, edit labels, and upload images."
       />
 
       {error && <ErrorState error={error} onRetry={refetch} />}
