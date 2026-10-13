@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Package, Plus, Trash2 } from 'lucide-react';
 import { packagesApi } from '../api/endpoints';
@@ -14,39 +14,73 @@ import {
   Input,
   Modal,
   PageHeader,
-  Select,
   Toggle,
 } from '../components/ui';
 import { slicePage, useTableState } from '../hooks/useTableState';
 import { fmtMoney, fmtTokens } from '../lib/format';
 
-function PackageFormModal({ open, onClose, pkg }) {
+/** Four separate admin catalogs (platform × market). */
+export const PACKAGE_MENUS = [
+  {
+    path: 'android-india',
+    platform: 'STANDARD',
+    market: 'INDIAN',
+    title: 'Android · India',
+    description:
+      'Token packs for Android / standard checkout with India payments (UPI, Indian cards, netbanking).',
+  },
+  {
+    path: 'android-international',
+    platform: 'STANDARD',
+    market: 'INTERNATIONAL',
+    title: 'Android · International',
+    description:
+      'Token packs for Android / standard checkout with international cards and netbanking.',
+  },
+  {
+    path: 'ios-india',
+    platform: 'IOS',
+    market: 'INDIAN',
+    title: 'iOS · India',
+    description: 'App Store catalog packs for India. Not listed on the current public package APIs yet.',
+  },
+  {
+    path: 'ios-international',
+    platform: 'IOS',
+    market: 'INTERNATIONAL',
+    title: 'iOS · International',
+    description:
+      'App Store catalog packs for international. Not listed on the current public package APIs yet.',
+  },
+];
+
+function matchesCatalog(row, platform, market) {
+  const rowPlatform = row.platform || 'STANDARD';
+  const rowMarket = row.market || 'INDIAN';
+  return rowPlatform === platform && rowMarket === market;
+}
+
+function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }) {
   const editing = Boolean(pkg);
   const [form, setForm] = useState(
     pkg
       ? {
           name: pkg.name || '',
           tokens: pkg.tokens ?? '',
-          // bonusTokens: pkg.bonusTokens ?? 0,
           price: pkg.price ?? '',
           originalPrice: pkg.originalPrice ?? '',
           discountPercent: pkg.discountPercent ?? 0,
           currency: pkg.currency || 'INR',
-          market: pkg.market || 'INDIAN',
-          platform: pkg.platform || 'STANDARD',
           active: pkg.active ?? true,
           sortOrder: pkg.sortOrder ?? 0,
         }
       : {
           name: '',
           tokens: '',
-          // bonusTokens: 0,
           price: '',
           originalPrice: '',
           discountPercent: 0,
           currency: 'INR',
-          market: 'INDIAN',
-          platform: 'STANDARD',
           active: true,
           sortOrder: 0,
         },
@@ -65,15 +99,15 @@ function PackageFormModal({ open, onClose, pkg }) {
       tokens: Number(form.tokens),
       bonusTokens: 0,
       price: Number(form.price),
-      originalPrice: form.originalPrice === '' || form.originalPrice == null
-        ? null
-        : Number(form.originalPrice),
-      market: form.market || 'INDIAN',
-      platform: form.platform || 'STANDARD',
+      originalPrice:
+        form.originalPrice === '' || form.originalPrice == null
+          ? null
+          : Number(form.originalPrice),
+      market,
+      platform,
       active: form.active,
       sortOrder: Number(form.sortOrder) || 0,
     };
-    // `currency` is only accepted on create.
     if (!editing) body.currency = form.currency;
     mutation.mutate(body);
   };
@@ -90,8 +124,8 @@ function PackageFormModal({ open, onClose, pkg }) {
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? `Edit ${pkg.name}` : 'Create a token package'}
-      description="Packages are what the app shows on its recharge screen. Prices are snapshotted onto each order, so edits never rewrite past payments."
+      title={editing ? `Edit ${pkg.name}` : `Create package · ${catalogTitle}`}
+      description="Prices are snapshotted onto each order, so edits never rewrite past payments. Platform and market are fixed for this menu."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -109,6 +143,15 @@ function PackageFormModal({ open, onClose, pkg }) {
     >
       <div className="space-y-4">
         {mutation.error && <ErrorState error={mutation.error} compact />}
+
+        <div className="flex flex-wrap gap-1.5">
+          <Badge tone={platform === 'IOS' ? 'info' : 'neutral'}>
+            {platform === 'IOS' ? 'iOS' : 'Android'}
+          </Badge>
+          <Badge tone={market === 'INTERNATIONAL' ? 'warning' : 'neutral'}>
+            {market === 'INTERNATIONAL' ? 'International' : 'India'}
+          </Badge>
+        </div>
 
         <Field label="Name" required error={fieldErrors.name}>
           <Input
@@ -128,14 +171,6 @@ function PackageFormModal({ open, onClose, pkg }) {
               onChange={(e) => setForm({ ...form, tokens: e.target.value })}
             />
           </Field>
-          {/* <Field label="Bonus tokens" error={fieldErrors.bonusTokens}>
-            <Input
-              type="number"
-              min="0"
-              value={form.bonusTokens}
-              onChange={(e) => setForm({ ...form, bonusTokens: e.target.value })}
-            />
-          </Field> */}
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -161,35 +196,6 @@ function PackageFormModal({ open, onClose, pkg }) {
               maxLength={3}
               onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })}
             />
-          </Field>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field
-            label="Payment market"
-            hint="India vs international checkout."
-            error={fieldErrors.market}
-          >
-            <Select
-              value={form.market}
-              onChange={(e) => setForm({ ...form, market: e.target.value })}
-            >
-              <option value="INDIAN">India payments</option>
-              <option value="INTERNATIONAL">International payments</option>
-            </Select>
-          </Field>
-          <Field
-            label="Platform"
-            hint="iOS packs are App Store catalog only (not shown in the current app APIs yet)."
-            error={fieldErrors.platform}
-          >
-            <Select
-              value={form.platform}
-              onChange={(e) => setForm({ ...form, platform: e.target.value })}
-            >
-              <option value="STANDARD">Android / standard</option>
-              <option value="IOS">iOS (App Store)</option>
-            </Select>
           </Field>
         </div>
 
@@ -232,29 +238,29 @@ function PackageFormModal({ open, onClose, pkg }) {
           </div>
         )}
 
-<div className="grid grid-cols-2 gap-4">
-  <Field label="Sort order" hint="Lower shows first.">
-    <Input
-      type="number"
-      value={form.sortOrder}
-      onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-    />
-  </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Sort order" hint="Lower shows first.">
+            <Input
+              type="number"
+              value={form.sortOrder}
+              onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
+            />
+          </Field>
 
-  <div className="flex items-center h-full">
-    <Toggle
-      checked={form.active}
-      onChange={(v) => setForm({ ...form, active: v })}
-      label="Available for purchase"
-    />
-  </div>
-</div>
+          <div className="flex h-full items-center">
+            <Toggle
+              checked={form.active}
+              onChange={(v) => setForm({ ...form, active: v })}
+              label="Available for purchase"
+            />
+          </div>
+        </div>
       </div>
     </Modal>
   );
 }
 
-export function PackagesPage() {
+export function PackagesPage({ platform, market, title, description }) {
   const table = useTableState({}, { limit: 20 });
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -264,6 +270,11 @@ export function PackagesPage() {
     queryKey: qk.packages,
     queryFn: () => packagesApi.list(),
   });
+
+  const filtered = useMemo(() => {
+    const all = data?.data || data || [];
+    return all.filter((row) => matchesCatalog(row, platform, market));
+  }, [data, platform, market]);
 
   const toggleActive = useApiMutation({
     mutationFn: ({ id, active }) => packagesApi.update(id, { active }),
@@ -278,25 +289,13 @@ export function PackagesPage() {
     onSuccess: () => setDeleting(null),
   });
 
-  const { rows, meta } = slicePage(data?.data || data || [], table.page, table.pageSize);
+  const { rows, meta } = slicePage(filtered, table.page, table.pageSize);
 
   const columns = [
     {
       key: 'name',
       header: 'Package',
       render: (row) => <span className="font-medium text-ink-900">{row.name}</span>,
-    },
-    {
-      key: 'market',
-      header: 'Market',
-      render: (row) => (
-        <div className="flex flex-wrap gap-1">
-          <Badge tone={row.market === 'INTERNATIONAL' ? 'warning' : 'neutral'}>
-            {row.market === 'INTERNATIONAL' ? 'International' : 'India'}
-          </Badge>
-          {row.platform === 'IOS' && <Badge tone="info">iOS</Badge>}
-        </div>
-      ),
     },
     {
       key: 'tokens',
@@ -385,8 +384,8 @@ export function PackagesPage() {
   return (
     <>
       <PageHeader
-        title="Token packages"
-        description="India/international packs for Android and separate iOS App Store packs. iOS packs are admin-only for now; the current app APIs still list standard packs only."
+        title={title}
+        description={description}
         actions={
           <Button
             onClick={() => {
@@ -408,8 +407,8 @@ export function PackagesPage() {
           error={error}
           onRetry={refetch}
           emptyIcon={Package}
-          emptyTitle="No token packages yet"
-          emptyDescription="Run the backend seed, or create one now."
+          emptyTitle={`No ${title} packages yet`}
+          emptyDescription="Create one for this catalog."
           emptyAction={
             <Button
               onClick={() => {
@@ -433,6 +432,9 @@ export function PackagesPage() {
         <PackageFormModal
           open
           pkg={editing}
+          platform={platform}
+          market={market}
+          catalogTitle={title}
           onClose={() => {
             setFormOpen(false);
             setEditing(null);

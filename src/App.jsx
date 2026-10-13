@@ -20,7 +20,7 @@ import { IpBlocksPage } from './pages/IpBlocksPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
 import { PaymentGatewaysPage } from './pages/PaymentGatewaysPage';
-import { PackagesPage } from './pages/PackagesPage';
+import { PackagesPage, PACKAGE_MENUS } from './pages/PackagesPage';
 import { WalletsPage } from './pages/WalletsPage';
 import { EarningsPage } from './pages/EarningsPage';
 import { PayoutsPage } from './pages/PayoutsPage';
@@ -139,7 +139,26 @@ export function App() {
           path="payment-gateways"
           element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentGatewaysPage />)}
         />
-        <Route path="packages" element={guard(S.MONEY, P.PACKAGES_WRITE, <PackagesPage />)} />
+        <Route
+          path="packages"
+          element={<Navigate to="/packages/android-india" replace />}
+        />
+        {PACKAGE_MENUS.map((menu) => (
+          <Route
+            key={menu.path}
+            path={`packages/${menu.path}`}
+            element={guard(
+              S.MONEY,
+              P.PACKAGES_WRITE,
+              <PackagesPage
+                platform={menu.platform}
+                market={menu.market}
+                title={menu.title}
+                description={menu.description}
+              />,
+            )}
+          />
+        ))}
         <Route path="wallets" element={guard(S.MONEY, P.WALLET_READ, <WalletsPage />)} />
         <Route path="wallets/:userId" element={guard(S.MONEY, P.WALLET_READ, <WalletsPage />)} />
         <Route path="earnings" element={guard(S.MONEY, P.EARNINGS_READ, <EarningsPage />)} />
