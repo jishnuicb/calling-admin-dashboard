@@ -30,7 +30,7 @@ const ACTIONS = [
     value: 'LISTENER_CALLER_BLOCK',
     label: 'Block the reported user',
     hint:
-      'Same as Listener blocks: the caller no longer sees that listener in discovery and cannot call them. Neither account is banned. Unblock anytime under Activity → Listener blocks.',
+      'Same as Listener blocks. Usually already auto-created when the report was filed — choosing this again is safe if the pair is already blocked. Unblock anytime under Activity → Listener blocks.',
   },
 ];
 
@@ -124,8 +124,14 @@ function ReviewModal({ report, onClose }) {
         {enforcing && form.status === 'RESOLVED' && (
           <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
             Creates the same listener→caller block as <strong>Activity → Listener blocks</strong>.
-            The caller stops seeing that listener in their list and cannot start a call. Unblock
-            from Listener blocks when needed. Does not ban either account.
+            The pair is usually already auto-blocked on report submit. Unblock from Listener
+            blocks when needed. Does not ban either account.
+          </p>
+        )}
+        {form.status === 'RESOLVED' && form.actionTaken === 'WARNING_ISSUED' && (
+          <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-900">
+            Issues a warning to the reported user. The auto social block (if any) stays in place
+            until an admin unblocks them under Listener blocks.
           </p>
         )}
       </div>
@@ -173,6 +179,28 @@ export function ModerationDetailPage() {
         }
       />
 
+      {(report.autoBlocked || report.pairBlocked) && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">
+          <p className="font-medium">
+            {report.autoBlocked ? 'Auto-blocked on report submit' : 'Pair already blocked'}
+          </p>
+          <p className="mt-1 text-xs text-amber-900/80">
+            These users no longer appear for each other in discovery and cannot call. The report
+            still needs review (e.g. issue a warning). Unblock anytime under{' '}
+            <Link to="/listener-blocks" className="font-medium underline hover:no-underline">
+              Listener blocks
+            </Link>
+            {report.listenerCallerBlock?.reason ? (
+              <>
+                {' '}
+                — {report.listenerCallerBlock.reason}
+              </>
+            ) : null}
+            .
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Report" className="lg:col-span-2">
           <DescList
@@ -185,7 +213,17 @@ export function ModerationDetailPage() {
                     <Badge tone="info">{titleCase(report.actionTaken)}</Badge>
                   ) : null,
               },
-              report.actionTaken === 'LISTENER_CALLER_BLOCK' && {
+              (report.autoBlocked || report.pairBlocked) && {
+                label: 'Social block',
+                value: (
+                  <Badge tone="warning">
+                    {report.autoBlocked ? 'Auto-blocked' : 'Blocked'}
+                  </Badge>
+                ),
+              },
+              (report.actionTaken === 'LISTENER_CALLER_BLOCK' ||
+                report.autoBlocked ||
+                report.pairBlocked) && {
                 label: 'Unblock',
                 value: (
                   <Link
