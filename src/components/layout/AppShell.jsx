@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import {
   BadgeCheck,
   BarChart3,
   Bell,
+  ChevronDown,
   ClipboardList,
   Clock,
   Coins,
@@ -85,28 +86,15 @@ const NAV_SECTIONS = [
         permission: P.PAYMENTS_READ,
       },
       {
-        to: '/packages/android-india',
-        label: 'Android · India packs',
+        label: 'Packages',
         icon: Package,
         permission: P.PACKAGES_WRITE,
-      },
-      {
-        to: '/packages/android-international',
-        label: 'Android · Intl packs',
-        icon: Package,
-        permission: P.PACKAGES_WRITE,
-      },
-      {
-        to: '/packages/ios-india',
-        label: 'iOS · India packs',
-        icon: Package,
-        permission: P.PACKAGES_WRITE,
-      },
-      {
-        to: '/packages/ios-international',
-        label: 'iOS · Intl packs',
-        icon: Package,
-        permission: P.PACKAGES_WRITE,
+        children: [
+          { to: '/packages/android-india', label: 'Android · India' },
+          { to: '/packages/android-international', label: 'Android · International' },
+          { to: '/packages/ios-india', label: 'iOS · India' },
+          { to: '/packages/ios-international', label: 'iOS · International' },
+        ],
       },
       { to: '/wallets', label: 'Wallets', icon: Coins, permission: P.WALLET_READ },
       { to: '/earnings', label: 'Listener earnings', icon: IndianRupee, permission: P.EARNINGS_READ },
@@ -152,6 +140,84 @@ const NAV_SECTIONS = [
   },
 ];
 
+function NavItem({ item, onNavigate }) {
+  const location = useLocation();
+  const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+  const childActive =
+    hasChildren && item.children.some((child) => location.pathname.startsWith(child.to));
+  const [open, setOpen] = useState(childActive);
+
+  useEffect(() => {
+    if (childActive) setOpen(true);
+  }, [childActive]);
+
+  if (hasChildren) {
+    return (
+      <li>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className={clsx(
+            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition',
+            childActive
+              ? 'bg-brand-600/10 font-medium text-white'
+              : 'text-ink-300 hover:bg-white/5 hover:text-white',
+          )}
+        >
+          <item.icon className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+          <ChevronDown
+            className={clsx('size-3.5 shrink-0 transition', open ? 'rotate-0' : '-rotate-90')}
+          />
+        </button>
+        {open && (
+          <ul className="mt-0.5 space-y-0.5 border-l border-white/10 ml-4 pl-2">
+            {item.children.map((child) => (
+              <li key={child.to}>
+                <NavLink
+                  to={child.to}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    clsx(
+                      'flex items-center rounded-lg px-2.5 py-1.5 text-sm transition',
+                      isActive
+                        ? 'bg-brand-600/15 font-medium text-white'
+                        : 'text-ink-400 hover:bg-white/5 hover:text-white',
+                    )
+                  }
+                >
+                  <span className="truncate">{child.label}</span>
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <NavLink
+        to={item.to}
+        end={item.end}
+        onClick={onNavigate}
+        className={({ isActive }) =>
+          clsx(
+            'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition',
+            isActive
+              ? 'bg-brand-600/15 font-medium text-white'
+              : 'text-ink-300 hover:bg-white/5 hover:text-white',
+          )
+        }
+      >
+        <item.icon className="size-4 shrink-0" />
+        <span className="truncate">{item.label}</span>
+      </NavLink>
+    </li>
+  );
+}
+
 function SidebarContent({ onNavigate }) {
   const { can, canSection } = useAuth();
 
@@ -182,24 +248,11 @@ function SidebarContent({ onNavigate }) {
             </p>
             <ul className="space-y-0.5">
               {section.items.map((item) => (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    onClick={onNavigate}
-                    className={({ isActive }) =>
-                      clsx(
-                        'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition',
-                        isActive
-                          ? 'bg-brand-600/15 font-medium text-white'
-                          : 'text-ink-300 hover:bg-white/5 hover:text-white',
-                      )
-                    }
-                  >
-                    <item.icon className="size-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </NavLink>
-                </li>
+                <NavItem
+                  key={item.to || item.label}
+                  item={item}
+                  onNavigate={onNavigate}
+                />
               ))}
             </ul>
           </div>
