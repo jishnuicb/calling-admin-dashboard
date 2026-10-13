@@ -114,12 +114,16 @@ export function ModerationPage() {
     {
       key: 'action',
       header: 'Action taken',
-      render: (row) =>
-        row.actionTaken && row.actionTaken !== 'NONE' ? (
-          <Badge tone="info">{titleCase(row.actionTaken)}</Badge>
-        ) : (
-          <span className="text-xs text-ink-400">—</span>
-        ),
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          {row.autoBlocked && <Badge tone="warning">Auto-blocked</Badge>}
+          {row.actionTaken && row.actionTaken !== 'NONE' ? (
+            <Badge tone="info">{titleCase(row.actionTaken)}</Badge>
+          ) : !row.autoBlocked ? (
+            <span className="text-xs text-ink-400">—</span>
+          ) : null}
+        </div>
+      ),
     },
     {
       key: 'createdAt',

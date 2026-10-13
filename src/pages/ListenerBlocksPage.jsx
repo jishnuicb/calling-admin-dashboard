@@ -8,6 +8,7 @@ import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import {
+  Badge,
   Button,
   Card,
   ErrorState,
@@ -317,7 +318,14 @@ export function ListenerBlocksPage() {
     {
       key: 'reason',
       header: 'Reason',
-      render: (row) => <span className="text-sm text-ink-700">{row.reason || '—'}</span>,
+      render: (row) => (
+        <div className="space-y-1">
+          {row.reason?.startsWith('Auto-blocked on report') && (
+            <Badge tone="warning">Auto-blocked</Badge>
+          )}
+          <span className="block text-sm text-ink-700">{row.reason || '—'}</span>
+        </div>
+      ),
     },
     {
       key: 'blockedAt',
@@ -352,7 +360,7 @@ export function ListenerBlocksPage() {
     <>
       <PageHeader
         title="Listener blocks"
-        description="Admin-managed listener→caller blocks. Search by name or phone to create a block; unblock anytime from the list."
+        description="Listener→caller social blocks (including auto-blocks created when a report is filed). Unblock anytime from the list."
         actions={
           writable ? (
             <Button icon={Plus} onClick={() => setCreateOpen(true)}>

@@ -14,6 +14,7 @@ import {
   Input,
   Modal,
   PageHeader,
+  Select,
   Toggle,
 } from '../components/ui';
 import { slicePage, useTableState } from '../hooks/useTableState';
@@ -31,6 +32,8 @@ function PackageFormModal({ open, onClose, pkg }) {
           originalPrice: pkg.originalPrice ?? '',
           discountPercent: pkg.discountPercent ?? 0,
           currency: pkg.currency || 'INR',
+          market: pkg.market || 'INDIAN',
+          platform: pkg.platform || 'STANDARD',
           active: pkg.active ?? true,
           sortOrder: pkg.sortOrder ?? 0,
         }
@@ -42,6 +45,8 @@ function PackageFormModal({ open, onClose, pkg }) {
           originalPrice: '',
           discountPercent: 0,
           currency: 'INR',
+          market: 'INDIAN',
+          platform: 'STANDARD',
           active: true,
           sortOrder: 0,
         },
@@ -63,6 +68,8 @@ function PackageFormModal({ open, onClose, pkg }) {
       originalPrice: form.originalPrice === '' || form.originalPrice == null
         ? null
         : Number(form.originalPrice),
+      market: form.market || 'INDIAN',
+      platform: form.platform || 'STANDARD',
       active: form.active,
       sortOrder: Number(form.sortOrder) || 0,
     };
@@ -154,6 +161,35 @@ function PackageFormModal({ open, onClose, pkg }) {
               maxLength={3}
               onChange={(e) => setForm({ ...form, currency: e.target.value.toUpperCase() })}
             />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field
+            label="Payment market"
+            hint="India vs international checkout."
+            error={fieldErrors.market}
+          >
+            <Select
+              value={form.market}
+              onChange={(e) => setForm({ ...form, market: e.target.value })}
+            >
+              <option value="INDIAN">India payments</option>
+              <option value="INTERNATIONAL">International payments</option>
+            </Select>
+          </Field>
+          <Field
+            label="Platform"
+            hint="iOS packs are App Store catalog only (not shown in the current app APIs yet)."
+            error={fieldErrors.platform}
+          >
+            <Select
+              value={form.platform}
+              onChange={(e) => setForm({ ...form, platform: e.target.value })}
+            >
+              <option value="STANDARD">Android / standard</option>
+              <option value="IOS">iOS (App Store)</option>
+            </Select>
           </Field>
         </div>
 
@@ -251,6 +287,18 @@ export function PackagesPage() {
       render: (row) => <span className="font-medium text-ink-900">{row.name}</span>,
     },
     {
+      key: 'market',
+      header: 'Market',
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          <Badge tone={row.market === 'INTERNATIONAL' ? 'warning' : 'neutral'}>
+            {row.market === 'INTERNATIONAL' ? 'International' : 'India'}
+          </Badge>
+          {row.platform === 'IOS' && <Badge tone="info">iOS</Badge>}
+        </div>
+      ),
+    },
+    {
       key: 'tokens',
       header: 'Tokens',
       align: 'right',
@@ -338,7 +386,7 @@ export function PackagesPage() {
     <>
       <PageHeader
         title="Token packages"
-        description="What callers can buy. Deactivate rather than delete to keep a package out of the app while preserving its purchase history."
+        description="India/international packs for Android and separate iOS App Store packs. iOS packs are admin-only for now; the current app APIs still list standard packs only."
         actions={
           <Button
             onClick={() => {
