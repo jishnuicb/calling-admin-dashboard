@@ -67,7 +67,7 @@ function RenameListenerModal({ application, onClose }) {
     onSuccess: onClose,
   });
 
-  const valid = displayName.trim().length >= 2 && displayName.trim().length <= 120;
+  const valid = displayName.trim().length >= 2 && displayName.trim().length <= 15;
 
   return (
     <Modal
@@ -95,7 +95,7 @@ function RenameListenerModal({ application, onClose }) {
         <Field label="Display name" hint="2–120 characters">
           <Input
             value={displayName}
-            maxLength={120}
+            maxLength={15}
             autoFocus
             onChange={(e) => setDisplayName(e.target.value)}
             onKeyDown={(e) => {

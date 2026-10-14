@@ -55,6 +55,18 @@ export const listenersApi = {
   updateDisplayName: (id, body) =>
     patch(`/admin/listeners/applications/${id}/display-name`, body),
   updateProfile: (id, body) => patch(`/admin/listeners/applications/${id}/profile`, body),
+  uploadPhoto: (id, formData) =>
+    api.post(`/admin/listeners/applications/${id}/photo`, formData, {
+      transformRequest: [
+        (data, headers) => {
+          if (headers && typeof headers === 'object') {
+            delete headers['Content-Type'];
+          }
+          return data;
+        },
+      ],
+    }),
+  clearPhoto: (id) => del(`/admin/listeners/applications/${id}/photo`),
   syncBeneficiary: (id, body) =>
     post(`/admin/listeners/applications/${id}/beneficiary/sync`, body || {}),
   getOnlineTime: (params) => get('/admin/listeners/online-time', params),
