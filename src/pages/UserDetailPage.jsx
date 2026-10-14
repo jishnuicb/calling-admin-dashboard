@@ -277,6 +277,7 @@ export function UserDetailPage() {
   const [decryptKey, setDecryptKey] = useState('');
   const [revealedUser, setRevealedUser] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [picturePreviewOpen, setPicturePreviewOpen] = useState(false);
 
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: qk.user(id),
@@ -347,11 +348,18 @@ export function UserDetailPage() {
         title={
           <span className="inline-flex items-center gap-3">
             {user.profilePicture ? (
-              <img
-                src={user.profilePicture}
-                alt=""
-                className="size-12 rounded-full object-cover ring-1 ring-ink-200"
-              />
+              <button
+                type="button"
+                onClick={() => setPicturePreviewOpen(true)}
+                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                title="View profile picture"
+              >
+                <img
+                  src={user.profilePicture}
+                  alt=""
+                  className="size-12 rounded-full object-cover ring-1 ring-ink-200"
+                />
+              </button>
             ) : (
               <span className="flex size-12 items-center justify-center rounded-full bg-ink-100 text-lg font-semibold text-ink-500">
                 {(user.name || '?').slice(0, 1).toUpperCase()}
@@ -540,14 +548,19 @@ export function UserDetailPage() {
               {
                 label: 'Profile picture',
                 value: user.profilePicture ? (
-                  <a
-                    href={user.profilePicture}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="break-all text-brand-600 hover:underline"
+                  <button
+                    type="button"
+                    onClick={() => setPicturePreviewOpen(true)}
+                    className="inline-flex items-center gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    title="View full profile picture"
                   >
-                    {user.profilePicture}
-                  </a>
+                    <img
+                      src={user.profilePicture}
+                      alt=""
+                      className="size-16 rounded-xl object-cover ring-1 ring-ink-200"
+                    />
+                    <span className="text-xs font-medium text-brand-600">Tap to preview</span>
+                  </button>
                 ) : (
                   '—'
                 ),
@@ -712,6 +725,23 @@ export function UserDetailPage() {
       />
       <BlockUserModal open={blockOpen} onClose={() => setBlockOpen(false)} user={user} />
       <DeleteUserModal open={deleteOpen} onClose={() => setDeleteOpen(false)} user={user} />
+
+      {user.profilePicture && (
+        <Modal
+          open={picturePreviewOpen}
+          onClose={() => setPicturePreviewOpen(false)}
+          title="Profile picture"
+          size="xl"
+        >
+          <div className="flex max-h-[80vh] items-center justify-center overflow-auto rounded-xl bg-ink-50 p-2">
+            <img
+              src={user.profilePicture}
+              alt={user.name || 'Profile picture'}
+              className="max-h-[75vh] w-auto max-w-full object-contain"
+            />
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
