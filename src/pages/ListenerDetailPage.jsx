@@ -503,6 +503,37 @@ export function ListenerDetailPage() {
     invalidate: [qk.listener(id), ['listeners']],
   });
 
+  const [photoError, setPhotoError] = useState('');
+  const uploadPhoto = useApiMutation({
+    mutationFn: (file) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return listenersApi.uploadPhoto(id, fd);
+    },
+    successMessage: 'Profile photo updated',
+    invalidate: [qk.listener(id), ['listeners']],
+    onSuccess: () => setPhotoError(''),
+  });
+  const clearPhoto = useApiMutation({
+    mutationFn: () => listenersApi.clearPhoto(id),
+    successMessage: 'Profile photo removed',
+    invalidate: [qk.listener(id), ['listeners']],
+    onSuccess: () => setPhotoError(''),
+  });
+
+  const onPickPhoto = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const ok = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type);
+    if (!ok) {
+      setPhotoError('Only JPEG, PNG, WebP or GIF images are allowed');
+      return;
+    }
+    setPhotoError('');
+    uploadPhoto.mutate(file);
+  };
+
   if (isLoading) return <LoadingBlock label="Loading application…" />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
@@ -695,22 +726,61 @@ export function ListenerDetailPage() {
               },
               {
                 label: 'Photo',
-                value: application.photoUrl ? (
-                  <a
-                    href={application.photoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 break-all text-brand-600 hover:underline"
-                  >
-                    <img
-                      src={application.photoUrl}
-                      alt=""
-                      className="size-14 rounded-lg object-cover ring-1 ring-ink-200"
-                    />
-                    Open full size
-                  </a>
-                ) : (
-                  '—'
+                value: (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-start gap-3">
+                      {application.photoUrl ? (
+                        <a
+                          href={application.photoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 break-all text-brand-600 hover:underline"
+                        >
+                          <img
+                            src={application.photoUrl}
+                            alt=""
+                            className="size-14 rounded-lg object-cover ring-1 ring-ink-200"
+                          />
+                          Open full size
+                        </a>
+                      ) : (
+                        <span className="flex size-14 items-center justify-center rounded-lg bg-ink-50 text-xs text-ink-400 ring-1 ring-ink-200">
+                          No photo
+                        </span>
+                      )}
+                      {can(P.LISTENERS_APPROVE) && (
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            onChange={onPickPhoto}
+                            disabled={uploadPhoto.isPending || clearPhoto.isPending}
+                            className="block w-full text-xs text-ink-600 file:mr-3 file:rounded-md file:border-0 file:bg-ink-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-ink-800 hover:file:bg-ink-200"
+                          />
+                          <p className="text-xs text-ink-500">
+                            JPEG, PNG, WebP or GIF (max 5 MB). Replaces the current photo.
+                          </p>
+                          {application.photoUrl && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 hover:bg-red-50"
+                              loading={clearPhoto.isPending}
+                              disabled={uploadPhoto.isPending}
+                              onClick={() => clearPhoto.mutate()}
+                            >
+                              Remove photo
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {(photoError || uploadPhoto.error?.message || clearPhoto.error?.message) && (
+                      <p className="text-xs text-red-600">
+                        {photoError || uploadPhoto.error?.message || clearPhoto.error?.message}
+                      </p>
+                    )}
+                  </div>
                 ),
                 full: true,
               },
