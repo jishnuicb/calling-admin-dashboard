@@ -108,6 +108,21 @@ function DownloadExportModal({ open, onClose, scope, filters }) {
     >
       <div className="space-y-4">
         {error && <ErrorState error={error} compact />}
+        {/* Chrome password autofill targets the nearest text input (Search).
+            Decoys absorb username/password so page filters stay empty. */}
+        <div
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', height: 0, overflow: 'hidden' }}
+        >
+          <input type="text" name="username" autoComplete="username" tabIndex={-1} readOnly />
+          <input
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            tabIndex={-1}
+            readOnly
+          />
+        </div>
         <Field label="Format">
           <Select value={format} onChange={(e) => setFormat(e.target.value)}>
             <option value="csv">CSV</option>
@@ -117,7 +132,11 @@ function DownloadExportModal({ open, onClose, scope, filters }) {
         <Field label="Decryption key (optional)">
           <Input
             type="password"
-            autoComplete="off"
+            name="payout-export-decryption-key"
+            autoComplete="new-password"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
             spellCheck={false}
             value={decryptionKey}
             onChange={(e) => setDecryptionKey(e.target.value)}
@@ -521,13 +540,23 @@ function WeekSheetTab() {
             </Field>
             <Field label="Search">
               <Input
+                name="weekly-payout-week-search"
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-form-type="other"
                 value={table.filters.search}
                 onChange={(e) => table.setFilter('search', e.target.value)}
                 placeholder="Name, mobile, user id"
               />
             </Field>
           </FilterBar>
-          <Button variant="secondary" onClick={() => setExportOpen(true)} disabled={!weekStart}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setExportOpen(true)}
+            disabled={!weekStart}
+          >
             <Download className="size-4" />
             Download
           </Button>
@@ -746,13 +775,18 @@ function HistoryTab() {
             </Field>
             <Field label="Search">
               <Input
+                name="weekly-payout-history-search"
+                autoComplete="off"
+                data-1p-ignore="true"
+                data-lpignore="true"
+                data-form-type="other"
                 value={table.filters.search}
                 onChange={(e) => table.setFilter('search', e.target.value)}
                 placeholder="Name, mobile"
               />
             </Field>
           </FilterBar>
-          <Button variant="secondary" onClick={() => setExportOpen(true)}>
+          <Button type="button" variant="secondary" onClick={() => setExportOpen(true)}>
             <Download className="size-4" />
             Download
           </Button>
