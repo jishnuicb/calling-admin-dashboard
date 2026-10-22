@@ -13,6 +13,7 @@ import { OnlineCallersPage } from './pages/OnlineCallersPage';
 import { ListenersPage, ActiveListenersPage } from './pages/ListenersPage';
 import { ListenerDetailPage } from './pages/ListenerDetailPage';
 import { ListenerCallingTimePage } from './pages/ListenerCallingTimePage';
+import { FakeListenersPage } from './pages/FakeListenersPage';
 import { LanguagesPage } from './pages/LanguagesPage';
 import { AvatarsPage } from './pages/AvatarsPage';
 import { OtpPage } from './pages/OtpPage';
@@ -115,6 +116,10 @@ export function App() {
         <Route
           path="active-listeners"
           element={guard(S.PEOPLE, P.LISTENERS_READ, <ActiveListenersPage />)}
+        />
+        <Route
+          path="fake-listeners"
+          element={guard(S.PEOPLE, P.LISTENERS_READ, <FakeListenersPage />)}
         />
         <Route
           path="listeners/:id"

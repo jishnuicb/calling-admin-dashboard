@@ -375,6 +375,14 @@ function ReviewModal({ decision, application, onClose }) {
             no languages would be invisible to every discovery filter — ask them to re-apply.
           </p>
         )}
+
+        {decision === 'reopen' && application.status === 'APPROVED' && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            Note: Ask this approved listener to update their bank account details (account holder
+            name, account number, IFSC / UPI). They stay active and can keep taking calls while
+            correcting payout details.
+          </p>
+        )}
       </div>
     </Modal>
   );

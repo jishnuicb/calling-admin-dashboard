@@ -22,6 +22,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/online-callers', section: S.PEOPLE, permission: P.USERS_READ },
   { path: '/listeners', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/active-listeners', section: S.PEOPLE, permission: P.LISTENERS_READ },
+  { path: '/fake-listeners', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/languages', section: S.PEOPLE, permission: P.LANGUAGES_READ },
   { path: '/avatars', section: S.PEOPLE, permission: P.AVATARS_READ },
   { path: '/otp', section: S.PEOPLE, permission: P.OTP_READ },

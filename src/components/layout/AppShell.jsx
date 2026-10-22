@@ -68,6 +68,7 @@ const NAV_SECTIONS = [
       { to: '/online-callers', label: 'Online callers', icon: Radio, permission: P.USERS_READ },
       { to: '/listeners', label: 'Listener applications', icon: BadgeCheck, permission: P.LISTENERS_READ },
       { to: '/active-listeners', label: 'Active listeners', icon: UserCheck, permission: P.LISTENERS_READ },
+      { to: '/fake-listeners', label: 'Fake listeners', icon: ClipboardList, permission: P.LISTENERS_READ },
       { to: '/listener-calling-time', label: 'Listener calling time', icon: Clock, permission: P.LISTENERS_READ },
       { to: '/languages', label: 'Language master', icon: Languages, permission: P.LANGUAGES_READ },
       { to: '/avatars', label: 'Profile avatars', icon: ImagePlus, permission: P.AVATARS_READ },

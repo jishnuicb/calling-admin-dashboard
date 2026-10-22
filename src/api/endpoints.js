@@ -73,6 +73,10 @@ export const listenersApi = {
   getListenerOnlineTime: (id, params) => get(`/admin/listeners/${id}/online-time`, params),
   getCallingTime: (params) => get('/admin/listeners/calling-time', params),
   getListenerCallingTime: (id, params) => get(`/admin/listeners/${id}/calling-time`, params),
+  listDecoys: () => get('/admin/listeners/decoys'),
+  addDecoy: (body) => post('/admin/listeners/decoys', body),
+  removeDecoy: (listenerId) => del(`/admin/listeners/decoys/${listenerId}`),
+  syncDecoys: () => post('/admin/listeners/decoys/sync'),
 };
 
 export const professionsApi = {

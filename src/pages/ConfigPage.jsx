@@ -99,6 +99,22 @@ const CONFIG_META = {
     note: 'Applied when a caller browses listeners without choosing a language. Must match a language name in the master list, or no default is applied.',
     group: 'Discovery',
   },
+  'fakeListeners.enabled': {
+    label: 'Always-busy decoy listeners enabled',
+    note: 'When on, up to maxActive marked decoys stay in the caller list as busy. Managed on the Fake listeners page.',
+    group: 'Discovery',
+  },
+  'fakeListeners.maxActive': {
+    label: 'Decoy listeners in list (max)',
+    note: 'How many marked decoys are forced online+busy at once (e.g. 3). Raise or lower anytime; extras stay marked but offline.',
+    group: 'Discovery',
+  },
+  'fakeListeners.pulseEverySeconds': {
+    label: 'Decoy free-pulse interval',
+    unit: 'seconds',
+    note: 'How often one decoy briefly shows as free (1–2 seconds) then busy again. Only one at a time.',
+    group: 'Discovery',
+  },
   'bonus.welcome.enabled': {
     label: 'Welcome bonus enabled',
     note: 'Grants tokens once per user on first verification. Idempotent, so it cannot be claimed twice.',
