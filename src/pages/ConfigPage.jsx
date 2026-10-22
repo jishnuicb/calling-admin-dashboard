@@ -146,7 +146,7 @@ const CONFIG_META = {
   },
   'bulk.topup.enabled': {
     label: 'Daily bulk wallet top-up enabled',
-    note: 'When on, the 12:30 AM cron credits eligible ACTIVE users. Prefer Money → Bulk top-up.',
+    note: 'When on, the 12:00 AM IST cron credits eligible ACTIVE users. Prefer Money → Bulk top-up.',
     group: 'Bonuses',
   },
   'bulk.topup.tokens': {

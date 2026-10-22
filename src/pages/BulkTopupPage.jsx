@@ -67,7 +67,7 @@ function SettingsCard() {
   return (
     <Card
       title="Daily automatic top-up"
-      description={`${data?.scheduleLabel || 'Daily at 12:30 AM'} · ACTIVE users, minus exclusions${
+      description={`${data?.scheduleLabel || 'Daily at 12:00 AM'} · ACTIVE users, minus exclusions${
         form.excludeListeners ? ', approved listeners' : ''
       }${
         form.requirePreviousDaySpend
@@ -749,7 +749,7 @@ export function BulkTopupPage() {
     <div className="space-y-6">
       <PageHeader
         title="Bulk wallet top-up"
-        description="Daily automatic credits at 12:30 AM, manual bulk runs, separate exclusion lists, and full history."
+        description="Daily automatic credits at 12:00 AM IST, manual bulk runs, separate exclusion lists, and full history."
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <SettingsCard />
