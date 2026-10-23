@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, RefreshCw, UserMinus, UserPlus } from 'lucide-react';
-import { listenersApi } from '../api/endpoints';
+import { avatarsApi, listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
@@ -29,6 +29,13 @@ const EMPTY_SLOTS = () =>
     photoUrl: '',
   }));
 
+/** Decoy male → female listener avatars; female → male. */
+const oppositeAvatarGender = (gender) => {
+  if (gender === 'MALE') return 'FEMALE';
+  if (gender === 'FEMALE') return 'MALE';
+  return null;
+};
+
 function mergeIdentities(existing = []) {
   const slots = EMPTY_SLOTS();
   for (const row of existing) {
@@ -45,12 +52,30 @@ function mergeIdentities(existing = []) {
 }
 
 function IdentityEditor({ row, canWrite, onSaved }) {
+  const { can } = useAuth();
+  const canReadAvatars = can(P.AVATARS_READ);
   const [open, setOpen] = useState(false);
   const [slots, setSlots] = useState(() => mergeIdentities(row.identities));
+  const avatarGender = oppositeAvatarGender(row.gender);
 
   useEffect(() => {
     setSlots(mergeIdentities(row.identities));
   }, [row.identities, row.id]);
+
+  const avatarParams = {
+    audience: 'LISTENER',
+    gender: avatarGender || undefined,
+    active: true,
+    page: 1,
+    limit: 100,
+  };
+
+  const { data: avatarData, isLoading: avatarsLoading } = useQuery({
+    queryKey: qk.avatars(avatarParams),
+    queryFn: () => avatarsApi.list(avatarParams),
+    enabled: open && canReadAvatars && Boolean(avatarGender),
+  });
+  const avatars = avatarData?.data || [];
 
   const save = useApiMutation({
     mutationFn: () => {
@@ -112,9 +137,9 @@ function IdentityEditor({ row, canWrite, onSaved }) {
       {open ? (
         <div className="mt-3 space-y-4">
           <p className="text-xs text-ink-500">
-            Each row is one fixed combination. Name, bio and photo always stay together — they are
-            never mixed. Leave a slot blank to skip it. On rotate, a different saved slot is chosen
-            at random (not the one just used).
+            Each row is one fixed combination. Name, bio and photo always stay together. Pick an
+            opposite-gender listener avatar or upload a custom image. Leave a slot blank to skip
+            it.
           </p>
           {slots.map((slot) => (
             <div
@@ -142,7 +167,7 @@ function IdentityEditor({ row, canWrite, onSaved }) {
                   )}
                   {canWrite ? (
                     <label className="mt-2 block cursor-pointer text-xs text-brand-700 hover:underline">
-                      Upload photo
+                      Upload image
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/gif"
@@ -175,12 +200,69 @@ function IdentityEditor({ row, canWrite, onSaved }) {
                       onChange={(e) => updateSlot(slot.slotIndex, { bio: e.target.value })}
                     />
                   </Field>
-                  <Field label="Photo URL (optional if uploaded)">
+                  <Field
+                    label={
+                      avatarGender
+                        ? `Select ${avatarGender === 'FEMALE' ? 'female' : 'male'} listener avatar`
+                        : 'Select avatar'
+                    }
+                    hint={
+                      avatarGender
+                        ? `Opposite of this decoy (${row.gender}). Or upload a custom image above.`
+                        : 'Decoy gender must be MALE or FEMALE to filter avatars.'
+                    }
+                  >
+                    {!canReadAvatars ? (
+                      <p className="text-xs text-ink-500">
+                        You need avatars:read to browse the catalog. Upload or paste a URL instead.
+                      </p>
+                    ) : !avatarGender ? (
+                      <p className="text-xs text-ink-500">No opposite-gender filter for this listener.</p>
+                    ) : avatarsLoading ? (
+                      <p className="text-xs text-ink-500">Loading avatars…</p>
+                    ) : !avatars.length ? (
+                      <p className="text-xs text-ink-500">
+                        No active {avatarGender.toLowerCase()} listener avatars. Add some under
+                        Profile avatars, or upload an image.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {avatars.map((av) => {
+                          const selected = slot.photoUrl === av.imageUrl;
+                          return (
+                            <button
+                              key={av.id}
+                              type="button"
+                              disabled={!canWrite}
+                              title={av.label || av.id}
+                              onClick={() =>
+                                updateSlot(slot.slotIndex, {
+                                  photoUrl: selected ? '' : av.imageUrl,
+                                })
+                              }
+                              className={`rounded-full ring-2 transition ${
+                                selected
+                                  ? 'ring-brand-600 ring-offset-1'
+                                  : 'ring-transparent hover:ring-ink-200'
+                              } disabled:opacity-60`}
+                            >
+                              <img
+                                src={av.imageUrl}
+                                alt={av.label || ''}
+                                className="size-12 rounded-full object-cover"
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </Field>
+                  <Field label="Photo URL (optional)">
                     <Input
                       value={slot.photoUrl}
                       disabled={!canWrite}
                       onChange={(e) => updateSlot(slot.slotIndex, { photoUrl: e.target.value })}
-                      placeholder="https://…"
+                      placeholder="https://… or pick an avatar / upload"
                     />
                   </Field>
                 </div>
