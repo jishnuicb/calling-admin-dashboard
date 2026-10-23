@@ -115,6 +115,18 @@ const CONFIG_META = {
     note: 'How often one decoy briefly shows as free (1–2 seconds) then busy again. Only one at a time.',
     group: 'Discovery',
   },
+  'fakeListeners.rotateEveryMinutes': {
+    label: 'Decoy identity rotate interval',
+    unit: 'minutes',
+    note: 'How often one random decoy leaves the list, then returns with a different name+bio+photo combo. Default 10.',
+    group: 'Discovery',
+  },
+  'fakeListeners.rotateOfflineSeconds': {
+    label: 'Decoy rotate offline duration',
+    unit: 'seconds',
+    note: 'How long that decoy stays out of the list before coming back with a new identity. Default 60.',
+    group: 'Discovery',
+  },
   'bonus.welcome.enabled': {
     label: 'Welcome bonus enabled',
     note: 'Grants tokens once per user on first verification. Idempotent, so it cannot be claimed twice.',

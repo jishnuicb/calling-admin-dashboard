@@ -77,6 +77,19 @@ export const listenersApi = {
   addDecoy: (body) => post('/admin/listeners/decoys', body),
   removeDecoy: (listenerId) => del(`/admin/listeners/decoys/${listenerId}`),
   syncDecoys: () => post('/admin/listeners/decoys/sync'),
+  upsertDecoyIdentities: (listenerId, body) =>
+    put(`/admin/listeners/decoys/${listenerId}/identities`, body),
+  uploadDecoyIdentityPhoto: (listenerId, slotIndex, formData) =>
+    api.post(`/admin/listeners/decoys/${listenerId}/identities/${slotIndex}/photo`, formData, {
+      transformRequest: [
+        (data, headers) => {
+          if (headers && typeof headers === 'object') {
+            delete headers['Content-Type'];
+          }
+          return data;
+        },
+      ],
+    }),
 };
 
 export const professionsApi = {
