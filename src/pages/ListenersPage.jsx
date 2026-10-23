@@ -192,6 +192,7 @@ export function ListenersPage({ variant = 'applications' }) {
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusBadge status={row.status} />
           {row.isReopened && <Badge tone="warning">Reopened</Badge>}
+          {row.isDiscoveryDecoy && <Badge tone="warning">Fake</Badge>}
         </div>
       ),
     },
