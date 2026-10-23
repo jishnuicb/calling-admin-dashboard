@@ -29,10 +29,9 @@ const EMPTY_SLOTS = () =>
     photoUrl: '',
   }));
 
-/** Decoy male → female listener avatars; female → male. */
-const oppositeAvatarGender = (gender) => {
-  if (gender === 'MALE') return 'FEMALE';
-  if (gender === 'FEMALE') return 'MALE';
+/** Avatar catalog gender matches the decoy’s own gender (female decoy → female avatars). */
+const avatarGenderForDecoy = (gender) => {
+  if (gender === 'MALE' || gender === 'FEMALE') return gender;
   return null;
 };
 
@@ -56,7 +55,7 @@ function IdentityEditor({ row, canWrite, onSaved }) {
   const canReadAvatars = can(P.AVATARS_READ);
   const [open, setOpen] = useState(false);
   const [slots, setSlots] = useState(() => mergeIdentities(row.identities));
-  const avatarGender = oppositeAvatarGender(row.gender);
+  const avatarGender = avatarGenderForDecoy(row.gender);
 
   useEffect(() => {
     setSlots(mergeIdentities(row.identities));
@@ -137,9 +136,8 @@ function IdentityEditor({ row, canWrite, onSaved }) {
       {open ? (
         <div className="mt-3 space-y-4">
           <p className="text-xs text-ink-500">
-            Each row is one fixed combination. Name, bio and photo always stay together. Pick an
-            opposite-gender listener avatar or upload a custom image. Leave a slot blank to skip
-            it.
+            Each row is one fixed combination. Name, bio and photo always stay together. Pick a
+            same-gender listener avatar or upload a custom image. Leave a slot blank to skip it.
           </p>
           {slots.map((slot) => (
             <div
@@ -208,7 +206,7 @@ function IdentityEditor({ row, canWrite, onSaved }) {
                     }
                     hint={
                       avatarGender
-                        ? `Opposite of this decoy (${row.gender}). Or upload a custom image above.`
+                        ? `Same gender as this decoy (${row.gender}). Or upload a custom image above.`
                         : 'Decoy gender must be MALE or FEMALE to filter avatars.'
                     }
                   >
@@ -217,7 +215,7 @@ function IdentityEditor({ row, canWrite, onSaved }) {
                         You need avatars:read to browse the catalog. Upload or paste a URL instead.
                       </p>
                     ) : !avatarGender ? (
-                      <p className="text-xs text-ink-500">No opposite-gender filter for this listener.</p>
+                      <p className="text-xs text-ink-500">Set decoy gender to MALE or FEMALE to filter avatars.</p>
                     ) : avatarsLoading ? (
                       <p className="text-xs text-ink-500">Loading avatars…</p>
                     ) : !avatars.length ? (
