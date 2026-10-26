@@ -19,10 +19,72 @@ import {
   LoadingBlock,
   Modal,
   PageHeader,
+  Select,
   StatusBadge,
   Textarea,
 } from '../components/ui';
 import { fmtDateTime, fmtNumber, fmtSigned, fmtTokens, titleCase } from '../lib/format';
+
+function paymentMarketLabel(market) {
+  if (market === 'INDIAN') return 'India';
+  if (market === 'INTERNATIONAL') return 'International';
+  return 'Not set';
+}
+
+function PaymentMarketCard({ user }) {
+  const { can } = useAuth();
+  const canWrite = can(P.USERS_WRITE);
+  const [market, setMarket] = useState(user.paymentMarketPreference || '');
+
+  useEffect(() => {
+    setMarket(user.paymentMarketPreference || '');
+  }, [user.paymentMarketPreference, user.id]);
+
+  const save = useApiMutation({
+    mutationFn: () =>
+      usersApi.setPaymentMarket(user.id, {
+        market: market === '' ? null : market,
+      }),
+    successMessage: 'Payment market updated',
+    invalidate: [qk.user(user.id), ['users']],
+  });
+
+  const dirty = (user.paymentMarketPreference || '') !== market;
+
+  return (
+    <Card
+      title="Payment market"
+      description="India / International packages & gateways for this user. Same field the app uses."
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label="Checkout market" className="min-w-[200px]">
+          <Select
+            value={market}
+            disabled={!canWrite || user.status === 'DELETED'}
+            onChange={(e) => setMarket(e.target.value)}
+          >
+            <option value="">Not set</option>
+            <option value="INDIAN">India</option>
+            <option value="INTERNATIONAL">International</option>
+          </Select>
+        </Field>
+        {canWrite && user.status !== 'DELETED' ? (
+          <Button
+            onClick={() => save.mutate()}
+            loading={save.isPending}
+            disabled={!dirty}
+          >
+            Save
+          </Button>
+        ) : null}
+      </div>
+      <p className="mt-2 text-xs text-ink-500">
+        Current: <span className="font-medium text-ink-700">{paymentMarketLabel(user.paymentMarketPreference)}</span>
+      </p>
+      {save.error ? <ErrorState error={save.error} compact /> : null}
+    </Card>
+  );
+}
 
 function loginMethodLabel(method) {
   if (!method) return '—';
@@ -533,6 +595,8 @@ export function UserDetailPage() {
           </Card>
         )}
 
+        <PaymentMarketCard user={user} />
+
         <Card title="Account" className="lg:col-span-2">
           <DescList
             items={[
@@ -543,6 +607,10 @@ export function UserDetailPage() {
                 value: user.mobileVerified ? 'Verified' : 'Not verified',
               },
               { label: 'Mobile', value: view.mobile },
+              {
+                label: 'Payment market',
+                value: paymentMarketLabel(user.paymentMarketPreference),
+              },
               { label: 'Gender', value: titleCase(user.gender) },
               { label: 'Country', value: user.country },
               {
