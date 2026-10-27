@@ -140,12 +140,7 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
           <Button
             onClick={submit}
             loading={mutation.isPending}
-            disabled={
-              !form.name.trim() ||
-              !form.tokens ||
-              !form.price ||
-              (platform === 'IOS' && !form.storeProductId.trim())
-            }
+            disabled={!form.name.trim() || !form.tokens || !form.price}
           >
             {editing ? 'Save changes' : 'Create package'}
           </Button>
@@ -252,14 +247,13 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
         {platform === 'IOS' && (
           <Field
             label="App Store product id"
-            required
             error={fieldErrors.storeProductId}
-            hint="Must match the consumable product id in App Store Connect (e.g. com.app.tokens.100)."
+            hint="Optional. Leave blank to auto-create in App Store Connect on save (needs ASC_* keys on the API). Or paste an existing consumable product id."
           >
             <Input
               value={form.storeProductId}
               onChange={(e) => setForm({ ...form, storeProductId: e.target.value })}
-              placeholder="com.yourapp.tokens.100"
+              placeholder="auto on save, or com.yourapp.tokens.100"
             />
           </Field>
         )}
