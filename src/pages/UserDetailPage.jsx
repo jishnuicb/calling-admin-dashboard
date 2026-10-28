@@ -601,6 +601,7 @@ export function UserDetailPage() {
           <DescList
             items={[
               { label: 'User id', value: user.id, mono: true, full: true },
+              { label: 'Public id', value: user.publicId || '—', mono: true },
               { label: 'Account status', value: <StatusBadge status={user.status} /> },
               {
                 label: 'Mobile verified',

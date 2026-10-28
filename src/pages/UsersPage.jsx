@@ -63,6 +63,9 @@ export function UsersPage({ variant = 'all' }) {
           <div className="min-w-0">
             <p className="truncate font-medium text-ink-900">{row.name || 'Unnamed'}</p>
             <p className="truncate text-xs text-ink-500 tabular">{row.mobile || '—'}</p>
+            {row.publicId && (
+              <p className="truncate font-mono text-[11px] text-ink-500">{row.publicId}</p>
+            )}
           </div>
         </div>
       ),
@@ -192,7 +195,7 @@ export function UsersPage({ variant = 'all' }) {
             <SearchInput
               value={table.filters.search}
               onChange={(v) => table.setFilter('search', v)}
-              placeholder="Name, phone or user id"
+              placeholder="Name, phone, public id or user id"
             />
           </Field>
 

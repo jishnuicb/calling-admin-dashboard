@@ -181,6 +181,9 @@ export function ListenersPage({ variant = 'applications' }) {
           <div className="min-w-0">
             <p className="truncate font-medium text-ink-900">{row.displayName || 'Unnamed'}</p>
             <p className="truncate text-xs text-ink-500">{row.user?.name || row.userId}</p>
+            {row.user?.publicId && (
+              <p className="truncate font-mono text-[11px] text-ink-500">{row.user.publicId}</p>
+            )}
           </div>
         </div>
       ),

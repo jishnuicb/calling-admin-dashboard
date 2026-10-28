@@ -820,6 +820,11 @@ export function ListenerDetailPage() {
               },
               { label: 'Application id', value: application.id, mono: true },
               { label: 'User id', value: application.userId, mono: true },
+              {
+                label: 'Public id',
+                value: application.user?.publicId || '—',
+                mono: true,
+              },
               { label: 'Submitted', value: fmtDateTime(application.submittedAt) },
               { label: 'Last seen', value: application.lastSeenAt ? fmtRelative(application.lastSeenAt) : '—' },
               { label: 'Reviewed', value: fmtDateTime(application.reviewedAt) },
