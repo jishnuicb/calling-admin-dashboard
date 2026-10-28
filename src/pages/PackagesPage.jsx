@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Package, Plus, Trash2 } from 'lucide-react';
+import { Package, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { packagesApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -285,6 +285,7 @@ export function PackagesPage({ platform, market, title, description }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [disabling, setDisabling] = useState(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.packages,
@@ -298,13 +299,26 @@ export function PackagesPage({ platform, market, title, description }) {
 
   const toggleActive = useApiMutation({
     mutationFn: ({ id, active }) => packagesApi.update(id, { active }),
-    successMessage: (_d, vars) => (vars.active ? 'Package activated' : 'Package deactivated'),
+    successMessage: (_d, vars) => (vars.active ? 'Package enabled' : 'Package disabled'),
+    invalidate: [qk.packages],
+  });
+
+  const deactivate = useApiMutation({
+    mutationFn: (id) => packagesApi.deactivate(id),
+    successMessage: 'Package disabled',
+    invalidate: [qk.packages],
+    onSuccess: () => setDisabling(null),
+  });
+
+  const syncAppStore = useApiMutation({
+    mutationFn: (id) => packagesApi.syncAppStore(id),
+    successMessage: 'Synced with App Store Connect',
     invalidate: [qk.packages],
   });
 
   const remove = useApiMutation({
     mutationFn: (id) => packagesApi.remove(id),
-    successMessage: 'Package removed',
+    successMessage: 'Package deleted',
     invalidate: [qk.packages],
     onSuccess: () => setDeleting(null),
   });
@@ -315,7 +329,16 @@ export function PackagesPage({ platform, market, title, description }) {
     {
       key: 'name',
       header: 'Package',
-      render: (row) => <span className="font-medium text-ink-900">{row.name}</span>,
+      render: (row) => (
+        <div>
+          <span className="font-medium text-ink-900">{row.name}</span>
+          {!row.active && (
+            <div className="mt-0.5">
+              <Badge tone="neutral">Disabled</Badge>
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       key: 'tokens',
@@ -370,6 +393,23 @@ export function PackagesPage({ platform, market, title, description }) {
               </span>
             ),
           },
+          {
+            key: 'appStoreSynced',
+            header: 'App Store',
+            render: (row) =>
+              row.appStoreSynced ? (
+                <Badge tone="success">Synced</Badge>
+              ) : (
+                <div className="space-y-1">
+                  <Badge tone="warning">Not synced</Badge>
+                  {row.appStoreSyncError && (
+                    <p className="max-w-[180px] truncate text-[10px] text-red-600" title={row.appStoreSyncError}>
+                      {row.appStoreSyncError}
+                    </p>
+                  )}
+                </div>
+              ),
+          },
         ]
       : []),
     {
@@ -389,7 +429,7 @@ export function PackagesPage({ platform, market, title, description }) {
       header: '',
       align: 'right',
       render: (row) => (
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1">
           <Button
             size="sm"
             variant="ghost"
@@ -400,6 +440,33 @@ export function PackagesPage({ platform, market, title, description }) {
           >
             Edit
           </Button>
+          {platform === 'IOS' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              loading={syncAppStore.isPending && syncAppStore.variables === row.id}
+              onClick={() => syncAppStore.mutate(row.id)}
+              title="Sync with App Store Connect"
+            >
+              <RefreshCw className="size-3.5" />
+              Sync
+            </Button>
+          )}
+          {row.active && (
+            <Button size="sm" variant="secondary" onClick={() => setDisabling(row)}>
+              Disable
+            </Button>
+          )}
+          {!row.active && (
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={toggleActive.isPending}
+              onClick={() => toggleActive.mutate({ id: row.id, active: true })}
+            >
+              Enable
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"
@@ -408,6 +475,7 @@ export function PackagesPage({ platform, market, title, description }) {
             aria-label={`Delete ${row.name}`}
           >
             <Trash2 className="size-3.5" />
+            Delete
           </Button>
         </div>
       ),
@@ -475,6 +543,34 @@ export function PackagesPage({ platform, market, title, description }) {
         />
       )}
 
+      {disabling && (
+        <Modal
+          open
+          onClose={() => setDisabling(null)}
+          title={`Disable ${disabling.name}?`}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setDisabling(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="secondary"
+                loading={deactivate.isPending}
+                onClick={() => deactivate.mutate(disabling.id)}
+              >
+                Disable package
+              </Button>
+            </>
+          }
+        >
+          {deactivate.error && <ErrorState error={deactivate.error} compact />}
+          <p className="text-sm text-ink-600">
+            Disables this pack in the app. It stays in this list so you can enable it again. Payment
+            history is kept.
+          </p>
+        </Modal>
+      )}
+
       {deleting && (
         <Modal
           open
@@ -490,19 +586,21 @@ export function PackagesPage({ platform, market, title, description }) {
                 loading={remove.isPending}
                 onClick={() => remove.mutate(deleting.id)}
               >
-                Delete package
+                Delete permanently
               </Button>
             </>
           }
         >
           {remove.error && <ErrorState error={remove.error} compact />}
           <p className="text-sm text-ink-600">
-            If this package has been purchased, the API will refuse the delete to preserve payment
-            history. Deactivate it instead — it disappears from the app either way.
+            Permanently removes this package from the list. If it has any payment history, delete is
+            blocked — use <span className="font-medium">Disable</span> instead.
           </p>
-          {deleting.active && (
+          {(deleting.paymentCount > 0 || deleting._count?.payments > 0) && (
             <div className="mt-3">
-              <Badge tone="warning">Currently available for purchase</Badge>
+              <Badge tone="warning">
+                Has payments — delete will be refused; disable instead
+              </Badge>
             </div>
           )}
         </Modal>

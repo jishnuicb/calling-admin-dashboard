@@ -234,6 +234,8 @@ export const packagesApi = {
   list: () => get('/admin/packages'),
   create: (body) => post('/admin/packages', body),
   update: (id, body) => patch(`/admin/packages/${id}`, body),
+  deactivate: (id) => post(`/admin/packages/${id}/deactivate`),
+  syncAppStore: (id) => post(`/admin/packages/${id}/sync-app-store`),
   remove: (id) => del(`/admin/packages/${id}`),
 };
 
@@ -317,6 +319,7 @@ export const manualWeeklyPayoutsApi = {
     patch(`/admin/manual-weekly-payouts/listeners/${listenerUserId}`, body),
   markPaid: (listenerUserId, body) =>
     post(`/admin/manual-weekly-payouts/listeners/${listenerUserId}/mark-paid`, body),
+  bulkMarkPaid: (body) => post('/admin/manual-weekly-payouts/bulk-mark-paid', body),
   export: (body) =>
     downloadBlobPost(
       '/admin/manual-weekly-payouts/export',

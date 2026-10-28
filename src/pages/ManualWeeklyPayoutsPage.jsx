@@ -386,11 +386,93 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
   );
 }
 
+function isSettleableRow(row) {
+  return row?.status !== 'PAID' && Number(row?.totalAmountPaise || 0) > 0;
+}
+
+function BulkSettleModal({ open, onClose, weekStart, listenerUserIds, onDone }) {
+  const [note, setNote] = useState('');
+  const [result, setResult] = useState(null);
+
+  const bulk = useApiMutation({
+    mutationFn: () =>
+      manualWeeklyPayoutsApi.bulkMarkPaid({
+        weekStart,
+        listenerUserIds,
+        note: note.trim() || null,
+      }),
+    successMessage: (data) =>
+      data?.failed
+        ? `Settled ${data.succeeded} of ${data.requested} (${data.failed} failed)`
+        : `Settled ${data?.succeeded || 0} payout(s)`,
+    invalidate: [['manual-weekly-payouts'], ['earnings']],
+    onSuccess: (data) => {
+      setResult(data);
+      onDone?.(data);
+    },
+  });
+
+  useEffect(() => {
+    if (!open) {
+      setNote('');
+      setResult(null);
+    }
+  }, [open]);
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Bulk settle"
+      description={`Mark ${listenerUserIds.length} selected unpaid payout(s) as paid for week ${weekStart}.`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            {result ? 'Close' : 'Cancel'}
+          </Button>
+          {!result && (
+            <Button onClick={() => bulk.mutate()} loading={bulk.isPending}>
+              Mark {listenerUserIds.length} paid
+            </Button>
+          )}
+        </>
+      }
+    >
+      {bulk.error && <ErrorState error={bulk.error} compact />}
+      {!result && (
+        <Field label="Note (optional, applied to all)">
+          <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        </Field>
+      )}
+      {result && (
+        <div className="space-y-2 text-sm">
+          <p>
+            Requested {result.requested} · Succeeded {result.succeeded} · Failed {result.failed}
+          </p>
+          {result.failed > 0 && (
+            <ul className="max-h-48 space-y-1 overflow-y-auto text-xs text-ink-600">
+              {(result.results || [])
+                .filter((r) => !r.ok)
+                .map((r) => (
+                  <li key={r.listenerUserId}>
+                    {shortId(r.listenerUserId)}: {r.message || r.error}
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 function WeekSheetTab() {
   const { can } = useAuth();
   const canWrite = can(P.PAYOUTS_WRITE);
   const [detail, setDetail] = useState(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const weeksQuery = useQuery({
     queryKey: qk.manualWeeklyWeeks({ count: 5 }),
@@ -433,9 +515,72 @@ function WeekSheetTab() {
     enabled: Boolean(weekStart),
   });
 
+  const rows = data?.data || [];
   const summary = data?.summary;
+  const settleableIds = useMemo(
+    () => rows.filter(isSettleableRow).map((r) => r.listenerUserId),
+    [rows],
+  );
+
+  useEffect(() => {
+    setSelected(new Set());
+  }, [weekStart, table.filters.status, table.filters.search, table.page]);
+
+  const selectedIds = useMemo(() => [...selected], [selected]);
+  const allSettleableSelected =
+    settleableIds.length > 0 && settleableIds.every((id) => selected.has(id));
+
+  const toggleOne = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllSettleable = () => {
+    setSelected((prev) => {
+      if (settleableIds.length === 0) return prev;
+      if (settleableIds.every((id) => prev.has(id))) {
+        const next = new Set(prev);
+        settleableIds.forEach((id) => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      settleableIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
 
   const columns = [
+    ...(canWrite
+      ? [
+          {
+            key: 'select',
+            width: '40px',
+            header: (
+              <input
+                type="checkbox"
+                aria-label="Select all settleable on this page"
+                checked={allSettleableSelected}
+                disabled={settleableIds.length === 0}
+                onChange={toggleAllSettleable}
+              />
+            ),
+            render: (row) =>
+              isSettleableRow(row) ? (
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${row.listenerUserId}`}
+                  checked={selected.has(row.listenerUserId)}
+                  onChange={() => toggleOne(row.listenerUserId)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : null,
+          },
+        ]
+      : []),
     {
       key: 'listener',
       header: 'Listener',
@@ -551,15 +696,26 @@ function WeekSheetTab() {
               />
             </Field>
           </FilterBar>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setExportOpen(true)}
-            disabled={!weekStart}
-          >
-            <Download className="size-4" />
-            Download
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {canWrite && (
+              <Button
+                type="button"
+                onClick={() => setBulkOpen(true)}
+                disabled={!weekStart || selectedIds.length === 0}
+              >
+                Bulk settle{selectedIds.length ? ` (${selectedIds.length})` : ''}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setExportOpen(true)}
+              disabled={!weekStart}
+            >
+              <Download className="size-4" />
+              Download
+            </Button>
+          </div>
         </div>
 
         {summary && (
@@ -596,7 +752,7 @@ function WeekSheetTab() {
         {weeksQuery.error && <ErrorState error={weeksQuery.error} onRetry={weeksQuery.refetch} />}
         {error && <ErrorState error={error} onRetry={refetch} />}
 
-        <DataTable columns={columns} rows={data?.data || []} loading={isLoading || !weekStart} />
+        <DataTable columns={columns} rows={rows} loading={isLoading || !weekStart} />
         <Pagination meta={data?.meta} page={table.page} onPageChange={table.setPage} />
       </Card>
 
@@ -605,6 +761,15 @@ function WeekSheetTab() {
           listenerUserId={detail.listenerUserId}
           weekStart={detail.weekStart}
           onClose={() => setDetail(null)}
+        />
+      )}
+      {bulkOpen && (
+        <BulkSettleModal
+          open={bulkOpen}
+          onClose={() => setBulkOpen(false)}
+          weekStart={weekStart}
+          listenerUserIds={selectedIds}
+          onDone={() => setSelected(new Set())}
         />
       )}
       {exportOpen && (
