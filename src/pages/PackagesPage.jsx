@@ -42,7 +42,8 @@ export const PACKAGE_MENUS = [
     platform: 'IOS',
     market: 'INDIAN',
     title: 'iOS · India',
-    description: 'App Store catalog packs for India. Not listed on the current public package APIs yet.',
+    description:
+      'App Store (StoreKit) packs for India. Listed via GET /payments/packages?platform=IOS when the user market is INDIAN. Set storeProductId to the App Store product id.',
   },
   {
     path: 'ios-international',
@@ -50,7 +51,7 @@ export const PACKAGE_MENUS = [
     market: 'INTERNATIONAL',
     title: 'iOS · International',
     description:
-      'App Store catalog packs for international. Not listed on the current public package APIs yet.',
+      'App Store (StoreKit) packs for international. Listed via GET /payments/packages?platform=IOS when the user market is INTERNATIONAL. Set storeProductId to the App Store product id.',
   },
 ];
 
@@ -71,6 +72,7 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
           originalPrice: pkg.originalPrice ?? '',
           discountPercent: pkg.discountPercent ?? 0,
           currency: pkg.currency || 'INR',
+          storeProductId: pkg.storeProductId || '',
           active: pkg.active ?? true,
           sortOrder: pkg.sortOrder ?? 0,
         }
@@ -81,6 +83,7 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
           originalPrice: '',
           discountPercent: 0,
           currency: 'INR',
+          storeProductId: '',
           active: true,
           sortOrder: 0,
         },
@@ -108,6 +111,9 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
       active: form.active,
       sortOrder: Number(form.sortOrder) || 0,
     };
+    if (platform === 'IOS') {
+      body.storeProductId = form.storeProductId.trim() || null;
+    }
     if (!editing) body.currency = form.currency;
     mutation.mutate(body);
   };
@@ -238,6 +244,20 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
           </div>
         )}
 
+        {platform === 'IOS' && (
+          <Field
+            label="App Store product id"
+            error={fieldErrors.storeProductId}
+            hint="Optional. Leave blank to auto-create in App Store Connect on save (needs ASC_* keys on the API). Or paste an existing consumable product id."
+          >
+            <Input
+              value={form.storeProductId}
+              onChange={(e) => setForm({ ...form, storeProductId: e.target.value })}
+              placeholder="auto on save, or com.yourapp.tokens.100"
+            />
+          </Field>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <Field label="Sort order" hint="Lower shows first.">
             <Input
@@ -339,6 +359,19 @@ export function PackagesPage({ platform, market, title, description }) {
         );
       },
     },
+    ...(platform === 'IOS'
+      ? [
+          {
+            key: 'storeProductId',
+            header: 'Store product',
+            render: (row) => (
+              <span className="font-mono text-xs text-ink-700">
+                {row.storeProductId || '—'}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: 'active',
       header: 'Available',
