@@ -501,6 +501,20 @@ function AwardsModal({ run, onClose }) {
       ),
     },
     {
+      key: 'mobile',
+      header: 'Mobile',
+      render: (row) => (
+        <span className="font-mono text-xs text-ink-600">{row.user?.mobile || '—'}</span>
+      ),
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      render: (row) => (
+        <span className="text-xs text-ink-600">{row.user?.email || '—'}</span>
+      ),
+    },
+    {
       key: 'minutes',
       header: 'Minutes talked',
       align: 'right',

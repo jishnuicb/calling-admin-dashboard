@@ -43,6 +43,7 @@ function SettingsCard() {
     tokensPerUser: 10,
     excludeListeners: true,
     requirePreviousDaySpend: true,
+    excludeEmailAccounts: false,
   });
 
   useEffect(() => {
@@ -52,6 +53,7 @@ function SettingsCard() {
       tokensPerUser: data.tokensPerUser ?? 10,
       excludeListeners: data.excludeListeners !== false,
       requirePreviousDaySpend: data.requirePreviousDaySpend !== false,
+      excludeEmailAccounts: Boolean(data.excludeEmailAccounts),
     });
   }, [data]);
 
@@ -69,7 +71,7 @@ function SettingsCard() {
       title="Daily automatic top-up"
       description={`${data?.scheduleLabel || 'Daily at 12:00 AM'} · ACTIVE users, minus exclusions${
         form.excludeListeners ? ', approved listeners' : ''
-      }${
+      }${form.excludeEmailAccounts ? ', Google/Apple email accounts' : ''}${
         form.requirePreviousDaySpend
           ? ', and users who spent less than the bonus on the previous day'
           : ''
@@ -112,6 +114,18 @@ function SettingsCard() {
           </p>
         </div>
         <div>
+          <p className="mb-1.5 text-sm font-medium text-ink-700">Exclude email accounts</p>
+          <Toggle
+            checked={form.excludeEmailAccounts}
+            disabled={!writable || save.isPending}
+            onChange={(checked) => setForm((f) => ({ ...f, excludeEmailAccounts: checked }))}
+            label={form.excludeEmailAccounts ? 'Email accounts skipped' : 'Email accounts included'}
+          />
+          <p className="mt-1.5 text-xs text-ink-500">
+            When on, Google / Apple Sign-In users are skipped (automatic or manual).
+          </p>
+        </div>
+        <div>
           <p className="mb-1.5 text-sm font-medium text-ink-700">
             Require previous-day spend (automatic)
           </p>
@@ -139,6 +153,7 @@ function SettingsCard() {
               tokensPerUser: form.tokensPerUser,
               excludeListeners: form.excludeListeners,
               requirePreviousDaySpend: form.requirePreviousDaySpend,
+              excludeEmailAccounts: form.excludeEmailAccounts,
             })
           }
         >
@@ -193,6 +208,10 @@ function ManualRunCard() {
         description={`Credits ACTIVE users now (MANUAL exclusion list)${
           settings.data?.excludeListeners !== false
             ? '; approved listeners skipped when that setting is on'
+            : ''
+        }${
+          settings.data?.excludeEmailAccounts
+            ? '; Google/Apple email accounts skipped when that setting is on'
             : ''
         }. Previous-day spend gate applies only to automatic runs.`}
       >
@@ -326,12 +345,14 @@ function ExclusionsCard() {
     >
       {writable && (
         <div className="mb-4 space-y-3 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
-          <p className="text-xs font-medium text-ink-600">Add exclusion — search users by name or mobile</p>
+          <p className="text-xs font-medium text-ink-600">
+            Add exclusion — search users by name, mobile, or email
+          </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="relative sm:col-span-2">
               <Field label="Find user">
                 <Input
-                  placeholder="Type at least 2 characters…"
+                  placeholder="Name, mobile, or email…"
                   value={selectedUser ? selectedUser.label : userSearch}
                   onChange={(e) => {
                     setSelectedUser(null);
@@ -348,7 +369,8 @@ function ExclusionsCard() {
                     <p className="px-3 py-2 text-xs text-ink-500">No users matched.</p>
                   )}
                   {foundUsers.map((u) => {
-                    const label = `${u.name || 'User'} · ${u.mobile || shortId(u.id)}`;
+                    const contact = u.mobile || u.email || shortId(u.id);
+                    const label = `${u.name || 'User'} · ${contact}`;
                     return (
                       <button
                         key={u.id}
@@ -360,9 +382,10 @@ function ExclusionsCard() {
                         }}
                       >
                         <span className="font-medium text-ink-900">{u.name || 'Unnamed'}</span>
-                        <span className="ml-2 font-mono text-xs text-ink-500">
-                          {u.mobile || shortId(u.id)}
-                        </span>
+                        <span className="ml-2 font-mono text-xs text-ink-500">{contact}</span>
+                        {u.mobile && u.email ? (
+                          <span className="ml-2 text-xs text-ink-400">{u.email}</span>
+                        ) : null}
                       </button>
                     );
                   })}
@@ -425,7 +448,7 @@ function ExclusionsCard() {
         </Field>
         <Field label="Search exclusions">
           <Input
-            placeholder="Name or mobile in exclusion list…"
+            placeholder="Name, mobile, or email…"
             value={table.filters.search}
             onChange={(e) => table.setFilter('search', e.target.value)}
           />
@@ -445,6 +468,7 @@ function ExclusionsCard() {
                 <tr>
                   <th className="px-3 py-2.5">User</th>
                   <th className="px-3 py-2.5">Mobile</th>
+                  <th className="px-3 py-2.5">Email</th>
                   <th className="px-3 py-2.5">Scope</th>
                   <th className="px-3 py-2.5">Reason</th>
                   <th className="px-3 py-2.5">Added</th>
@@ -461,6 +485,7 @@ function ExclusionsCard() {
                     <td className="px-3 py-2 font-mono text-xs text-ink-600">
                       {row.user?.mobile || '—'}
                     </td>
+                    <td className="px-3 py-2 text-xs text-ink-600">{row.user?.email || '—'}</td>
                     <td className="px-3 py-2">
                       <Badge tone={row.scope === 'AUTOMATIC' ? 'info' : 'warning'}>{row.scope}</Badge>
                     </td>
@@ -542,7 +567,7 @@ function AwardsModal({ runId, onClose }) {
           <option value="FAILED">Failed</option>
         </Select>
         <Input
-          placeholder="Search name or mobile…"
+          placeholder="Search name, mobile, or email…"
           value={table.filters.search}
           onChange={(e) => table.setFilter('search', e.target.value)}
         />
@@ -556,6 +581,7 @@ function AwardsModal({ runId, onClose }) {
               <tr>
                 <th className="px-3 py-2">User</th>
                 <th className="px-3 py-2">Mobile</th>
+                <th className="px-3 py-2">Email</th>
                 <th className="px-3 py-2">Tokens</th>
                 <th className="px-3 py-2">Status</th>
               </tr>
@@ -565,6 +591,7 @@ function AwardsModal({ runId, onClose }) {
                 <tr key={row.id}>
                   <td className="px-3 py-2">{row.user?.name || shortId(row.userId)}</td>
                   <td className="px-3 py-2 font-mono">{row.user?.mobile || '—'}</td>
+                  <td className="px-3 py-2">{row.user?.email || '—'}</td>
                   <td className="px-3 py-2">{fmtTokens(row.tokensAwarded)}</td>
                   <td className="px-3 py-2">
                     <StatusBadge status={row.status} />
