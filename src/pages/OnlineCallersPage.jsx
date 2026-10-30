@@ -39,6 +39,9 @@ export function OnlineCallersPage() {
           <div className="min-w-0">
             <p className="truncate font-medium text-ink-900">{row.name || 'Unnamed'}</p>
             <p className="truncate text-xs text-ink-500 tabular">{row.mobile || '—'}</p>
+            {row.email ? (
+              <p className="truncate text-xs text-ink-500">{row.email}</p>
+            ) : null}
           </div>
         </div>
       ),
