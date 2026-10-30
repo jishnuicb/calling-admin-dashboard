@@ -319,6 +319,8 @@ export const manualWeeklyPayoutsApi = {
     patch(`/admin/manual-weekly-payouts/listeners/${listenerUserId}`, body),
   markPaid: (listenerUserId, body) =>
     post(`/admin/manual-weekly-payouts/listeners/${listenerUserId}/mark-paid`, body),
+  markUnpaid: (listenerUserId, body) =>
+    post(`/admin/manual-weekly-payouts/listeners/${listenerUserId}/mark-unpaid`, body),
   bulkMarkPaid: (body) => post('/admin/manual-weekly-payouts/bulk-mark-paid', body),
   export: (body) =>
     downloadBlobPost(

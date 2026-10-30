@@ -205,6 +205,12 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
     invalidate,
   });
 
+  const markUnpaid = useApiMutation({
+    mutationFn: () => manualWeeklyPayoutsApi.markUnpaid(listenerUserId, { weekStart }),
+    successMessage: 'Marked unpaid',
+    invalidate,
+  });
+
   const unpaid = data?.status !== 'PAID';
   const name =
     data?.listener?.displayName || data?.listener?.name || shortId(listenerUserId);
@@ -237,13 +243,24 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
             </>
           )}
           {canWrite && !unpaid && data && (
-            <Button
-              variant="secondary"
-              onClick={() => markPaid.mutate()}
-              loading={markPaid.isPending}
-            >
-              Sync listener paid status
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => markPaid.mutate()}
+                loading={markPaid.isPending}
+                disabled={markUnpaid.isPending}
+              >
+                Sync listener paid status
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => markUnpaid.mutate()}
+                loading={markUnpaid.isPending}
+                disabled={markPaid.isPending}
+              >
+                Unsettle
+              </Button>
+            </>
           )}
           <Button variant="secondary" onClick={onClose}>
             Close
@@ -253,8 +270,8 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
     >
       {isLoading && <p className="text-sm text-ink-500">Loading…</p>}
       {error && <ErrorState error={error} onRetry={refetch} />}
-      {(update.error || markPaid.error) && (
-        <ErrorState error={update.error || markPaid.error} compact />
+      {(update.error || markPaid.error || markUnpaid.error) && (
+        <ErrorState error={update.error || markPaid.error || markUnpaid.error} compact />
       )}
       {data && (
         <div className="space-y-4">
@@ -473,6 +490,16 @@ function WeekSheetTab() {
   const [exportOpen, setExportOpen] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [unsettlingId, setUnsettlingId] = useState(null);
+
+  const unsettle = useApiMutation({
+    mutationFn: ({ listenerUserId, weekStart: ws }) =>
+      manualWeeklyPayoutsApi.markUnpaid(listenerUserId, { weekStart: ws }),
+    successMessage: 'Marked unpaid',
+    invalidate: [['manual-weekly-payouts'], ['earnings']],
+    onSuccess: () => setUnsettlingId(null),
+    onError: () => setUnsettlingId(null),
+  });
 
   const weeksQuery = useQuery({
     queryKey: qk.manualWeeklyWeeks({ count: 5 }),
@@ -642,15 +669,43 @@ function WeekSheetTab() {
       key: 'actions',
       header: '',
       render: (row) => (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() =>
-            setDetail({ listenerUserId: row.listenerUserId, weekStart: row.weekStartDate })
-          }
-        >
-          {canWrite && row.status !== 'PAID' ? 'Settle' : 'View'}
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() =>
+              setDetail({ listenerUserId: row.listenerUserId, weekStart: row.weekStartDate })
+            }
+          >
+            {canWrite && row.status !== 'PAID' ? 'Settle' : 'View'}
+          </Button>
+          {canWrite && row.status === 'PAID' && (
+            <Button
+              size="sm"
+              variant="danger"
+              loading={unsettlingId === row.listenerUserId && unsettle.isPending}
+              disabled={unsettle.isPending}
+              onClick={() => {
+                const label =
+                  row.listener?.displayName || row.listener?.name || shortId(row.listenerUserId);
+                if (
+                  !window.confirm(
+                    `Unsettle ${label} for week ${row.weekStartDate}? This marks the payout unpaid again.`,
+                  )
+                ) {
+                  return;
+                }
+                setUnsettlingId(row.listenerUserId);
+                unsettle.mutate({
+                  listenerUserId: row.listenerUserId,
+                  weekStart: row.weekStartDate,
+                });
+              }}
+            >
+              Unsettle
+            </Button>
+          )}
+        </div>
       ),
     },
   ];
