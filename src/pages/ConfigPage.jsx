@@ -138,6 +138,12 @@ const CONFIG_META = {
     note: 'Applies to users who verify after the change; already-granted bonuses are untouched.',
     group: 'Bonuses',
   },
+  'bonus.welcome.socialEnabled': {
+    label: 'Welcome bonus for Google / Apple',
+    note:
+      'When on (and welcome bonus enabled), Google/Apple sign-in users get the welcome bonus once per identity. Off by default. Delete + re-signup cannot claim again.',
+    group: 'Bonuses',
+  },
   'bonus.weekly.enabled': {
     label: 'User weekly bonus enabled',
     note: 'Caller talk-time weekly bonus. Prefer Bonuses → Weekly settings for edits.',

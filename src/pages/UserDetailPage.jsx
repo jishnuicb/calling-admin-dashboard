@@ -91,6 +91,8 @@ function loginMethodLabel(method) {
   if (method === 'MSG91') return 'MSG91';
   if (method === 'MSG91_WHATSAPP') return 'MSG91 WhatsApp';
   if (method === 'BACKUP_OTP') return 'Backup OTP';
+  if (method === 'GOOGLE') return 'Google';
+  if (method === 'APPLE') return 'Apple';
   return method;
 }
 
@@ -430,7 +432,7 @@ export function UserDetailPage() {
             {user.name || 'Unnamed user'}
           </span>
         }
-        description={view.mobile}
+        description={[view.mobile, view.email].filter(Boolean).join(' · ') || '—'}
         actions={
           <>
             {can(P.NOTIFICATIONS_SEND) && (
@@ -608,6 +610,16 @@ export function UserDetailPage() {
                 value: user.mobileVerified ? 'Verified' : 'Not verified',
               },
               { label: 'Mobile', value: view.mobile },
+              { label: 'Email', value: view.email || '—' },
+              {
+                label: 'Linked sign-in',
+                value: [
+                  user.googleLinked ? 'Google' : null,
+                  user.appleLinked ? 'Apple' : null,
+                ]
+                  .filter(Boolean)
+                  .join(', ') || '—',
+              },
               {
                 label: 'Payment market',
                 value: paymentMarketLabel(user.paymentMarketPreference),
@@ -647,6 +659,10 @@ export function UserDetailPage() {
                       <Badge tone="info">MSG91 WhatsApp</Badge>
                     ) : user.lastLoginMethod === 'MSG91' ? (
                       <Badge tone="info">MSG91</Badge>
+                    ) : user.lastLoginMethod === 'GOOGLE' ? (
+                      <Badge tone="info">Google</Badge>
+                    ) : user.lastLoginMethod === 'APPLE' ? (
+                      <Badge tone="info">Apple</Badge>
                     ) : (
                       loginMethodLabel(user.lastLoginMethod)
                     )}

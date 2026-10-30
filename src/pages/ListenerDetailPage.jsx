@@ -722,6 +722,7 @@ export function ListenerDetailPage() {
                   </span>
                 ),
               },
+              { label: 'Email', value: view.user?.email || '—' },
               can(P.LISTENERS_APPROVE) && {
                 label: 'Unmask phone',
                 value: (

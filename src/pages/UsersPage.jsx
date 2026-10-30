@@ -63,6 +63,9 @@ export function UsersPage({ variant = 'all' }) {
           <div className="min-w-0">
             <p className="truncate font-medium text-ink-900">{row.name || 'Unnamed'}</p>
             <p className="truncate text-xs text-ink-500 tabular">{row.mobile || '—'}</p>
+            {row.email ? (
+              <p className="truncate text-xs text-ink-500">{row.email}</p>
+            ) : null}
             {row.publicId && (
               <p className="truncate font-mono text-[11px] text-ink-500">{row.publicId}</p>
             )}
@@ -164,6 +167,12 @@ export function UsersPage({ variant = 'all' }) {
         if (method === 'MSG91') {
           return <Badge tone="info">MSG91</Badge>;
         }
+        if (method === 'GOOGLE') {
+          return <Badge tone="info">Google</Badge>;
+        }
+        if (method === 'APPLE') {
+          return <Badge tone="info">Apple</Badge>;
+        }
         return <Badge tone="neutral">{method}</Badge>;
       },
     },
@@ -195,7 +204,7 @@ export function UsersPage({ variant = 'all' }) {
             <SearchInput
               value={table.filters.search}
               onChange={(v) => table.setFilter('search', v)}
-              placeholder="Name, phone, public id or user id"
+              placeholder="Name, phone, email, public id or user id"
             />
           </Field>
 
