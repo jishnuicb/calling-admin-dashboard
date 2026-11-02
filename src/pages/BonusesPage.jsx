@@ -23,21 +23,25 @@ import {
   Toggle,
 } from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
-import { fmtDate, fmtDateTime, fmtNumber, fmtTokens, shortId } from '../lib/format';
+import {
+  fmtDateTime,
+  fmtNumber,
+  fmtPeriodRange,
+  fmtTokens,
+  shortId,
+  weekEndDateFromStart,
+} from '../lib/format';
 
-const toDateInput = (value) => {
+/** Prefer API IST calendar date; else derive Asia/Kolkata YYYY-MM-DD from an instant. */
+const toDateInput = (value, istDate = null) => {
+  if (istDate && /^\d{4}-\d{2}-\d{2}$/.test(String(istDate))) return String(istDate);
   if (!value) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value);
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
-};
-
-const weekEndFromStart = (startDate) => {
-  if (!startDate) return '';
-  const start = new Date(`${startDate}T00:00:00.000Z`);
-  if (Number.isNaN(start.getTime())) return '';
-  const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
-  return end.toISOString().slice(0, 10);
+  // Asia/Kolkata has no DST — fixed +05:30.
+  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  return ist.toISOString().slice(0, 10);
 };
 
 function WeeklySettingsCard() {
@@ -62,7 +66,7 @@ function WeeklySettingsCard() {
         ? prev
         : {
             ...data.caller,
-            periodStartInput: toDateInput(data.caller.periodStart),
+            periodStartInput: toDateInput(data.caller.periodStart, data.caller.periodStartDate),
           },
     );
     setListener((prev) =>
@@ -70,7 +74,10 @@ function WeeklySettingsCard() {
         ? prev
         : {
             ...data.listener,
-            periodStartInput: toDateInput(data.listener.periodStart),
+            periodStartInput: toDateInput(
+              data.listener.periodStart,
+              data.listener.periodStartDate,
+            ),
           },
     );
   }, [data]);
@@ -82,7 +89,7 @@ function WeeklySettingsCard() {
     onSuccess: (updated) => {
       const withInput = {
         ...updated,
-        periodStartInput: toDateInput(updated.periodStart),
+        periodStartInput: toDateInput(updated.periodStart, updated.periodStartDate),
       };
       setCaller(withInput);
       queryClient.setQueryData(qk.weeklySettings, (prev) =>
@@ -98,7 +105,7 @@ function WeeklySettingsCard() {
     onSuccess: (updated) => {
       const withInput = {
         ...updated,
-        periodStartInput: toDateInput(updated.periodStart),
+        periodStartInput: toDateInput(updated.periodStart, updated.periodStartDate),
       };
       setListener(withInput);
       queryClient.setQueryData(qk.weeklySettings, (prev) =>
@@ -151,7 +158,10 @@ function WeeklySettingsCard() {
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Period start" hint="UTC date. End is auto-filled as start + 7 days.">
+          <Field
+            label="Period start"
+            hint="IST Monday. End is auto Sunday (start + 6 days, inclusive week)."
+          >
             <Input
               type="date"
               value={form.periodStartInput || ''}
@@ -159,8 +169,8 @@ function WeeklySettingsCard() {
               onChange={(e) => setForm({ ...form, periodStartInput: e.target.value })}
             />
           </Field>
-          <Field label="Period end" hint="Read-only — week end from start date.">
-            <Input type="date" value={weekEndFromStart(form.periodStartInput)} disabled />
+          <Field label="Period end" hint="Read-only — Sunday of the same IST week.">
+            <Input type="date" value={weekEndDateFromStart(form.periodStartInput)} disabled />
           </Field>
         </div>
         {writable && (
@@ -173,9 +183,8 @@ function WeeklySettingsCard() {
                 enabled: Boolean(form.enabled),
                 targetMinutes: Number(form.targetMinutes),
                 rewardTokens: Number(form.rewardTokens),
-                periodStart: form.periodStartInput
-                  ? new Date(`${form.periodStartInput}T00:00:00.000Z`).toISOString()
-                  : undefined,
+                // Send calendar date only — API treats it as IST Monday week start.
+                periodStart: form.periodStartInput || undefined,
               })
             }
           >
@@ -227,18 +236,10 @@ function RunWeeklyModal({ onClose }) {
 
   const mutation = useApiMutation({
     mutationFn: () => {
-      const periodStart = form.periodStart
-        ? new Date(`${form.periodStart}T00:00:00.000Z`).toISOString()
-        : undefined;
-      const periodEnd = form.periodStart
-        ? new Date(
-            new Date(`${form.periodStart}T00:00:00.000Z`).getTime() + 7 * 24 * 60 * 60 * 1000 - 1,
-          ).toISOString()
-        : undefined;
+      // Date-only → API treats as IST Monday; periodEnd is derived server-side (Sun IST).
       return bonusesApi.runWeekly({
         audience: form.audience,
-        periodStart,
-        periodEnd,
+        periodStart: form.periodStart || undefined,
         dryRun: form.dryRun,
         force: form.force,
       });
@@ -287,7 +288,10 @@ function RunWeeklyModal({ onClose }) {
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Period start" hint="Leave blank to use the configured admin period.">
+          <Field
+            label="Period start"
+            hint="IST Monday (same week as Weekly bank payouts). Blank = configured period."
+          >
             <Input
               type="date"
               value={form.periodStart}
@@ -295,17 +299,13 @@ function RunWeeklyModal({ onClose }) {
                 setForm({
                   ...form,
                   periodStart: e.target.value,
-                  periodEnd: e.target.value ? weekEndFromStart(e.target.value) : '',
+                  periodEnd: e.target.value ? weekEndDateFromStart(e.target.value) : '',
                 })
               }
             />
           </Field>
-          <Field label="Period end" hint="Auto week-end from start when you pick a start date.">
-            <Input
-              type="date"
-              value={form.periodEnd}
-              onChange={(e) => setForm({ ...form, periodEnd: e.target.value })}
-            />
+          <Field label="Period end" hint="Read-only — Sunday of the same IST week.">
+            <Input type="date" value={form.periodEnd} disabled />
           </Field>
         </div>
 
@@ -374,7 +374,7 @@ function WeeklyRunsTab() {
       header: 'Period',
       render: (row) => (
         <span className="text-sm text-ink-800">
-          {fmtDate(row.periodStart)} → {fmtDate(row.periodEnd)}
+          {fmtPeriodRange(row.periodStart, row.periodEnd, row.periodStartDate, row.periodEndDate)}
         </span>
       ),
     },
@@ -545,7 +545,7 @@ function AwardsModal({ run, onClose }) {
       onClose={onClose}
       size="xl"
       title="Weekly bonus awards"
-      description={`${fmtDate(run.periodStart)} → ${fmtDate(run.periodEnd)} · ${fmtNumber(run.usersRewarded)} user(s)`}
+      description={`${fmtPeriodRange(run.periodStart, run.periodEnd, run.periodStartDate, run.periodEndDate)} · ${fmtNumber(run.usersRewarded)} user(s)`}
       footer={
         <Button variant="secondary" onClick={onClose}>
           Close
