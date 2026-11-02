@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Mic, Pencil, UserCheck } from 'lucide-react';
+import { BadgeCheck, Download, Mic, Pencil, UserCheck } from 'lucide-react';
 import { languagesApi, listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
@@ -22,6 +22,7 @@ import { useTableState } from '../hooks/useTableState';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
+import { useToast } from '../components/ui/Toast';
 import { fmtRelative, titleCase } from '../lib/format';
 
 const PAGE_VARIANTS = {
@@ -53,6 +54,107 @@ const PAGE_VARIANTS = {
     showAvailability: true,
   },
 };
+
+function ExportListenersModal({ open, onClose, listParams }) {
+  const toast = useToast();
+  const [decryptionKey, setDecryptionKey] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const run = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const body = {
+        ...listParams,
+        decryptionKey: decryptionKey.trim() || undefined,
+      };
+      delete body.page;
+      delete body.limit;
+      if (body.availabilityEnabled === '' || body.availabilityEnabled == null) {
+        delete body.availabilityEnabled;
+      } else {
+        body.availabilityEnabled =
+          body.availabilityEnabled === true || body.availabilityEnabled === 'true';
+      }
+      if (body.online === '' || body.online == null) delete body.online;
+      if (body.gender === '') delete body.gender;
+      if (body.country === '') delete body.country;
+      if (body.search === '') delete body.search;
+      if (body.languages === '') delete body.languages;
+      await listenersApi.exportCsv(body);
+      toast.success(
+        decryptionKey.trim()
+          ? 'CSV downloaded with phone and bank details revealed'
+          : 'CSV downloaded (phone and bank details masked)',
+      );
+      onClose();
+    } catch (err) {
+      setError(err);
+      toast.error(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Export listeners CSV"
+      description="Exports the current list filters. Leave the decryption key empty for masked phone and bank details. Enter the permanent decryption key (same as Reveal phone & bank) to unmask phone and bank columns."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={run} loading={busy}>
+            <Download className="size-4" />
+            Download CSV
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && <ErrorState error={error} compact />}
+        <div
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', height: 0, overflow: 'hidden' }}
+        >
+          <input type="text" name="username" autoComplete="username" tabIndex={-1} readOnly />
+          <input
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            tabIndex={-1}
+            readOnly
+          />
+        </div>
+        <Field
+          label="Decryption key (optional)"
+          hint="Same permanent key as Listener detail → Reveal phone & bank. Required to reveal phone number and bank details in the CSV."
+        >
+          <Input
+            type="password"
+            name="listeners-export-decryption-key"
+            autoComplete="new-password"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
+            spellCheck={false}
+            value={decryptionKey}
+            onChange={(e) => setDecryptionKey(e.target.value)}
+            placeholder="Enter permanent decryption key to reveal phone & bank"
+          />
+        </Field>
+        <p className="text-xs text-ink-500">
+          Columns: display name, phone, status, reg date, gender, language, last seen, plus bank
+          fields (account holder, account number, IFSC, bank name, UPI).
+        </p>
+      </div>
+    </Modal>
+  );
+}
 
 function RenameListenerModal({ application, onClose }) {
   const [displayName, setDisplayName] = useState(application.displayName || '');
@@ -116,7 +218,9 @@ export function ListenersPage({ variant = 'applications' }) {
   const [searchParams] = useSearchParams();
   const { can } = useAuth();
   const canRename = can(P.LISTENERS_APPROVE);
+  const canExport = can(P.LISTENERS_READ);
   const [renameRow, setRenameRow] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
   const config = PAGE_VARIANTS[variant] || PAGE_VARIANTS.applications;
 
   const allowedStatusValues = new Set(
@@ -298,7 +402,18 @@ export function ListenersPage({ variant = 'applications' }) {
 
   return (
     <>
-      <PageHeader title={config.title} description={config.description} />
+      <PageHeader
+        title={config.title}
+        description={config.description}
+        actions={
+          canExport ? (
+            <Button variant="secondary" onClick={() => setExportOpen(true)}>
+              <Download className="size-4" />
+              Export CSV
+            </Button>
+          ) : null
+        }
+      />
 
       <Card bodyClassName="">
         <FilterBar onReset={table.isFiltered ? table.reset : undefined}>
@@ -400,6 +515,14 @@ export function ListenersPage({ variant = 'applications' }) {
 
       {renameRow && (
         <RenameListenerModal application={renameRow} onClose={() => setRenameRow(null)} />
+      )}
+
+      {exportOpen && (
+        <ExportListenersModal
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          listParams={listParams}
+        />
       )}
     </>
   );
