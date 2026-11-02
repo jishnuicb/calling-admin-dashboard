@@ -936,8 +936,8 @@ export function ListenerDetailPage() {
           title="Payout details"
           description={
             isSubadmin
-              ? 'Bank details stay masked for subadmins. You can reveal the listener phone with the shared phone-only key.'
-              : 'Bank fields and phone are masked by default. Enter the permanent decryption key to reveal. The key is never stored.'
+              ? 'Bank details stay masked for subadmins. Enter the shared phone-only key below to reveal phone. Bank details cannot be revealed.'
+              : 'Phone and bank details are masked by default. Enter the permanent decryption key below to reveal phone and bank details. The key is never stored.'
           }
           className="lg:col-span-2"
         >

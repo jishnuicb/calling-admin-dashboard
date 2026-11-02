@@ -144,7 +144,7 @@ function WeeklySettingsCard() {
             label={isListener ? 'Reward (₹)' : 'Reward tokens'}
             hint={
               isListener
-                ? 'Rupees credited to listener earnings (stored as paise). Example: 100 = ₹100.'
+                ? 'Rupees credited to listener earnings. Example: 100 = ₹100.'
                 : 'Credited as tokens to the user wallet.'
             }
           >

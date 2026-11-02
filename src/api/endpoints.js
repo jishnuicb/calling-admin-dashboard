@@ -44,6 +44,12 @@ export const usersApi = {
 
 export const listenersApi = {
   list: (params) => get('/admin/listeners/applications', params),
+  exportCsv: (body) =>
+    downloadBlobPost(
+      '/admin/listeners/applications/export',
+      body,
+      'listeners-export.csv',
+    ),
   get: (id) => get(`/admin/listeners/applications/${id}`),
   approve: (id, body) => post(`/admin/listeners/applications/${id}/approve`, body),
   reject: (id, body) => post(`/admin/listeners/applications/${id}/reject`, body),
