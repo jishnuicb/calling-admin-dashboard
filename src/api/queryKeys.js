@@ -85,6 +85,7 @@ export const qk = {
   roles: ['rbac', 'roles'],
   admins: (params) => ['rbac', 'admins', params],
   subadmins: (params) => ['rbac', 'subadmins', params],
+  subadminPhoneKey: ['rbac', 'subadmins', 'phone-key'],
 
   config: ['config'],
   appSettings: ['config', 'app-settings'],

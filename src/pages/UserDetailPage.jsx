@@ -490,51 +490,49 @@ export function UserDetailPage() {
             title="Phone number"
             description={
               isSubadmin
-                ? 'Hidden by default. Enter your subadmin phone reveal key (not the master key). Bank details stay locked.'
+                ? 'Phone and email stay hidden for subadmins on user accounts. Listener phone can be revealed from the listener application page.'
                 : 'Masked by default (country code + last 2 digits). Enter the permanent decryption key to reveal.'
             }
             className="lg:col-span-3"
           >
-            <div className="mb-3 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
-              <Field
-                label={isSubadmin ? 'Phone reveal key' : 'Permanent decryption key'}
-                hint={
-                  isSubadmin
-                    ? 'Issued when your subadmin account was created. Cannot unlock bank details.'
-                    : 'Same key as listener bank reveal. Never stored.'
-                }
-              >
-                <Input
-                  type="password"
-                  autoComplete="off"
-                  value={decryptKey}
-                  onChange={(e) => setDecryptKey(e.target.value)}
-                  placeholder={
-                    isSubadmin ? 'Enter phone reveal key' : 'Enter permanent decryption key'
-                  }
-                />
-              </Field>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  loading={revealPhone.isPending}
-                  disabled={!decryptKey.trim()}
-                  onClick={() => revealPhone.mutate()}
+            {!isSubadmin && (
+              <div className="mb-3 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
+                <Field
+                  label="Permanent decryption key"
+                  hint="Same key as listener bank reveal. Never stored."
                 >
-                  <Eye className="size-4" />
-                  Reveal phone
-                </Button>
-                {revealedUser && (
-                  <Button size="sm" variant="secondary" onClick={remaskPhone}>
-                    <EyeOff className="size-4" />
-                    Remask
+                  <Input
+                    type="password"
+                    autoComplete="off"
+                    value={decryptKey}
+                    onChange={(e) => setDecryptKey(e.target.value)}
+                    placeholder="Enter permanent decryption key"
+                  />
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    loading={revealPhone.isPending}
+                    disabled={!decryptKey.trim()}
+                    onClick={() => revealPhone.mutate()}
+                  >
+                    <Eye className="size-4" />
+                    Reveal phone
                   </Button>
-                )}
+                  {revealedUser && (
+                    <Button size="sm" variant="secondary" onClick={remaskPhone}>
+                      <EyeOff className="size-4" />
+                      Remask
+                    </Button>
+                  )}
+                </div>
+                {revealPhone.error && <ErrorState error={revealPhone.error} compact />}
               </div>
-              {revealPhone.error && <ErrorState error={revealPhone.error} compact />}
-            </div>
-            <p className="font-mono text-sm text-ink-900">{view.mobile || '—'}</p>
+            )}
+            <p className="font-mono text-sm text-ink-900">
+              {isSubadmin ? 'Hidden' : view.mobile || '—'}
+            </p>
           </Card>
         )}
 

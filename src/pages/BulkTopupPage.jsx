@@ -25,9 +25,10 @@ import {
 import { useTableState, useDebounced } from '../hooks/useTableState';
 import { fmtDateTime, fmtNumber, fmtTokens, shortId } from '../lib/format';
 
-/** Write access for bulk top-up actions (bonuses OR wallet adjust). */
+/** Write access for bulk top-up actions (bonuses OR wallet adjust). Subadmins never. */
 function useBulkTopupWrite() {
-  const { can } = useAuth();
+  const { can, isSubadmin } = useAuth();
+  if (isSubadmin) return false;
   return can(P.BONUSES_WRITE, P.WALLET_ADJUST);
 }
 

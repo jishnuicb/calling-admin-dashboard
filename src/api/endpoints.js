@@ -52,6 +52,7 @@ export const listenersApi = {
   reopen: (id, body) => post(`/admin/listeners/applications/${id}/reopen`, body),
   professionalVerify: (id) => post(`/admin/listeners/applications/${id}/professional-verify`),
   revealBank: (id, body) => post(`/admin/listeners/applications/${id}/bank-details/reveal`, body),
+  revealPhone: (id, body) => post(`/admin/listeners/applications/${id}/phone/reveal`, body),
   addNotes: (id, body) => post(`/admin/listeners/applications/${id}/notes`, body),
   updateDisplayName: (id, body) =>
     patch(`/admin/listeners/applications/${id}/display-name`, body),
@@ -346,6 +347,8 @@ export const rbacApi = {
   subadmins: (params) => get('/admin/subadmins', params),
   createSubadmin: (body) => post('/admin/subadmins', body),
   updateSubadmin: (id, body) => patch(`/admin/subadmins/${id}`, body),
+  subadminPhoneKeyStatus: () => get('/admin/subadmins/phone-key'),
+  issueSubadminPhoneKey: () => post('/admin/subadmins/phone-key', {}),
 };
 
 // --- System configuration ---------------------------------------------------

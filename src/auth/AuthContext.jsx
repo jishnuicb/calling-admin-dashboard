@@ -166,10 +166,11 @@ export function AuthProvider({ children }) {
       isAuthenticated: status === 'authenticated',
       isSuperAdmin,
       isSubadmin,
-      /** Subadmins never delete accounts or adjust wallet balances. */
+      /** Subadmins never delete accounts, adjust balances, or use wallet top-up. */
       canDeleteUsers: !isSubadmin && (isSuperAdmin || permissions.has('users:delete')),
       canAdjustWallet: !isSubadmin && (isSuperAdmin || permissions.has('wallet:adjust')),
-      /** Subadmins never see user email; phone only after phone-reveal key. */
+      canBulkTopup: !isSubadmin && (isSuperAdmin || permissions.has('bonuses:write') || permissions.has('wallet:adjust')),
+      /** Subadmins never see user (caller) email or phone — no reveal. */
       hidesUserContact: isSubadmin,
       permissions,
       sections,

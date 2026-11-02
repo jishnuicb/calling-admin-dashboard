@@ -97,7 +97,13 @@ const NAV_SECTIONS = [
           { to: '/packages/ios-international', label: 'iOS · International' },
         ],
       },
-      { to: '/wallets', label: 'Wallets', icon: Coins, permission: P.WALLET_READ },
+      {
+        to: '/wallets',
+        label: 'Wallets',
+        icon: Coins,
+        permission: P.WALLET_READ,
+        denyForSubadmin: true,
+      },
       { to: '/earnings', label: 'Listener earnings', icon: IndianRupee, permission: P.EARNINGS_READ },
       { to: '/payouts', label: 'Listener payouts', icon: Banknote, permission: P.PAYOUTS_READ },
       {
@@ -107,7 +113,13 @@ const NAV_SECTIONS = [
         permission: P.PAYOUTS_READ,
       },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
-      { to: '/bulk-topup', label: 'Bulk top-up', icon: Wallet, permission: [P.BONUSES_READ, P.WALLET_READ] },
+      {
+        to: '/bulk-topup',
+        label: 'Bulk top-up',
+        icon: Wallet,
+        permission: [P.BONUSES_READ, P.WALLET_READ],
+        denyForSubadmin: true,
+      },
     ],
   },
   {
@@ -220,12 +232,14 @@ function NavItem({ item, onNavigate }) {
 }
 
 function SidebarContent({ onNavigate }) {
-  const { can, canSection } = useAuth();
+  const { can, canSection, isSubadmin } = useAuth();
 
   const sections = NAV_SECTIONS.filter((section) => canSection(section.key))
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => can(item.permission)),
+      items: section.items.filter(
+        (item) => !(isSubadmin && item.denyForSubadmin) && can(item.permission),
+      ),
     }))
     .filter((section) => section.items.length > 0);
 
