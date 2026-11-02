@@ -763,18 +763,22 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
     grants: initialGrantMap(),
   });
 
-  /** Main menu change cascades to every grantable submenu under it. */
+  /**
+   * Main-menu control for a whole section:
+   * - All off → clears every submenu under it
+   * - Read / Read and write → sets every submenu to that access
+   */
   const setGroupGrant = (group, accessOrOff) => {
     setForm((current) => {
       const next = { ...current.grants };
-      if (!accessOrOff) {
+      const children = grantableChildren(group);
+      if (!accessOrOff || accessOrOff === '__custom__') {
         delete next[group.key];
-      } else {
-        next[group.key] = accessOrOff;
-        for (const leaf of grantableChildren(group)) {
-          next[leaf.key] = accessOrOff;
-        }
+        for (const leaf of children) delete next[leaf.key];
+        return { ...current, grants: next };
       }
+      next[group.key] = accessOrOff;
+      for (const leaf of children) next[leaf.key] = accessOrOff;
       return { ...current, grants: next };
     });
   };
@@ -797,6 +801,19 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
       else next[leafKey] = accessOrOff;
       return { ...current, grants: next };
     });
+  };
+
+  /** Derive main-menu dropdown from child state so UI matches reality. */
+  const groupControlValue = (group) => {
+    const children = grantableChildren(group);
+    if (!children.length) return form.grants[group.key] || '';
+    const accesses = children.map((leaf) => form.grants[leaf.key] || '');
+    const allOff = accesses.every((a) => !a);
+    if (allOff) return '';
+    const first = accesses[0];
+    const allSame = accesses.every((a) => a === first);
+    if (allSame) return first;
+    return '__custom__';
   };
 
   const mutation = useApiMutation({
@@ -920,50 +937,65 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
         <div>
           <p className="mb-2 text-sm font-medium text-ink-700">Menu access</p>
           <p className="mb-3 text-xs text-ink-500">
-            Setting a main menu (e.g. People → Read and write) applies that access to every
-            submenu under it. You can still change one submenu afterward. Read = view only.
-            Read and write = view + actions. Never grantable: account deletion, admins &amp;
-            roles, wallets, bulk top-up. Subadmins also cannot delete users or adjust balance
-            even if Users is granted.
+            Use the section control to set or clear every submenu at once:{' '}
+            <span className="font-medium">All off</span> turns the whole section off,{' '}
+            <span className="font-medium">All: Read</span> /{' '}
+            <span className="font-medium">All: Read and write</span> apply to every submenu.
+            After that you can still tweak one submenu (section shows{' '}
+            <span className="font-medium">Custom</span>). Never grantable: account deletion,
+            admins &amp; roles, wallets, bulk top-up. Subadmins cannot delete users or adjust
+            balance even if Users is granted.
           </p>
           <div className="max-h-80 space-y-4 overflow-y-auto rounded-lg border border-ink-200 p-3">
-            {groups.map((group) => (
-              <div key={group.key}>
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">
-                    {group.label}
-                  </span>
-                  <Select
-                    className="w-auto"
-                    value={form.grants[group.key] || ''}
-                    onChange={(e) => setGroupGrant(group, e.target.value || null)}
-                  >
-                    <option value="">Main menu: off</option>
-                    <option value="READ">Main menu: Read</option>
-                    <option value="WRITE">Main menu: Read and write</option>
-                  </Select>
-                </div>
-                <ul className="space-y-1.5 pl-2">
-                  {grantableChildren(group).map((leaf) => (
-                    <li
-                      key={leaf.key}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-ink-50 px-2.5 py-1.5"
+            {groups.map((group) => {
+              const controlValue = groupControlValue(group);
+              return (
+                <div key={group.key}>
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+                      {group.label}
+                    </span>
+                    <Select
+                      className="w-auto"
+                      value={controlValue}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '__custom__') return;
+                        setGroupGrant(group, v || null);
+                      }}
                     >
-                      <span className="text-sm text-ink-800">{leaf.label}</span>
-                      <Select
-                        className="w-auto"
-                        value={form.grants[leaf.key] || ''}
-                        onChange={(e) => setLeafGrant(group, leaf.key, e.target.value || null)}
+                      <option value="">All off</option>
+                      <option value="READ">All: Read</option>
+                      <option value="WRITE">All: Read and write</option>
+                      {controlValue === '__custom__' && (
+                        <option value="__custom__">Custom (mixed submenus)</option>
+                      )}
+                    </Select>
+                  </div>
+                  <ul className="space-y-1.5 pl-2">
+                    {grantableChildren(group).map((leaf) => (
+                      <li
+                        key={leaf.key}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-ink-50 px-2.5 py-1.5"
                       >
-                        <option value="">Off</option>
-                        <option value="READ">Read</option>
-                        <option value="WRITE">Read and write</option>
-                      </Select>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+                        <span className="text-sm text-ink-800">{leaf.label}</span>
+                        <Select
+                          className="w-auto"
+                          value={form.grants[leaf.key] || ''}
+                          onChange={(e) =>
+                            setLeafGrant(group, leaf.key, e.target.value || null)
+                          }
+                        >
+                          <option value="">Off</option>
+                          <option value="READ">Read</option>
+                          <option value="WRITE">Read and write</option>
+                        </Select>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
