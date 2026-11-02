@@ -283,7 +283,10 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
             <div>
               <p className="text-xs text-ink-500">Call amount</p>
               <p className="font-medium">{fmtPaise(data.callAmountPaise)}</p>
-              <p className="text-[11px] text-ink-500">{data.callCount} calls</p>
+              <p className="text-[11px] text-ink-500">
+                {data.callCount} calls
+                {data.callDuration ? ` · ${data.callDuration}` : ''}
+              </p>
             </div>
             <div>
               <p className="text-xs text-ink-500">Bonus amount</p>
@@ -638,8 +641,19 @@ function WeekSheetTab() {
       render: (row) => (
         <div className="text-right">
           <p className="font-medium">{fmtPaise(row.callAmountPaise)}</p>
-          <p className="text-[11px] text-ink-500">{row.callCount} calls</p>
+          <p className="text-[11px] text-ink-500">
+            {row.callCount} calls
+            {row.callDuration ? ` · ${row.callDuration}` : ''}
+          </p>
         </div>
+      ),
+    },
+    {
+      key: 'callTime',
+      header: 'Call time',
+      align: 'right',
+      render: (row) => (
+        <span className="font-mono text-xs text-ink-700">{row.callDuration || '00:00:00'}</span>
       ),
     },
     {
@@ -790,6 +804,12 @@ function WeekSheetTab() {
               <p className="font-medium">{fmtPaise(summary.totalCallAmountPaise)}</p>
             </div>
             <div>
+              <p className="text-xs text-ink-500">Call time</p>
+              <p className="font-medium font-mono text-sm">
+                {summary.totalCallDuration || '00:00:00'}
+              </p>
+            </div>
+            <div>
               <p className="text-xs text-ink-500">Bonus total</p>
               <p className="font-medium">{fmtPaise(summary.totalBonusAmountPaise)}</p>
             </div>
@@ -919,7 +939,22 @@ function HistoryTab() {
       key: 'call',
       header: 'Call',
       align: 'right',
-      render: (row) => fmtPaise(row.callAmountPaise),
+      render: (row) => (
+        <div className="text-right">
+          <p>{fmtPaise(row.callAmountPaise)}</p>
+          <p className="font-mono text-[11px] text-ink-500">
+            {row.callDuration || '00:00:00'}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'callTime',
+      header: 'Call time',
+      align: 'right',
+      render: (row) => (
+        <span className="font-mono text-xs text-ink-700">{row.callDuration || '00:00:00'}</span>
+      ),
     },
     {
       key: 'bonus',
