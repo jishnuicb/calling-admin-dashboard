@@ -721,10 +721,21 @@ function PermissionsTab() {
 
 // --- Subadmins --------------------------------------------------------------
 
+/** Prefer Write over Read when merging parent + leaf for display. */
+const mergeMenuAccess = (a, b) => {
+  if (!a) return b || null;
+  if (!b) return a;
+  if (a === 'WRITE' || b === 'WRITE') return 'WRITE';
+  return 'READ';
+};
+
 function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClose }) {
   const editing = Boolean(subadmin);
   const groups = menusCatalogue?.groups || [];
   const defaultGrants = menusCatalogue?.defaultGrants || [];
+
+  const grantableChildren = (group) =>
+    (group.children || []).filter((leaf) => !leaf.deniedForSubadmin);
 
   const initialGrantMap = () => {
     const map = {};
@@ -733,6 +744,14 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
       // Legacy BOTH → Write in the form.
       map[g.menuKey] = g.access === 'BOTH' ? 'WRITE' : g.access;
     });
+    // Parent (main menu) covers every submenu — show that on each child dropdown.
+    for (const group of groups) {
+      const parentAccess = map[group.key];
+      if (!parentAccess) continue;
+      for (const leaf of grantableChildren(group)) {
+        map[leaf.key] = mergeMenuAccess(map[leaf.key], parentAccess);
+      }
+    }
     return map;
   };
 
@@ -744,11 +763,38 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
     grants: initialGrantMap(),
   });
 
-  const setGrant = (menuKey, accessOrOff) => {
+  /** Main menu change cascades to every grantable submenu under it. */
+  const setGroupGrant = (group, accessOrOff) => {
     setForm((current) => {
       const next = { ...current.grants };
-      if (!accessOrOff) delete next[menuKey];
-      else next[menuKey] = accessOrOff;
+      if (!accessOrOff) {
+        delete next[group.key];
+      } else {
+        next[group.key] = accessOrOff;
+        for (const leaf of grantableChildren(group)) {
+          next[leaf.key] = accessOrOff;
+        }
+      }
+      return { ...current, grants: next };
+    });
+  };
+
+  /**
+   * Leaf change: drop the parent group key so a lower child access is not
+   * overridden on save by the main-menu expansion.
+   */
+  const setLeafGrant = (group, leafKey, accessOrOff) => {
+    setForm((current) => {
+      const next = { ...current.grants };
+      if (next[group.key]) {
+        const parentAccess = next[group.key];
+        delete next[group.key];
+        for (const leaf of grantableChildren(group)) {
+          if (next[leaf.key] == null) next[leaf.key] = parentAccess;
+        }
+      }
+      if (!accessOrOff) delete next[leafKey];
+      else next[leafKey] = accessOrOff;
       return { ...current, grants: next };
     });
   };
@@ -874,10 +920,11 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
         <div>
           <p className="mb-2 text-sm font-medium text-ink-700">Menu access</p>
           <p className="mb-3 text-xs text-ink-500">
-            Grant a main menu to cover every submenu under it, or set each submenu individually.
-            Read = view only. Read and write = view + actions. Never grantable: account
-            deletion, admins &amp; roles, wallets, bulk top-up. Subadmins also cannot delete
-            users or adjust balance even if Users is granted.
+            Setting a main menu (e.g. People → Read and write) applies that access to every
+            submenu under it. You can still change one submenu afterward. Read = view only.
+            Read and write = view + actions. Never grantable: account deletion, admins &amp;
+            roles, wallets, bulk top-up. Subadmins also cannot delete users or adjust balance
+            even if Users is granted.
           </p>
           <div className="max-h-80 space-y-4 overflow-y-auto rounded-lg border border-ink-200 p-3">
             {groups.map((group) => (
@@ -889,7 +936,7 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
                   <Select
                     className="w-auto"
                     value={form.grants[group.key] || ''}
-                    onChange={(e) => setGrant(group.key, e.target.value || null)}
+                    onChange={(e) => setGroupGrant(group, e.target.value || null)}
                   >
                     <option value="">Main menu: off</option>
                     <option value="READ">Main menu: Read</option>
@@ -897,25 +944,23 @@ function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClo
                   </Select>
                 </div>
                 <ul className="space-y-1.5 pl-2">
-                  {(group.children || [])
-                    .filter((leaf) => !leaf.deniedForSubadmin)
-                    .map((leaf) => (
-                      <li
-                        key={leaf.key}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-ink-50 px-2.5 py-1.5"
+                  {grantableChildren(group).map((leaf) => (
+                    <li
+                      key={leaf.key}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-ink-50 px-2.5 py-1.5"
+                    >
+                      <span className="text-sm text-ink-800">{leaf.label}</span>
+                      <Select
+                        className="w-auto"
+                        value={form.grants[leaf.key] || ''}
+                        onChange={(e) => setLeafGrant(group, leaf.key, e.target.value || null)}
                       >
-                        <span className="text-sm text-ink-800">{leaf.label}</span>
-                        <Select
-                          className="w-auto"
-                          value={form.grants[leaf.key] || ''}
-                          onChange={(e) => setGrant(leaf.key, e.target.value || null)}
-                        >
-                          <option value="">Off</option>
-                          <option value="READ">Read</option>
-                          <option value="WRITE">Read and write</option>
-                        </Select>
-                      </li>
-                    ))}
+                        <option value="">Off</option>
+                        <option value="READ">Read</option>
+                        <option value="WRITE">Read and write</option>
+                      </Select>
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}
