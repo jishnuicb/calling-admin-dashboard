@@ -226,39 +226,50 @@ function MonthYearPicker({ value, maxValue, onChange }) {
   );
 }
 
-/** Local preview of Mon–Sun weeks overlapping a month (matches backend UTC week rules). */
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/** YYYY-MM-DD in Asia/Kolkata for an absolute instant. */
+const toIstDateKey = (value) => {
+  const ist = new Date(value.getTime() + IST_OFFSET_MS);
+  return ist.toISOString().slice(0, 10);
+};
+
+/** Local preview of Mon–Sun IST weeks overlapping a month (matches backend). */
 function listWeeksForMonthLocal(month) {
   const match = String(month || '').match(/^(\d{4})-(\d{2})$/);
   if (!match) return [];
   const year = Number(match[1]);
   const monthIndex = Number(match[2]) - 1;
-  const monthStart = new Date(Date.UTC(year, monthIndex, 1));
-  const monthEnd = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999));
+  // Month bounds as IST calendar days → UTC instants.
+  const monthStart = new Date(Date.UTC(year, monthIndex, 1, 0, 0, 0, 0) - IST_OFFSET_MS);
+  const monthEnd = new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999) - IST_OFFSET_MS);
 
-  const startOfMonday = (value) => {
-    const day = new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
-    const dow = day.getUTCDay();
-    day.setUTCDate(day.getUTCDate() + (dow === 0 ? -6 : 1 - dow));
-    return day;
+  const startOfMondayIst = (value) => {
+    const ist = new Date(value.getTime() + IST_OFFSET_MS);
+    const y = ist.getUTCFullYear();
+    const m = ist.getUTCMonth();
+    const d = ist.getUTCDate();
+    const dow = ist.getUTCDay();
+    const offset = dow === 0 ? -6 : 1 - dow;
+    return new Date(Date.UTC(y, m, d + offset, 0, 0, 0, 0) - IST_OFFSET_MS);
   };
-  const toKey = (d) => d.toISOString().slice(0, 10);
 
-  let cursor = startOfMonday(monthStart);
+  let cursor = startOfMondayIst(monthStart);
   const weeks = [];
   while (cursor.getTime() <= monthEnd.getTime()) {
     const weekStart = new Date(cursor.getTime());
-    const weekEnd = new Date(weekStart.getTime());
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+    const weekEnd = new Date(weekStart.getTime() + 7 * 86_400_000 - 1);
     if (weekEnd.getTime() >= monthStart.getTime()) {
+      const startKey = toIstDateKey(weekStart);
+      const endKey = toIstDateKey(weekEnd);
       weeks.push({
         week: weeks.length + 1,
-        weekStart: toKey(weekStart),
-        weekEnd: toKey(weekEnd),
-        label: `Week ${weeks.length + 1} (${toKey(weekStart)} → ${toKey(weekEnd)})`,
+        weekStart: startKey,
+        weekEnd: endKey,
+        label: `Week ${weeks.length + 1} (${startKey} → ${endKey})`,
       });
     }
-    cursor = new Date(weekStart.getTime());
-    cursor.setUTCDate(cursor.getUTCDate() + 7);
+    cursor = new Date(weekStart.getTime() + 7 * 86_400_000);
   }
   return weeks;
 }
@@ -267,10 +278,14 @@ function currentWeekNumberForMonth(month) {
   const weeks = listWeeksForMonthLocal(month);
   if (!weeks.length) return 1;
   const now = new Date();
-  const dow = now.getUTCDay();
-  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  monday.setUTCDate(monday.getUTCDate() + (dow === 0 ? -6 : 1 - dow));
-  const key = monday.toISOString().slice(0, 10);
+  const ist = new Date(now.getTime() + IST_OFFSET_MS);
+  const y = ist.getUTCFullYear();
+  const m = ist.getUTCMonth();
+  const d = ist.getUTCDate();
+  const dow = ist.getUTCDay();
+  const offset = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(Date.UTC(y, m, d + offset, 0, 0, 0, 0) - IST_OFFSET_MS);
+  const key = toIstDateKey(monday);
   return weeks.find((w) => w.weekStart === key)?.week || weeks[weeks.length - 1].week;
 }
 
