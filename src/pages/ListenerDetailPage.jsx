@@ -505,6 +505,12 @@ export function ListenerDetailPage() {
     onSuccess: (data) => setRevealedApp(data),
   });
 
+  const revealPhone = useApiMutation({
+    mutationFn: () => listenersApi.revealPhone(id, { decryptionKey: decryptKey }),
+    successMessage: 'Listener phone revealed for this view only',
+    onSuccess: (data) => setRevealedApp(data),
+  });
+
   const professionalVerify = useApiMutation({
     mutationFn: () => listenersApi.professionalVerify(id),
     successMessage: 'Professional verification approved',
@@ -727,8 +733,9 @@ export function ListenerDetailPage() {
                 label: 'Unmask phone',
                 value: (
                   <span className="text-xs text-ink-600">
-                    Use <strong>Reveal phone &amp; bank</strong> in Payout details below with the
-                    permanent decryption key (same key as bank fields).
+                    {isSubadmin
+                      ? 'Use Reveal phone below with the shared subadmin phone key. Bank details stay locked.'
+                      : 'Use Reveal phone & bank in Payout details below with the permanent decryption key.'}
                   </span>
                 ),
                 full: true,
@@ -929,11 +936,54 @@ export function ListenerDetailPage() {
           title="Payout details"
           description={
             isSubadmin
-              ? 'Bank details stay masked for subadmins. Application profile details above remain visible.'
+              ? 'Bank details stay masked for subadmins. You can reveal the listener phone with the shared phone-only key.'
               : 'Bank fields and phone are masked by default. Enter the permanent decryption key to reveal. The key is never stored.'
           }
           className="lg:col-span-2"
         >
+          {can(P.LISTENERS_APPROVE) && isSubadmin && (
+            <div className="mb-4 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
+              <Field
+                label="Phone reveal key"
+                hint="Shared permanent phone-only key. Reveals listener phone only — never bank details."
+              >
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  value={decryptKey}
+                  onChange={(e) => setDecryptKey(e.target.value)}
+                  placeholder="Enter phone reveal key"
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={revealPhone.isPending}
+                  disabled={!decryptKey.trim()}
+                  onClick={() => revealPhone.mutate()}
+                >
+                  <Eye className="size-4" />
+                  Reveal phone
+                </Button>
+                {revealedApp && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setDecryptKey('');
+                      setRevealedApp(null);
+                    }}
+                  >
+                    <EyeOff className="size-4" />
+                    Remask
+                  </Button>
+                )}
+              </div>
+              {revealPhone.error && <ErrorState error={revealPhone.error} compact />}
+            </div>
+          )}
+
           {can(P.LISTENERS_APPROVE) && !isSubadmin && (
             <div className="mb-4 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
               <p className="text-xs text-ink-600">

@@ -721,7 +721,7 @@ function PermissionsTab() {
 
 // --- Subadmins --------------------------------------------------------------
 
-function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
+function SubadminFormModal({ subadmin, menusCatalogue, phoneKeyConfigured, onClose }) {
   const editing = Boolean(subadmin);
   const groups = menusCatalogue?.groups || [];
   const defaultGrants = menusCatalogue?.defaultGrants || [];
@@ -730,7 +730,8 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
     const map = {};
     const source = editing ? subadmin.menuGrants || [] : defaultGrants;
     source.forEach((g) => {
-      map[g.menuKey] = g.access;
+      // Legacy BOTH → Write in the form.
+      map[g.menuKey] = g.access === 'BOTH' ? 'WRITE' : g.access;
     });
     return map;
   };
@@ -740,11 +741,8 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
     name: subadmin?.name || '',
     password: '',
     status: subadmin?.status || 'ACTIVE',
-    masterDecryptionKey: '',
-    rotatePhoneKey: false,
     grants: initialGrantMap(),
   });
-  const [issuedKey, setIssuedKey] = useState(null);
 
   const setGrant = (menuKey, accessOrOff) => {
     setForm((current) => {
@@ -768,26 +766,18 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
           menuGrants,
         };
         if (form.password) body.password = form.password;
-        if (form.rotatePhoneKey) {
-          body.rotatePhoneKey = true;
-          body.masterDecryptionKey = form.masterDecryptionKey;
-        }
         return rbacApi.updateSubadmin(subadmin.id, body);
       }
       return rbacApi.createSubadmin({
         email: form.email.trim(),
         password: form.password,
         name: form.name.trim(),
-        masterDecryptionKey: form.masterDecryptionKey,
         menuGrants,
       });
     },
     successMessage: editing ? 'Subadmin updated' : 'Subadmin created',
     invalidate: [['rbac', 'subadmins']],
-    onSuccess: (data) => {
-      if (data?.phoneRevealKey) setIssuedKey(data.phoneRevealKey);
-      else onClose();
-    },
+    onSuccess: () => onClose(),
   });
 
   const canSubmit = editing
@@ -795,39 +785,8 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
     : form.email.trim() &&
       form.password &&
       form.name.trim() &&
-      form.masterDecryptionKey.trim().length >= 16 &&
-      Object.keys(form.grants).length > 0;
-
-  if (issuedKey) {
-    return (
-      <Modal
-        open
-        onClose={onClose}
-        title="Phone reveal key issued"
-        description="Copy this key now. It is shown once and cannot be retrieved later. Subadmins use it only to reveal phone numbers — never bank details."
-        footer={
-          <Button onClick={onClose}>Done</Button>
-        }
-      >
-        <div className="space-y-3">
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            Give this key to the subadmin securely. Losing it requires rotating with the master
-            decryption key.
-          </p>
-          <Field label="Phone reveal key">
-            <Input readOnly value={issuedKey} className="font-mono text-xs" />
-          </Field>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => navigator.clipboard?.writeText(issuedKey)}
-          >
-            Copy to clipboard
-          </Button>
-        </div>
-      </Modal>
-    );
-  }
+      Object.keys(form.grants).length > 0 &&
+      phoneKeyConfigured;
 
   return (
     <Modal
@@ -835,7 +794,7 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
       onClose={onClose}
       size="xl"
       title={editing ? `Edit subadmin: ${subadmin.email}` : 'Create a subadmin'}
-      description="Subadmins are separate from full admins. Grant main menus or individual submenus as Read, Write, or Both. Delete account and Adjust balance are never available."
+      description="Subadmins are separate from full admins. Grant main menus or submenus as Read or Read and write. Delete account and Adjust balance are never available."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -898,47 +857,27 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
         )}
 
         {!editing && (
-          <Field
-            label="Master decryption key"
-            required
-            hint="Verified then encrypted into a phone-only key for this subadmin. They cannot reverse it to the master key or open bank details."
-          >
-            <Input
-              type="password"
-              autoComplete="off"
-              value={form.masterDecryptionKey}
-              onChange={(e) => setForm({ ...form, masterDecryptionKey: e.target.value })}
-              placeholder="Permanent decryption key"
-            />
-          </Field>
+          <p className="rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-700">
+            Uses the <span className="font-medium">shared permanent phone-only key</span> (issue it
+            once on the Subadmins tab). That key reveals listener phones only — user phone/email stay
+            hidden; bank stays locked.
+          </p>
         )}
 
-        {editing && (
-          <div className="space-y-3 rounded-lg border border-ink-200 bg-ink-50/60 px-3.5 py-3">
-            <Checkbox
-              checked={form.rotatePhoneKey}
-              onChange={(v) => setForm({ ...form, rotatePhoneKey: v })}
-              label="Rotate phone reveal key"
-              description="Issues a new phone-only key. Requires the master decryption key."
-            />
-            {form.rotatePhoneKey && (
-              <Field label="Master decryption key" required>
-                <Input
-                  type="password"
-                  autoComplete="off"
-                  value={form.masterDecryptionKey}
-                  onChange={(e) => setForm({ ...form, masterDecryptionKey: e.target.value })}
-                />
-              </Field>
-            )}
-          </div>
+        {!editing && !phoneKeyConfigured && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Issue the permanent phone key first (unlock admin decryption key → Issue phone key), then
+            create subadmins.
+          </p>
         )}
 
         <div>
           <p className="mb-2 text-sm font-medium text-ink-700">Menu access</p>
           <p className="mb-3 text-xs text-ink-500">
             Grant a main menu to cover every submenu under it, or set each submenu individually.
-            Account deletion and Admins &amp; roles cannot be granted.
+            Read = view only. Read and write = view + actions. Never grantable: account
+            deletion, admins &amp; roles, wallets, bulk top-up. Subadmins also cannot delete
+            users or adjust balance even if Users is granted.
           </p>
           <div className="max-h-80 space-y-4 overflow-y-auto rounded-lg border border-ink-200 p-3">
             {groups.map((group) => (
@@ -954,8 +893,7 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
                   >
                     <option value="">Main menu: off</option>
                     <option value="READ">Main menu: Read</option>
-                    <option value="WRITE">Main menu: Write</option>
-                    <option value="BOTH">Main menu: Both</option>
+                    <option value="WRITE">Main menu: Read and write</option>
                   </Select>
                 </div>
                 <ul className="space-y-1.5 pl-2">
@@ -974,8 +912,7 @@ function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
                         >
                           <option value="">Off</option>
                           <option value="READ">Read</option>
-                          <option value="WRITE">Write</option>
-                          <option value="BOTH">Both</option>
+                          <option value="WRITE">Read and write</option>
                         </Select>
                       </li>
                     ))}
@@ -994,6 +931,7 @@ function SubadminsTab() {
   const table = useTableState({}, { limit: 20 });
   const [editing, setEditing] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [issuedKey, setIssuedKey] = useState(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.subadmins(table.params),
@@ -1005,7 +943,26 @@ function SubadminsTab() {
     queryFn: () => rbacApi.menus(),
   });
 
+  const {
+    data: phoneKeyStatus,
+    refetch: refetchPhoneKey,
+  } = useQuery({
+    queryKey: qk.subadminPhoneKey,
+    queryFn: () => rbacApi.subadminPhoneKeyStatus(),
+  });
+
   const writable = can(P.ADMINS_WRITE);
+  const phoneKeyConfigured = Boolean(phoneKeyStatus?.configured);
+
+  const issueMutation = useApiMutation({
+    mutationFn: () => rbacApi.issueSubadminPhoneKey(),
+    successMessage: 'Permanent phone key issued',
+    invalidate: [['rbac', 'subadmins'], qk.subadminPhoneKey],
+    onSuccess: (result) => {
+      if (result?.phoneRevealKey) setIssuedKey(result.phoneRevealKey);
+      refetchPhoneKey();
+    },
+  });
 
   const columns = [
     {
@@ -1029,7 +986,8 @@ function SubadminsTab() {
           <div className="flex flex-wrap gap-1">
             {row.menuGrants.slice(0, 8).map((g) => (
               <Badge key={g.menuKey} tone="neutral">
-                {g.menuKey}:{g.access.toLowerCase()}
+                {g.menuKey}:
+                {g.access === 'READ' ? 'read' : 'read+write'}
               </Badge>
             ))}
             {row.menuGrants.length > 8 && (
@@ -1045,7 +1003,7 @@ function SubadminsTab() {
       header: 'Phone key',
       render: (row) =>
         row.hasPhoneRevealKey ? (
-          <Badge tone="success">issued</Badge>
+          <Badge tone="success">ready</Badge>
         ) : (
           <Badge tone="danger">missing</Badge>
         ),
@@ -1076,11 +1034,50 @@ function SubadminsTab() {
   return (
     <>
       <Card
-        title="Subadmins"
-        description="Restricted operators. Default menus: users (no email/phone until reveal), listener apps, active listeners, avatars, calls, moderation, blocks. Never delete account or adjust balance."
+        title="Permanent phone key"
+        description="One shared encrypted phone-only key for every subadmin. Used only to reveal listener phone numbers — never user (caller) phone/email, and never bank details. Store locally and hand the same key to all subadmins."
         actions={
           writable && (
-            <Button size="sm" onClick={() => setCreating(true)}>
+            <Button
+              size="sm"
+              variant={phoneKeyConfigured ? 'secondary' : 'primary'}
+              loading={issueMutation.isPending}
+              onClick={() => issueMutation.mutate()}
+            >
+              {phoneKeyConfigured ? 'Rotate phone key' : 'Issue phone key'}
+            </Button>
+          )
+        }
+      >
+        <div className="space-y-2 px-4 py-3 text-sm text-ink-700">
+          {issueMutation.error && <ErrorState error={issueMutation.error} compact />}
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Status:</span>
+            {phoneKeyConfigured ? (
+              <Badge tone="success">configured</Badge>
+            ) : (
+              <Badge tone="danger">not issued</Badge>
+            )}
+            {phoneKeyStatus?.issuedAt && (
+              <span className="text-xs text-ink-500">
+                Last issued {fmtDateTime(phoneKeyStatus.issuedAt)}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-ink-500">
+            Unlock the permanent decryption key in the console first (same as admin Reveal phone
+            &amp; bank), then issue. Shown once — copy and store locally. Subadmins use it on
+            listener applications only.
+          </p>
+        </div>
+      </Card>
+
+      <Card
+        title="Subadmins"
+        description="Restricted operators. Default menus: users (no email/phone until reveal), listener apps, active listeners, avatars, calls, moderation, blocks. Never: delete user, adjust balance, wallets, or bulk top-up."
+        actions={
+          writable && (
+            <Button size="sm" onClick={() => setCreating(true)} disabled={!phoneKeyConfigured}>
               <UserPlus className="size-4" />
               New subadmin
             </Button>
@@ -1104,10 +1101,38 @@ function SubadminsTab() {
         />
       </Card>
 
+      {issuedKey && (
+        <Modal
+          open
+          onClose={() => setIssuedKey(null)}
+          title="Permanent subadmin phone key"
+          description="Store this locally and give the same key to every subadmin. Shown once — cannot retrieve later. Not the permanent admin master key."
+          footer={<Button onClick={() => setIssuedKey(null)}>Done</Button>}
+        >
+          <div className="space-y-3">
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Listener phone only. User (caller) phone/email stay hidden. Bank / payout reveal stays
+              blocked even with this key.
+            </p>
+            <Field label="Shared phone-only decryption key">
+              <Input readOnly value={issuedKey} className="font-mono text-xs" />
+            </Field>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigator.clipboard?.writeText(issuedKey)}
+            >
+              Copy to clipboard
+            </Button>
+          </div>
+        </Modal>
+      )}
+
       {(editing || creating) && (
         <SubadminFormModal
           subadmin={editing}
           menusCatalogue={menusCatalogue}
+          phoneKeyConfigured={phoneKeyConfigured}
           onClose={() => {
             setEditing(null);
             setCreating(false);
