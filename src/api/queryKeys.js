@@ -81,8 +81,10 @@ export const qk = {
 
   permissions: ['rbac', 'permissions'],
   sections: ['rbac', 'sections'],
+  menus: ['rbac', 'menus'],
   roles: ['rbac', 'roles'],
   admins: (params) => ['rbac', 'admins', params],
+  subadmins: (params) => ['rbac', 'subadmins', params],
 
   config: ['config'],
   appSettings: ['config', 'app-settings'],

@@ -335,6 +335,7 @@ export const manualWeeklyPayoutsApi = {
 export const rbacApi = {
   permissions: () => get('/admin/permissions'),
   sections: () => get('/admin/sections'),
+  menus: () => get('/admin/menus'),
   roles: () => get('/admin/roles'),
   createRole: (body) => post('/admin/roles', body),
   updateRole: (id, body) => patch(`/admin/roles/${id}`, body),
@@ -342,6 +343,9 @@ export const rbacApi = {
   admins: (params) => get('/admin/admins', params),
   createAdmin: (body) => post('/admin/admins', body),
   updateAdmin: (id, body) => patch(`/admin/admins/${id}`, body),
+  subadmins: (params) => get('/admin/subadmins', params),
+  createSubadmin: (body) => post('/admin/subadmins', body),
+  updateSubadmin: (id, body) => patch(`/admin/subadmins/${id}`, body),
 };
 
 // --- System configuration ---------------------------------------------------

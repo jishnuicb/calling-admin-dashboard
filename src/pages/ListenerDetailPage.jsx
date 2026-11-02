@@ -444,7 +444,7 @@ export function ListenerDetailPage() {
     location.state?.from === '/active-listeners' ? '/active-listeners' : '/listeners';
   const backLabel =
     backTo === '/active-listeners' ? 'Back to active listeners' : 'Back to applications';
-  const { can } = useAuth();
+  const { can, isSubadmin } = useAuth();
   const [decision, setDecision] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
@@ -927,10 +927,14 @@ export function ListenerDetailPage() {
 
         <Card
           title="Payout details"
-          description="Bank fields and phone are masked by default. Enter the permanent decryption key to reveal. The key is never stored."
+          description={
+            isSubadmin
+              ? 'Bank details stay masked for subadmins. Application profile details above remain visible.'
+              : 'Bank fields and phone are masked by default. Enter the permanent decryption key to reveal. The key is never stored.'
+          }
           className="lg:col-span-2"
         >
-          {can(P.LISTENERS_APPROVE) && (
+          {can(P.LISTENERS_APPROVE) && !isSubadmin && (
             <div className="mb-4 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
               <p className="text-xs text-ink-600">
                 Server key status:{' '}
