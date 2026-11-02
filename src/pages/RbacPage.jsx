@@ -719,6 +719,405 @@ function PermissionsTab() {
   );
 }
 
+// --- Subadmins --------------------------------------------------------------
+
+function SubadminFormModal({ subadmin, menusCatalogue, onClose }) {
+  const editing = Boolean(subadmin);
+  const groups = menusCatalogue?.groups || [];
+  const defaultGrants = menusCatalogue?.defaultGrants || [];
+
+  const initialGrantMap = () => {
+    const map = {};
+    const source = editing ? subadmin.menuGrants || [] : defaultGrants;
+    source.forEach((g) => {
+      map[g.menuKey] = g.access;
+    });
+    return map;
+  };
+
+  const [form, setForm] = useState({
+    email: subadmin?.email || '',
+    name: subadmin?.name || '',
+    password: '',
+    status: subadmin?.status || 'ACTIVE',
+    masterDecryptionKey: '',
+    rotatePhoneKey: false,
+    grants: initialGrantMap(),
+  });
+  const [issuedKey, setIssuedKey] = useState(null);
+
+  const setGrant = (menuKey, accessOrOff) => {
+    setForm((current) => {
+      const next = { ...current.grants };
+      if (!accessOrOff) delete next[menuKey];
+      else next[menuKey] = accessOrOff;
+      return { ...current, grants: next };
+    });
+  };
+
+  const mutation = useApiMutation({
+    mutationFn: async () => {
+      const menuGrants = Object.entries(form.grants).map(([menuKey, access]) => ({
+        menuKey,
+        access,
+      }));
+      if (editing) {
+        const body = {
+          name: form.name.trim(),
+          status: form.status,
+          menuGrants,
+        };
+        if (form.password) body.password = form.password;
+        if (form.rotatePhoneKey) {
+          body.rotatePhoneKey = true;
+          body.masterDecryptionKey = form.masterDecryptionKey;
+        }
+        return rbacApi.updateSubadmin(subadmin.id, body);
+      }
+      return rbacApi.createSubadmin({
+        email: form.email.trim(),
+        password: form.password,
+        name: form.name.trim(),
+        masterDecryptionKey: form.masterDecryptionKey,
+        menuGrants,
+      });
+    },
+    successMessage: editing ? 'Subadmin updated' : 'Subadmin created',
+    invalidate: [['rbac', 'subadmins']],
+    onSuccess: (data) => {
+      if (data?.phoneRevealKey) setIssuedKey(data.phoneRevealKey);
+      else onClose();
+    },
+  });
+
+  const canSubmit = editing
+    ? Boolean(form.name.trim()) && Object.keys(form.grants).length > 0
+    : form.email.trim() &&
+      form.password &&
+      form.name.trim() &&
+      form.masterDecryptionKey.trim().length >= 16 &&
+      Object.keys(form.grants).length > 0;
+
+  if (issuedKey) {
+    return (
+      <Modal
+        open
+        onClose={onClose}
+        title="Phone reveal key issued"
+        description="Copy this key now. It is shown once and cannot be retrieved later. Subadmins use it only to reveal phone numbers — never bank details."
+        footer={
+          <Button onClick={onClose}>Done</Button>
+        }
+      >
+        <div className="space-y-3">
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Give this key to the subadmin securely. Losing it requires rotating with the master
+            decryption key.
+          </p>
+          <Field label="Phone reveal key">
+            <Input readOnly value={issuedKey} className="font-mono text-xs" />
+          </Field>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigator.clipboard?.writeText(issuedKey)}
+          >
+            Copy to clipboard
+          </Button>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="xl"
+      title={editing ? `Edit subadmin: ${subadmin.email}` : 'Create a subadmin'}
+      description="Subadmins are separate from full admins. Grant main menus or individual submenus as Read, Write, or Both. Delete account and Adjust balance are never available."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            loading={mutation.isPending}
+            disabled={!canSubmit}
+          >
+            {editing ? 'Save changes' : 'Create subadmin'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Email" required={!editing}>
+            <Input
+              type="email"
+              value={form.email}
+              disabled={editing}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+          </Field>
+          <Field label="Name" required>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </Field>
+        </div>
+
+        <Field
+          label={editing ? 'Reset password' : 'Password'}
+          required={!editing}
+          hint="10+ characters with upper, lower, digit and symbol."
+        >
+          <Input
+            type="password"
+            autoComplete="new-password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            placeholder={editing ? 'Leave blank to keep current' : ''}
+          />
+        </Field>
+
+        {editing && (
+          <Field label="Status">
+            <Select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="DISABLED">Disabled</option>
+            </Select>
+          </Field>
+        )}
+
+        {!editing && (
+          <Field
+            label="Master decryption key"
+            required
+            hint="Verified then encrypted into a phone-only key for this subadmin. They cannot reverse it to the master key or open bank details."
+          >
+            <Input
+              type="password"
+              autoComplete="off"
+              value={form.masterDecryptionKey}
+              onChange={(e) => setForm({ ...form, masterDecryptionKey: e.target.value })}
+              placeholder="Permanent decryption key"
+            />
+          </Field>
+        )}
+
+        {editing && (
+          <div className="space-y-3 rounded-lg border border-ink-200 bg-ink-50/60 px-3.5 py-3">
+            <Checkbox
+              checked={form.rotatePhoneKey}
+              onChange={(v) => setForm({ ...form, rotatePhoneKey: v })}
+              label="Rotate phone reveal key"
+              description="Issues a new phone-only key. Requires the master decryption key."
+            />
+            {form.rotatePhoneKey && (
+              <Field label="Master decryption key" required>
+                <Input
+                  type="password"
+                  autoComplete="off"
+                  value={form.masterDecryptionKey}
+                  onChange={(e) => setForm({ ...form, masterDecryptionKey: e.target.value })}
+                />
+              </Field>
+            )}
+          </div>
+        )}
+
+        <div>
+          <p className="mb-2 text-sm font-medium text-ink-700">Menu access</p>
+          <p className="mb-3 text-xs text-ink-500">
+            Grant a main menu to cover every submenu under it, or set each submenu individually.
+            Account deletion and Admins &amp; roles cannot be granted.
+          </p>
+          <div className="max-h-80 space-y-4 overflow-y-auto rounded-lg border border-ink-200 p-3">
+            {groups.map((group) => (
+              <div key={group.key}>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">
+                    {group.label}
+                  </span>
+                  <Select
+                    className="w-auto"
+                    value={form.grants[group.key] || ''}
+                    onChange={(e) => setGrant(group.key, e.target.value || null)}
+                  >
+                    <option value="">Main menu: off</option>
+                    <option value="READ">Main menu: Read</option>
+                    <option value="WRITE">Main menu: Write</option>
+                    <option value="BOTH">Main menu: Both</option>
+                  </Select>
+                </div>
+                <ul className="space-y-1.5 pl-2">
+                  {(group.children || [])
+                    .filter((leaf) => !leaf.deniedForSubadmin)
+                    .map((leaf) => (
+                      <li
+                        key={leaf.key}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-ink-50 px-2.5 py-1.5"
+                      >
+                        <span className="text-sm text-ink-800">{leaf.label}</span>
+                        <Select
+                          className="w-auto"
+                          value={form.grants[leaf.key] || ''}
+                          onChange={(e) => setGrant(leaf.key, e.target.value || null)}
+                        >
+                          <option value="">Off</option>
+                          <option value="READ">Read</option>
+                          <option value="WRITE">Write</option>
+                          <option value="BOTH">Both</option>
+                        </Select>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function SubadminsTab() {
+  const { can } = useAuth();
+  const table = useTableState({}, { limit: 20 });
+  const [editing, setEditing] = useState(null);
+  const [creating, setCreating] = useState(false);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: qk.subadmins(table.params),
+    queryFn: () => rbacApi.subadmins(table.params),
+  });
+
+  const { data: menusCatalogue } = useQuery({
+    queryKey: qk.menus,
+    queryFn: () => rbacApi.menus(),
+  });
+
+  const writable = can(P.ADMINS_WRITE);
+
+  const columns = [
+    {
+      key: 'email',
+      header: 'Subadmin',
+      render: (row) => (
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-medium text-ink-900">{row.name}</span>
+            <Badge tone="info">subadmin</Badge>
+          </div>
+          <p className="truncate text-xs text-ink-500">{row.email}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'menus',
+      header: 'Menus',
+      render: (row) =>
+        (row.menuGrants || []).length ? (
+          <div className="flex flex-wrap gap-1">
+            {row.menuGrants.slice(0, 8).map((g) => (
+              <Badge key={g.menuKey} tone="neutral">
+                {g.menuKey}:{g.access.toLowerCase()}
+              </Badge>
+            ))}
+            {row.menuGrants.length > 8 && (
+              <Badge tone="neutral">+{row.menuGrants.length - 8}</Badge>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-ink-400">None</span>
+        ),
+    },
+    {
+      key: 'phoneKey',
+      header: 'Phone key',
+      render: (row) =>
+        row.hasPhoneRevealKey ? (
+          <Badge tone="success">issued</Badge>
+        ) : (
+          <Badge tone="danger">missing</Badge>
+        ),
+    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'lastLoginAt',
+      header: 'Last login',
+      render: (row) => (
+        <span className="text-xs text-ink-600">
+          {row.lastLoginAt ? fmtDateTime(row.lastLoginAt) : 'Never'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (row) =>
+        writable && (
+          <Button size="sm" variant="ghost" onClick={() => setEditing(row)}>
+            Edit
+          </Button>
+        ),
+    },
+  ];
+
+  return (
+    <>
+      <Card
+        title="Subadmins"
+        description="Restricted operators. Default menus: users (no email/phone until reveal), listener apps, active listeners, avatars, calls, moderation, blocks. Never delete account or adjust balance."
+        actions={
+          writable && (
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <UserPlus className="size-4" />
+              New subadmin
+            </Button>
+          )
+        }
+        bodyClassName=""
+      >
+        <DataTable
+          columns={columns}
+          rows={data?.data}
+          loading={isLoading}
+          error={error}
+          onRetry={refetch}
+          emptyIcon={ShieldCheck}
+          emptyTitle="No subadmins"
+        />
+        <Pagination
+          meta={data?.meta}
+          onPageChange={table.setPage}
+          onLimitChange={table.changeLimit}
+        />
+      </Card>
+
+      {(editing || creating) && (
+        <SubadminFormModal
+          subadmin={editing}
+          menusCatalogue={menusCatalogue}
+          onClose={() => {
+            setEditing(null);
+            setCreating(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 export function RbacPage() {
   const [tab, setTab] = useState('admins');
 
@@ -732,6 +1131,7 @@ export function RbacPage() {
       <Tabs
         tabs={[
           { id: 'admins', label: 'Admin users' },
+          { id: 'subadmins', label: 'Subadmins' },
           { id: 'roles', label: 'Roles' },
           { id: 'permissions', label: 'Permission catalogue' },
         ]}
@@ -740,6 +1140,7 @@ export function RbacPage() {
       />
 
       {tab === 'admins' && <AdminsTab />}
+      {tab === 'subadmins' && <SubadminsTab />}
       {tab === 'roles' && <RolesTab />}
       {tab === 'permissions' && <PermissionsTab />}
     </>

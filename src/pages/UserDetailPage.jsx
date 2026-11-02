@@ -333,7 +333,7 @@ export function UserDetailPage() {
   const location = useLocation();
   const backTo = location.state?.from === '/pending-users' ? '/pending-users' : '/users';
   const backLabel = backTo === '/pending-users' ? 'Back to pending users' : 'Back to users';
-  const { can } = useAuth();
+  const { can, canDeleteUsers, canAdjustWallet, hidesUserContact, isSubadmin } = useAuth();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -432,7 +432,11 @@ export function UserDetailPage() {
             {user.name || 'Unnamed user'}
           </span>
         }
-        description={[view.mobile, view.email].filter(Boolean).join(' · ') || '—'}
+        description={
+          hidesUserContact
+            ? user.publicId || '—'
+            : [view.mobile, view.email].filter(Boolean).join(' · ') || '—'
+        }
         actions={
           <>
             {can(P.NOTIFICATIONS_SEND) && (
@@ -447,7 +451,7 @@ export function UserDetailPage() {
                 Wallet &amp; ledger
               </Button>
             )}
-            {can(P.WALLET_ADJUST) && (
+            {canAdjustWallet && (
               <Button variant="secondary" onClick={() => setAdjustOpen(true)}>
                 Adjust balance
               </Button>
@@ -470,7 +474,7 @@ export function UserDetailPage() {
                 )}
               </Button>
             )}
-            {can(P.USERS_DELETE) && user.status !== 'DELETED' && (
+            {canDeleteUsers && user.status !== 'DELETED' && (
               <Button variant="danger" onClick={() => setDeleteOpen(true)}>
                 <Trash2 className="size-4" />
                 Delete account
@@ -484,17 +488,30 @@ export function UserDetailPage() {
         {can(P.USERS_READ) && (
           <Card
             title="Phone number"
-            description="Masked by default (country code + last 2 digits). Enter the permanent decryption key to reveal."
+            description={
+              isSubadmin
+                ? 'Hidden by default. Enter your subadmin phone reveal key (not the master key). Bank details stay locked.'
+                : 'Masked by default (country code + last 2 digits). Enter the permanent decryption key to reveal.'
+            }
             className="lg:col-span-3"
           >
             <div className="mb-3 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
-              <Field label="Permanent decryption key" hint="Same key as listener bank reveal. Never stored.">
+              <Field
+                label={isSubadmin ? 'Phone reveal key' : 'Permanent decryption key'}
+                hint={
+                  isSubadmin
+                    ? 'Issued when your subadmin account was created. Cannot unlock bank details.'
+                    : 'Same key as listener bank reveal. Never stored.'
+                }
+              >
                 <Input
                   type="password"
                   autoComplete="off"
                   value={decryptKey}
                   onChange={(e) => setDecryptKey(e.target.value)}
-                  placeholder="Enter permanent decryption key"
+                  placeholder={
+                    isSubadmin ? 'Enter phone reveal key' : 'Enter permanent decryption key'
+                  }
                 />
               </Field>
               <div className="flex flex-wrap gap-2">
@@ -609,8 +626,13 @@ export function UserDetailPage() {
                 label: 'Mobile verified',
                 value: user.mobileVerified ? 'Verified' : 'Not verified',
               },
-              { label: 'Mobile', value: view.mobile },
-              { label: 'Email', value: view.email || '—' },
+              {
+                label: 'Mobile',
+                value: hidesUserContact && !revealedUser ? 'Hidden' : view.mobile || '—',
+              },
+              ...(hidesUserContact
+                ? []
+                : [{ label: 'Email', value: view.email || '—' }]),
               {
                 label: 'Linked sign-in',
                 value: [

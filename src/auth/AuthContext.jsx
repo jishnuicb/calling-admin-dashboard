@@ -158,13 +158,22 @@ export function AuthProvider({ children }) {
       return list.some((key) => sections.has(key));
     };
 
+    const isSubadmin = admin?.accountKind === 'SUBADMIN';
+
     return {
       admin,
       status,
       isAuthenticated: status === 'authenticated',
       isSuperAdmin,
+      isSubadmin,
+      /** Subadmins never delete accounts or adjust wallet balances. */
+      canDeleteUsers: !isSubadmin && (isSuperAdmin || permissions.has('users:delete')),
+      canAdjustWallet: !isSubadmin && (isSuperAdmin || permissions.has('wallet:adjust')),
+      /** Subadmins never see user email; phone only after phone-reveal key. */
+      hidesUserContact: isSubadmin,
       permissions,
       sections,
+      menuGrants: admin?.menuGrants || [],
       expiryNotice,
       can,
       canSection,

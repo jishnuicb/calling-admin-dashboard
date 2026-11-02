@@ -141,10 +141,10 @@ function WeeklySettingsCard() {
             />
           </Field>
           <Field
-            label={isListener ? 'Reward (paise)' : 'Reward tokens'}
+            label={isListener ? 'Reward (₹)' : 'Reward tokens'}
             hint={
               isListener
-                ? 'Credited to listener earnings (same payout pool as call pay). 100 paise = ₹1.'
+                ? 'Rupees credited to listener earnings (stored as paise). Example: 100 = ₹100.'
                 : 'Credited as tokens to the user wallet.'
             }
           >
@@ -203,7 +203,7 @@ function WeeklySettingsCard() {
   return (
     <Card
       title="Weekly bonus settings"
-      description="Set start date (end auto = +7 days). Cron awards after period end, then rolls the start forward. Users get tokens; listeners get paise earnings."
+      description="Set start date (end auto = +7 days). Cron awards after period end, then rolls the start forward. Users get tokens; listeners get ₹ earnings."
     >
       {error && <ErrorState error={error} onRetry={refetch} compact />}
       {isLoading && !data ? (
@@ -387,10 +387,15 @@ function WeeklyRunsTab() {
     },
     {
       key: 'tokensAwarded',
-      header: 'Tokens awarded',
+      header: 'Awarded',
       align: 'right',
       render: (row) => (
-        <span className="font-medium text-emerald-700">{fmtTokens(row.tokensAwarded)}</span>
+        <span className="font-medium text-emerald-700">
+          {row.audience === 'LISTENER'
+            ? // Run totals are summed in paise; display ₹ for listeners.
+              `₹${fmtNumber(Number((Number(row.tokensAwarded || 0) / 100).toFixed(2)))}`
+            : fmtTokens(row.tokensAwarded)}
+        </span>
       ),
     },
     {
@@ -522,12 +527,13 @@ function AwardsModal({ run, onClose }) {
     },
     {
       key: 'tokens',
-      header: run.audience === 'LISTENER' ? 'Paise' : 'Tokens',
+      header: run.audience === 'LISTENER' ? '₹' : 'Tokens',
       align: 'right',
       render: (row) => (
         <span className="font-medium text-emerald-700">
           {run.audience === 'LISTENER'
-            ? fmtNumber(row.tokensAwarded)
+            ? // Awards are stored as paise; show rupees (covers past + new credits).
+              fmtNumber(Number((Number(row.tokensAwarded || 0) / 100).toFixed(2)))
             : fmtTokens(row.tokensAwarded)}
         </span>
       ),
@@ -578,7 +584,7 @@ export function BonusesPage() {
     <>
       <PageHeader
         title="Bonuses"
-        description="Weekly talk-time rewards: users earn tokens, listeners earn paise into their earnings. Set period start (end auto +7 days); cron awards after the period ends."
+        description="Weekly talk-time rewards: users earn tokens, listeners earn rupees into their earnings. Set period start (end auto +7 days); cron awards after the period ends."
       />
       <WeeklyRunsTab />
     </>

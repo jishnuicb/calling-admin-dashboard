@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
 import { usersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
+import { useAuth } from '../auth/AuthContext';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import { Badge, Card, Field, PageHeader, SearchInput, Select, StatusBadge } from '../components/ui';
 import { useTableState } from '../hooks/useTableState';
@@ -13,6 +14,7 @@ import { fmtDateTime, fmtNumber, fmtRelative, fmtTokens } from '../lib/format';
  */
 export function UsersPage({ variant = 'all' }) {
   const navigate = useNavigate();
+  const { hidesUserContact } = useAuth();
   const isPendingOtp = variant === 'pendingOtp';
 
   const table = useTableState({
@@ -62,8 +64,10 @@ export function UsersPage({ variant = 'all' }) {
           )}
           <div className="min-w-0">
             <p className="truncate font-medium text-ink-900">{row.name || 'Unnamed'}</p>
-            <p className="truncate text-xs text-ink-500 tabular">{row.mobile || '—'}</p>
-            {row.email ? (
+            {!hidesUserContact && (
+              <p className="truncate text-xs text-ink-500 tabular">{row.mobile || '—'}</p>
+            )}
+            {!hidesUserContact && row.email ? (
               <p className="truncate text-xs text-ink-500">{row.email}</p>
             ) : null}
             {row.publicId && (
