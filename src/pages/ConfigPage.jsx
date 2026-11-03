@@ -127,6 +127,52 @@ const CONFIG_META = {
     note: 'How long that decoy stays out of the list before coming back with a new identity. Default 60.',
     group: 'Discovery',
   },
+  'cardGuess.enabled': {
+    label: 'Card Guess mini-game enabled',
+    note: 'When off, all Card Guess APIs/sockets return disabled and calls are completely unaffected. Off by default.',
+    group: 'Card Guess',
+  },
+  'cardGuess.deck': {
+    label: 'Card deck',
+    note: 'JSON array of card labels used when dealing a round. Example: ["A","2","3","4","5","6","7","8","9","10","J","Q","K"].',
+    group: 'Card Guess',
+  },
+  'cardGuess.cardsPerRound': {
+    label: 'Cards per round',
+    note: 'How many cards are dealt each round (default 3). Min 1, max 13 (capped by deck size).',
+    group: 'Card Guess',
+  },
+  'cardGuess.score.correct3': {
+    label: 'Points for 3 correct positions',
+    note: 'Awarded to the call’s listener when the guesser gets all positions right. Default 10.',
+    group: 'Card Guess',
+  },
+  'cardGuess.score.correct2': {
+    label: 'Points for 2 correct positions',
+    note: 'Default 5.',
+    group: 'Card Guess',
+  },
+  'cardGuess.score.correct1': {
+    label: 'Points for 1 correct position',
+    note: 'Default 1.',
+    group: 'Card Guess',
+  },
+  'cardGuess.score.correct0': {
+    label: 'Points for 0 correct positions',
+    note: 'Default 0.',
+    group: 'Card Guess',
+  },
+  'cardGuess.pairCooldownMinutes': {
+    label: 'Pair cooldown',
+    unit: 'minutes',
+    note: 'After a completed round, the same listener+caller pair must wait this long before starting again. Other partners are unaffected. Default 10. Set 0 to disable.',
+    group: 'Card Guess',
+  },
+  'cardGuess.starterShuffleAllowed': {
+    label: 'Allow starter shuffle',
+    note: 'When on, the starter may shuffle the dealt cards before locking the pattern. Default on.',
+    group: 'Card Guess',
+  },
   'bonus.welcome.enabled': {
     label: 'Welcome bonus enabled',
     note: 'Grants tokens once per user on first verification. Idempotent, so it cannot be claimed twice.',
