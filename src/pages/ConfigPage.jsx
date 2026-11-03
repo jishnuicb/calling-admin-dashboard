@@ -258,6 +258,12 @@ const CONFIG_META = {
     note: 'Total notify-caller pushes one listener may send to any callers in one UTC calendar day. Default 10. Min 1, max 500.',
     group: 'Listener notify',
   },
+  'listener.knownLanguageCalls.cooldownMinutes': {
+    label: 'Known-language calls toggle cooldown',
+    unit: 'minutes',
+    note: 'After a host turns “known language calls only” on or off, they must wait this many minutes before toggling again. Default 10. Set 0 to disable the cooldown. Max 1440 (24h).',
+    group: 'Listener host',
+  },
   'listener.onlinePing.enabled': {
     label: 'Listener online ping enabled',
     note: 'Hybrid: socket-connected online listeners use continuous websocket time (no FCM). Online + no socket get FCM pings; ACK credits min(interval, time since last credited end). Missed ACKs credit nothing.',
