@@ -31,6 +31,7 @@ import {
   Landmark,
   Scale,
   GalleryHorizontal,
+  Spade,
   Users,
   UserCheck,
   UserRoundSearch,
@@ -127,6 +128,7 @@ const NAV_SECTIONS = [
     title: 'Activity',
     items: [
       { to: '/calls', label: 'Calls', icon: PhoneCall, permission: P.CALLS_READ },
+      { to: '/card-guess', label: 'Card Guess', icon: Spade, permission: P.CARD_GUESS_READ },
       { to: '/crashes', label: 'App crashes', icon: Bug, permission: P.CRASHES_READ },
       { to: '/moderation', label: 'Moderation', icon: Flag, permission: P.MODERATION_READ },
       { to: '/listener-blocks', label: 'Listener blocks', icon: Ban, permission: P.BLOCKS_READ },

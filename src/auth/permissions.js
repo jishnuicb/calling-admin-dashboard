@@ -47,6 +47,9 @@ export const P = {
   CALLS_READ: 'calls:read',
   CALLS_TERMINATE: 'calls:terminate',
 
+  CARD_GUESS_READ: 'cardGuess:read',
+  CARD_GUESS_WRITE: 'cardGuess:write',
+
   CRASHES_READ: 'crashes:read',
 
   MODERATION_READ: 'moderation:read',

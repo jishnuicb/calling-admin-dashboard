@@ -27,6 +27,7 @@ import { EarningsPage } from './pages/EarningsPage';
 import { PayoutsPage } from './pages/PayoutsPage';
 import { CallsPage } from './pages/CallsPage';
 import { CallDetailPage } from './pages/CallDetailPage';
+import { CardGuessPage } from './pages/CardGuessPage';
 import { AppCrashesPage } from './pages/AppCrashesPage';
 import { ModerationPage } from './pages/ModerationPage';
 import { ModerationDetailPage } from './pages/ModerationDetailPage';
@@ -180,6 +181,10 @@ export function App() {
 
         <Route path="calls" element={guard(S.ACTIVITY, P.CALLS_READ, <CallsPage />)} />
         <Route path="calls/:id" element={guard(S.ACTIVITY, P.CALLS_READ, <CallDetailPage />)} />
+        <Route
+          path="card-guess"
+          element={guard(S.ACTIVITY, P.CARD_GUESS_READ, <CardGuessPage />)}
+        />
         <Route path="crashes" element={guard(S.ACTIVITY, P.CRASHES_READ, <AppCrashesPage />)} />
 
         <Route path="moderation" element={guard(S.ACTIVITY, P.MODERATION_READ, <ModerationPage />)} />

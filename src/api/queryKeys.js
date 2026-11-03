@@ -50,6 +50,11 @@ export const qk = {
   calls: (params) => ['calls', 'list', params],
   call: (id) => ['calls', 'detail', id],
 
+  cardGuessSettings: ['card-guess', 'settings'],
+  cardGuessRounds: (params) => ['card-guess', 'rounds', params],
+  cardGuessLeaderboard: (params) => ['card-guess', 'leaderboard', params],
+  cardGuessWeeklyLeaderboard: (params) => ['card-guess', 'leaderboard', 'weekly', params],
+
   moderation: (params) => ['moderation', 'list', params],
   report: (id) => ['moderation', 'detail', id],
 

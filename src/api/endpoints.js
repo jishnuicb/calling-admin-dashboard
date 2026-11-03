@@ -290,6 +290,16 @@ export const notificationsApi = {
   history: (params) => get('/admin/notifications/history', params),
 };
 
+// --- Card Guess -------------------------------------------------------------
+
+export const cardGuessApi = {
+  settings: () => get('/admin/card-guess/settings'),
+  updateSettings: (body) => put('/admin/card-guess/settings', body),
+  rounds: (params) => get('/admin/card-guess/rounds', params),
+  leaderboard: (params) => get('/admin/card-guess/leaderboard', params),
+  weeklyLeaderboard: (params) => get('/admin/card-guess/leaderboard/weekly', params),
+};
+
 // --- Bonuses ----------------------------------------------------------------
 
 export const bonusesApi = {
