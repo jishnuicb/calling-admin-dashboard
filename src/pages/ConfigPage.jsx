@@ -190,6 +190,13 @@ const CONFIG_META = {
       'When on (and welcome bonus enabled), Google/Apple sign-in users get the welcome bonus once per identity. Off by default. Delete + re-signup cannot claim again.',
     group: 'Bonuses',
   },
+  'bonus.welcome.socialTokens': {
+    label: 'Welcome bonus amount (Google / Apple)',
+    unit: 'tokens',
+    note:
+      'Token amount for Google/Apple welcome bonus only. Independent of mobile OTP welcome amount (bonus.welcome.tokens). Default 50.',
+    group: 'Bonuses',
+  },
   'bonus.weekly.enabled': {
     label: 'User weekly bonus enabled',
     note: 'Caller talk-time weekly bonus. Prefer Bonuses → Weekly settings for edits.',
