@@ -74,6 +74,7 @@ export const qk = {
   referralBonusSettings: ['referrals', 'bonus-settings'],
   referralReport: (params) => ['referrals', 'reports', 'referrals', params],
   weeklyIncentiveReport: (params) => ['referrals', 'reports', 'weekly-incentives', params],
+  incentives: (params) => ['referrals', 'incentives', params],
 
   bulkTopupSettings: ['bulk-topup', 'settings'],
   bulkTopupRuns: (params) => ['bulk-topup', 'runs', params],

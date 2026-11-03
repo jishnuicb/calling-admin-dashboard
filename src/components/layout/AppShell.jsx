@@ -129,6 +129,16 @@ const NAV_SECTIONS = [
         permission: P.REFERRALS_READ,
       },
       {
+        label: 'Incentives',
+        icon: IndianRupee,
+        permission: P.REFERRALS_READ,
+        children: [
+          { to: '/incentives', label: 'Incentive', end: true },
+          { to: '/incentives/weekly', label: 'Weekly Incentive' },
+          { to: '/incentives/reports', label: 'Report' },
+        ],
+      },
+      {
         to: '/bulk-topup',
         label: 'Bulk top-up',
         icon: Wallet,
@@ -205,6 +215,7 @@ function NavItem({ item, onNavigate }) {
               <li key={child.to}>
                 <NavLink
                   to={child.to}
+                  end={Boolean(child.end)}
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     clsx(

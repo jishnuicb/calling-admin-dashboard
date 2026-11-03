@@ -38,6 +38,11 @@ import { BonusesPage } from './pages/BonusesPage';
 import { ReferralsPage } from './pages/ReferralsPage';
 import { ReferralBonusPage } from './pages/ReferralBonusPage';
 import { ReferralReportsPage } from './pages/ReferralReportsPage';
+import {
+  IncentivesPage,
+  WeeklyIncentivesPage,
+  IncentiveReportsPage,
+} from './pages/IncentivesPages';
 import { BulkTopupPage } from './pages/BulkTopupPage';
 import { ManualWeeklyPayoutsPage } from './pages/ManualWeeklyPayoutsPage';
 import { RbacPage } from './pages/RbacPage';
@@ -185,6 +190,15 @@ export function App() {
         <Route
           path="referral-reports"
           element={guard(S.MONEY, P.REFERRALS_READ, <ReferralReportsPage />)}
+        />
+        <Route path="incentives" element={guard(S.MONEY, P.REFERRALS_READ, <IncentivesPage />)} />
+        <Route
+          path="incentives/weekly"
+          element={guard(S.MONEY, P.REFERRALS_READ, <WeeklyIncentivesPage />)}
+        />
+        <Route
+          path="incentives/reports"
+          element={guard(S.MONEY, P.REFERRALS_READ, <IncentiveReportsPage />)}
         />
         <Route
           path="bulk-topup"

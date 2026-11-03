@@ -326,6 +326,17 @@ export const referralsApi = {
   updateBonusSettings: (body) => put('/admin/referrals/bonus-settings', body),
   referralReport: (params) => get('/admin/referrals/reports/referrals', params),
   weeklyIncentiveReport: (params) => get('/admin/referrals/reports/weekly-incentives', params),
+  incentives: (params) => get('/admin/referrals/incentives', params),
+  exportReferralReport: (params) =>
+    downloadCsv('/admin/referrals/reports/referrals', params, 'referral-report.csv'),
+  exportWeeklyIncentiveReport: (params) =>
+    downloadCsv(
+      '/admin/referrals/reports/weekly-incentives',
+      params,
+      'weekly-incentive-report.csv',
+    ),
+  exportIncentives: (params) =>
+    downloadCsv('/admin/referrals/incentives', params, 'incentives-report.csv'),
 };
 
 // --- Bulk wallet top-up -----------------------------------------------------
