@@ -336,6 +336,7 @@ function ReferralDetailModal({ referralId, onClose }) {
   const [editForm, setEditForm] = useState(null);
   const [stopReason, setStopReason] = useState('');
   const [stopWeeks, setStopWeeks] = useState(true);
+  const [resumeWeeks, setResumeWeeks] = useState(true);
   const [addWeeksDraft, setAddWeeksDraft] = useState('');
   const [addWeeksAmount, setAddWeeksAmount] = useState('');
   const [editWeek, setEditWeek] = useState(null);
@@ -382,6 +383,12 @@ function ReferralDetailModal({ referralId, onClose }) {
     invalidate: [['referrals']],
   });
 
+  const resume = useApiMutation({
+    mutationFn: (body) => referralsApi.resume(referralId, body),
+    successMessage: 'Referral resumed',
+    invalidate: [['referrals']],
+  });
+
   const addWeeks = useApiMutation({
     mutationFn: (body) => referralsApi.addIncentiveWeeks(referralId, body),
     successMessage: 'Incentive weeks added',
@@ -414,8 +421,11 @@ function ReferralDetailModal({ referralId, onClose }) {
         {error && <ErrorState error={error} onRetry={refetch} />}
         {data && form && (
           <div className="space-y-5">
-            {(update.error || stop.error || addWeeks.error) && (
-              <ErrorState error={update.error || stop.error || addWeeks.error} compact />
+            {(update.error || stop.error || resume.error || addWeeks.error) && (
+              <ErrorState
+                error={update.error || stop.error || resume.error || addWeeks.error}
+                compact
+              />
             )}
 
             <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
@@ -533,7 +543,7 @@ function ReferralDetailModal({ referralId, onClose }) {
                   variant="danger"
                   loading={stop.isPending}
                   onClick={() => {
-                    if (!window.confirm('Stop this referral? This cannot be undone from here.')) {
+                    if (!window.confirm('Stop this referral? You can resume it later.')) {
                       return;
                     }
                     stop.mutate({
@@ -543,6 +553,30 @@ function ReferralDetailModal({ referralId, onClose }) {
                   }}
                 >
                   Stop referral
+                </Button>
+              </div>
+            )}
+
+            {writable && data.status === 'STOPPED' && (
+              <div className="space-y-3 rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
+                <p className="text-sm font-semibold text-ink-900">Resume referral</p>
+                <p className="text-xs text-ink-600">
+                  Sets the referral back to ACTIVE so its weeks can count in Weekly bank payouts
+                  again.
+                </p>
+                <Toggle
+                  checked={resumeWeeks}
+                  onChange={setResumeWeeks}
+                  label="Also resume STOPPED incentive weeks"
+                />
+                <Button
+                  size="sm"
+                  loading={resume.isPending}
+                  onClick={() => {
+                    resume.mutate({ resumeWeeks });
+                  }}
+                >
+                  Resume referral
                 </Button>
               </div>
             )}

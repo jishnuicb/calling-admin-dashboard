@@ -318,6 +318,7 @@ export const referralsApi = {
   get: (id) => get(`/admin/referrals/${id}`),
   update: (id, body) => patch(`/admin/referrals/${id}`, body),
   stop: (id, body) => post(`/admin/referrals/${id}/stop`, body),
+  resume: (id, body) => post(`/admin/referrals/${id}/resume`, body),
   addIncentiveWeeks: (id, body) => post(`/admin/referrals/${id}/incentive-weeks`, body),
   updateIncentiveWeek: (id, weekId, body) =>
     patch(`/admin/referrals/${id}/incentive-weeks/${weekId}`, body),
