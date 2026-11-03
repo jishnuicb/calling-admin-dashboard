@@ -12,6 +12,7 @@ import {
   CreditCard,
   Flag,
   Gift,
+  Handshake,
   KeyRound,
   Languages,
   ImagePlus,
@@ -114,6 +115,19 @@ const NAV_SECTIONS = [
         permission: P.PAYOUTS_READ,
       },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
+      { to: '/referrals', label: 'Referrals', icon: Handshake, permission: P.REFERRALS_READ },
+      {
+        to: '/referral-bonus',
+        label: 'Referral Bonus',
+        icon: Gift,
+        permission: P.REFERRALS_READ,
+      },
+      {
+        to: '/referral-reports',
+        label: 'Referral Report',
+        icon: ClipboardList,
+        permission: P.REFERRALS_READ,
+      },
       {
         to: '/bulk-topup',
         label: 'Bulk top-up',

@@ -68,6 +68,9 @@ export const P = {
   BONUSES_READ: 'bonuses:read',
   BONUSES_WRITE: 'bonuses:write',
 
+  REFERRALS_READ: 'referrals:read',
+  REFERRALS_WRITE: 'referrals:write',
+
   CONFIG_READ: 'config:read',
   CONFIG_WRITE: 'config:write',
 

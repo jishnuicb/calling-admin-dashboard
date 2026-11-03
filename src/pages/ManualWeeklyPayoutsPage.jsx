@@ -298,6 +298,13 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
               <p className="font-medium">{fmtPaise(data.extraAmountPaise)}</p>
             </div>
             <div>
+              <p className="text-xs text-ink-500">Incentive</p>
+              <p className="font-medium">{fmtPaise(data.incentiveAmountPaise)}</p>
+              {data.incentiveCount != null && (
+                <p className="text-[11px] text-ink-500">{data.incentiveCount} incentives</p>
+              )}
+            </div>
+            <div>
               <p className="text-xs text-ink-500">Total</p>
               <p className="font-semibold">{fmtPaise(data.totalAmountPaise)}</p>
             </div>
@@ -400,6 +407,34 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
               ))}
             </ul>
           </div>
+
+          {Array.isArray(data.incentives) && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase text-ink-500">
+                Incentives included ({data.incentives.length})
+              </p>
+              <ul className="max-h-36 space-y-1 overflow-y-auto text-xs">
+                {data.incentives.length === 0 && (
+                  <li className="text-ink-500">No referral incentives this week.</li>
+                )}
+                {data.incentives.map((e) => (
+                  <li
+                    key={e.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded bg-ink-50 px-2 py-1.5"
+                  >
+                    <span className="font-mono">{shortId(e.id || e.referralId)}</span>
+                    {e.status && <StatusBadge status={e.status} />}
+                    <span className="text-ink-500">
+                      {e.weekStartDate
+                        ? `${e.weekStartDate}${e.weekEndDate ? ` → ${e.weekEndDate}` : ''}`
+                        : e.referred?.displayName || e.referred?.name || 'REFERRAL_INCENTIVE'}
+                    </span>
+                    <span className="font-medium">{fmtPaise(e.amountPaise)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </Modal>
@@ -669,6 +704,12 @@ function WeekSheetTab() {
       render: (row) => fmtPaise(row.extraAmountPaise),
     },
     {
+      key: 'incentive',
+      header: 'Incentive',
+      align: 'right',
+      render: (row) => fmtPaise(row.incentiveAmountPaise),
+    },
+    {
       key: 'total',
       header: 'Total',
       align: 'right',
@@ -817,6 +858,12 @@ function WeekSheetTab() {
               <p className="text-xs text-ink-500">Extra total</p>
               <p className="font-medium">{fmtPaise(summary.totalExtraAmountPaise)}</p>
             </div>
+            {summary.totalIncentiveAmountPaise != null && (
+              <div>
+                <p className="text-xs text-ink-500">Incentive total</p>
+                <p className="font-medium">{fmtPaise(summary.totalIncentiveAmountPaise)}</p>
+              </div>
+            )}
             <div>
               <p className="text-xs text-ink-500">Grand total</p>
               <p className="font-semibold">{fmtPaise(summary.totalAmountPaise)}</p>
@@ -967,6 +1014,12 @@ function HistoryTab() {
       header: 'Extra',
       align: 'right',
       render: (row) => fmtPaise(row.extraAmountPaise),
+    },
+    {
+      key: 'incentive',
+      header: 'Incentive',
+      align: 'right',
+      render: (row) => fmtPaise(row.incentiveAmountPaise),
     },
     {
       key: 'total',

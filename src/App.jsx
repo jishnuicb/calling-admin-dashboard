@@ -35,6 +35,9 @@ import { ListenerBlocksPage } from './pages/ListenerBlocksPage';
 import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { BonusesPage } from './pages/BonusesPage';
+import { ReferralsPage } from './pages/ReferralsPage';
+import { ReferralBonusPage } from './pages/ReferralBonusPage';
+import { ReferralReportsPage } from './pages/ReferralReportsPage';
 import { BulkTopupPage } from './pages/BulkTopupPage';
 import { ManualWeeklyPayoutsPage } from './pages/ManualWeeklyPayoutsPage';
 import { RbacPage } from './pages/RbacPage';
@@ -174,6 +177,15 @@ export function App() {
           element={guard(S.MONEY, P.PAYOUTS_READ, <ManualWeeklyPayoutsPage />)}
         />
         <Route path="bonuses" element={guard(S.MONEY, P.BONUSES_READ, <BonusesPage />)} />
+        <Route path="referrals" element={guard(S.MONEY, P.REFERRALS_READ, <ReferralsPage />)} />
+        <Route
+          path="referral-bonus"
+          element={guard(S.MONEY, P.REFERRALS_READ, <ReferralBonusPage />)}
+        />
+        <Route
+          path="referral-reports"
+          element={guard(S.MONEY, P.REFERRALS_READ, <ReferralReportsPage />)}
+        />
         <Route
           path="bulk-topup"
           element={guard(S.MONEY, [P.BONUSES_READ, P.WALLET_READ], <BulkTopupPage />)}

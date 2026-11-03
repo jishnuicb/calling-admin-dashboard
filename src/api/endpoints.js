@@ -310,6 +310,23 @@ export const bonusesApi = {
   runWeekly: (body) => post('/admin/bonuses/weekly/run', body),
 };
 
+// --- Listener referrals -----------------------------------------------------
+
+export const referralsApi = {
+  list: (params) => get('/admin/referrals', params),
+  create: (body) => post('/admin/referrals', body),
+  get: (id) => get(`/admin/referrals/${id}`),
+  update: (id, body) => patch(`/admin/referrals/${id}`, body),
+  stop: (id, body) => post(`/admin/referrals/${id}/stop`, body),
+  addIncentiveWeeks: (id, body) => post(`/admin/referrals/${id}/incentive-weeks`, body),
+  updateIncentiveWeek: (id, weekId, body) =>
+    patch(`/admin/referrals/${id}/incentive-weeks/${weekId}`, body),
+  bonusSettings: () => get('/admin/referrals/bonus-settings'),
+  updateBonusSettings: (body) => put('/admin/referrals/bonus-settings', body),
+  referralReport: (params) => get('/admin/referrals/reports/referrals', params),
+  weeklyIncentiveReport: (params) => get('/admin/referrals/reports/weekly-incentives', params),
+};
+
 // --- Bulk wallet top-up -----------------------------------------------------
 
 export const bulkTopupApi = {
