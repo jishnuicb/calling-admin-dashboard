@@ -354,17 +354,6 @@ function ReferralDetailModal({ referralId, onClose }) {
       incentiveEligible: Boolean(data.incentiveEligible),
       referralBonusRupees:
         data.referralBonusRupees != null ? String(data.referralBonusRupees) : '',
-      incentiveAmountRupees:
-        data.activeIncentiveAmountRupees != null && data.activeIncentiveWeekCount
-          ? String(
-              Number(
-                (
-                  Number(data.activeIncentiveAmountRupees) /
-                  Math.max(1, data.activeIncentiveWeekCount)
-                ).toFixed(2),
-              ),
-            )
-          : '',
     };
   }, [data, editForm]);
 
@@ -474,26 +463,15 @@ function ReferralDetailModal({ referralId, onClose }) {
                   onChange={(v) => setField('incentiveEligible', v)}
                   label="Incentive eligible"
                 />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Referral bonus (₹)">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.referralBonusRupees}
-                      onChange={(e) => setField('referralBonusRupees', e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Active weeks amount (₹)" hint="Applies to all ACTIVE weeks">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.incentiveAmountRupees}
-                      onChange={(e) => setField('incentiveAmountRupees', e.target.value)}
-                    />
-                  </Field>
-                </div>
+                <Field label="Referral bonus (₹)">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.referralBonusRupees}
+                    onChange={(e) => setField('referralBonusRupees', e.target.value)}
+                  />
+                </Field>
                 <Field label="Note">
                   <Textarea
                     rows={2}
@@ -511,9 +489,6 @@ function ReferralDetailModal({ referralId, onClose }) {
                     };
                     if (form.referralBonusRupees !== '') {
                       body.referralBonusRupees = Number(form.referralBonusRupees);
-                    }
-                    if (form.incentiveAmountRupees !== '') {
-                      body.incentiveAmountRupees = Number(form.incentiveAmountRupees);
                     }
                     update.mutate(body);
                   }}

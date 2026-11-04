@@ -305,6 +305,10 @@ function WeekDetailModal({ listenerUserId, weekStart, onClose }) {
               )}
             </div>
             <div>
+              <p className="text-xs text-ink-500">Referral bonus</p>
+              <p className="font-medium">{fmtPaise(data.referralBonusAmountPaise)}</p>
+            </div>
+            <div>
               <p className="text-xs text-ink-500">Total</p>
               <p className="font-semibold">{fmtPaise(data.totalAmountPaise)}</p>
             </div>
@@ -710,6 +714,12 @@ function WeekSheetTab() {
       render: (row) => fmtPaise(row.incentiveAmountPaise),
     },
     {
+      key: 'referralBonus',
+      header: 'Referral bonus',
+      align: 'right',
+      render: (row) => fmtPaise(row.referralBonusAmountPaise),
+    },
+    {
       key: 'total',
       header: 'Total',
       align: 'right',
@@ -862,6 +872,12 @@ function WeekSheetTab() {
               <div>
                 <p className="text-xs text-ink-500">Incentive total</p>
                 <p className="font-medium">{fmtPaise(summary.totalIncentiveAmountPaise)}</p>
+              </div>
+            )}
+            {summary.totalReferralBonusAmountPaise != null && (
+              <div>
+                <p className="text-xs text-ink-500">Referral bonus total</p>
+                <p className="font-medium">{fmtPaise(summary.totalReferralBonusAmountPaise)}</p>
               </div>
             )}
             <div>
@@ -1020,6 +1036,12 @@ function HistoryTab() {
       header: 'Incentive',
       align: 'right',
       render: (row) => fmtPaise(row.incentiveAmountPaise),
+    },
+    {
+      key: 'referralBonus',
+      header: 'Referral bonus',
+      align: 'right',
+      render: (row) => fmtPaise(row.referralBonusAmountPaise),
     },
     {
       key: 'total',
