@@ -47,6 +47,52 @@ const CONFIG_META = {
     note: 'Callers below this cannot initiate. Prevents a call that would end almost immediately.',
     group: 'Calling',
   },
+  'call.peakRate.caller.enabled': {
+    label: 'Caller peak rate enabled',
+    note: 'When on, during the IST window below callers are billed at the peak tokens/sec instead of the default Call rate. Times are Asia/Kolkata. New calls only (in-progress calls keep their snapshot).',
+    group: 'Peak rates (IST)',
+  },
+  'call.peakRate.caller.startTimeIst': {
+    label: 'Caller peak start (IST)',
+    unit: 'HH:MM IST',
+    note: '24h Asia/Kolkata wall clock, e.g. 22:00. Overnight windows allowed (start after end, e.g. 22:00 → 02:00).',
+    group: 'Peak rates (IST)',
+  },
+  'call.peakRate.caller.endTimeIst': {
+    label: 'Caller peak end (IST)',
+    unit: 'HH:MM IST',
+    note: '24h Asia/Kolkata wall clock, e.g. 02:00. Window is [start, end).',
+    group: 'Peak rates (IST)',
+  },
+  'call.peakRate.caller.ratePerSecond': {
+    label: 'Caller peak rate',
+    unit: 'tokens per second',
+    note: 'Overrides default Call rate for new calls while caller peak is enabled and the IST window is active.',
+    group: 'Peak rates (IST)',
+  },
+  'call.peakRate.listener.enabled': {
+    label: 'Listener peak earn rate enabled',
+    note: 'When on, during the IST window below listeners earn the peak paise/sec instead of the default Listener earn rate. Independent of caller peak. New calls only.',
+    group: 'Peak rates (IST)',
+  },
+  'call.peakRate.listener.startTimeIst': {
+    label: 'Listener peak start (IST)',
+    unit: 'HH:MM IST',
+    note: '24h Asia/Kolkata wall clock. Can differ from the caller peak window.',
+    group: 'Peak rates (IST)',
+  },
+  'call.peakRate.listener.endTimeIst': {
+    label: 'Listener peak end (IST)',
+    unit: 'HH:MM IST',
+    note: '24h Asia/Kolkata wall clock. Window is [start, end).',
+    group: 'Peak rates (IST)',
+  },
+  'call.peakRate.listener.earnPaisePerSecond': {
+    label: 'Listener peak earn rate',
+    unit: 'paise per second',
+    note: 'Overrides default Listener earn rate for new calls while listener peak is enabled and active. Decimals allowed (e.g. 4.45).',
+    group: 'Peak rates (IST)',
+  },
   'listener.earnPaisePerSecond': {
     label: 'Listener earn rate',
     unit: 'paise per second',
