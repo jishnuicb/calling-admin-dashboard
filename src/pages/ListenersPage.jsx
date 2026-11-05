@@ -484,7 +484,7 @@ export function ListenersPage({ variant = 'applications' }) {
             <SearchInput
               value={table.filters.country}
               onChange={(v) => table.setFilter('country', v)}
-              placeholder="India"
+              placeholder="e.g. Oman, Qatar"
             />
           </Field>
         </FilterBar>

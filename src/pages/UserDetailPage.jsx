@@ -490,23 +490,33 @@ export function UserDetailPage() {
             title="Phone number"
             description={
               isSubadmin
-                ? 'Phone and email stay hidden for subadmins on user accounts. Listener phone can be revealed from the listener application page.'
+                ? user?.gender === 'FEMALE'
+                  ? 'Female users only: enter the shared subadmin phone key to reveal. Email stays hidden. Male/other users cannot be revealed.'
+                  : 'Phone stays hidden for this user. Subadmins can only reveal female user phones (with the shared phone key).'
                 : 'Masked by default (country code + last 2 digits). Enter the permanent decryption key to reveal.'
             }
             className="lg:col-span-3"
           >
-            {!isSubadmin && (
+            {(!isSubadmin || user?.gender === 'FEMALE') && (
               <div className="mb-3 space-y-2 rounded-lg border border-ink-100 bg-ink-50/60 p-3">
                 <Field
-                  label="Permanent decryption key"
-                  hint="Same key as listener bank reveal. Never stored."
+                  label={isSubadmin ? 'Subadmin phone key' : 'Permanent decryption key'}
+                  hint={
+                    isSubadmin
+                      ? 'Shared phone-only key (same as listener phone reveal). Never stored.'
+                      : 'Same key as listener bank reveal. Never stored.'
+                  }
                 >
                   <Input
                     type="password"
                     autoComplete="off"
                     value={decryptKey}
                     onChange={(e) => setDecryptKey(e.target.value)}
-                    placeholder="Enter permanent decryption key"
+                    placeholder={
+                      isSubadmin
+                        ? 'Enter shared subadmin phone key'
+                        : 'Enter permanent decryption key'
+                    }
                   />
                 </Field>
                 <div className="flex flex-wrap gap-2">
@@ -531,7 +541,7 @@ export function UserDetailPage() {
               </div>
             )}
             <p className="font-mono text-sm text-ink-900">
-              {isSubadmin ? 'Hidden' : view.mobile || '—'}
+              {isSubadmin && !revealedUser ? 'Hidden' : view.mobile || '—'}
             </p>
           </Card>
         )}

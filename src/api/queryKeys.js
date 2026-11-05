@@ -50,6 +50,11 @@ export const qk = {
   calls: (params) => ['calls', 'list', params],
   call: (id) => ['calls', 'detail', id],
 
+  cardGuessSettings: ['card-guess', 'settings'],
+  cardGuessRounds: (params) => ['card-guess', 'rounds', params],
+  cardGuessLeaderboard: (params) => ['card-guess', 'leaderboard', params],
+  cardGuessWeeklyLeaderboard: (params) => ['card-guess', 'leaderboard', 'weekly', params],
+
   moderation: (params) => ['moderation', 'list', params],
   report: (id) => ['moderation', 'detail', id],
 
@@ -63,6 +68,13 @@ export const qk = {
   weeklyRuns: (params) => ['bonuses', 'weekly', params],
   weeklyAwards: (id, params) => ['bonuses', 'weekly', id, 'awards', params],
   weeklySettings: ['bonuses', 'weekly', 'settings'],
+
+  referrals: (params) => ['referrals', 'list', params],
+  referral: (id) => ['referrals', 'detail', id],
+  referralBonusSettings: ['referrals', 'bonus-settings'],
+  referralReport: (params) => ['referrals', 'reports', 'referrals', params],
+  weeklyIncentiveReport: (params) => ['referrals', 'reports', 'weekly-incentives', params],
+  incentives: (params) => ['referrals', 'incentives', params],
 
   bulkTopupSettings: ['bulk-topup', 'settings'],
   bulkTopupRuns: (params) => ['bulk-topup', 'runs', params],

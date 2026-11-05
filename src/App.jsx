@@ -27,6 +27,7 @@ import { EarningsPage } from './pages/EarningsPage';
 import { PayoutsPage } from './pages/PayoutsPage';
 import { CallsPage } from './pages/CallsPage';
 import { CallDetailPage } from './pages/CallDetailPage';
+import { CardGuessPage } from './pages/CardGuessPage';
 import { AppCrashesPage } from './pages/AppCrashesPage';
 import { ModerationPage } from './pages/ModerationPage';
 import { ModerationDetailPage } from './pages/ModerationDetailPage';
@@ -34,6 +35,14 @@ import { ListenerBlocksPage } from './pages/ListenerBlocksPage';
 import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { BonusesPage } from './pages/BonusesPage';
+import { ReferralsPage } from './pages/ReferralsPage';
+import { ReferralBonusPage } from './pages/ReferralBonusPage';
+import { ReferralReportsPage } from './pages/ReferralReportsPage';
+import {
+  IncentivesPage,
+  WeeklyIncentivesPage,
+  IncentiveReportsPage,
+} from './pages/IncentivesPages';
 import { BulkTopupPage } from './pages/BulkTopupPage';
 import { ManualWeeklyPayoutsPage } from './pages/ManualWeeklyPayoutsPage';
 import { RbacPage } from './pages/RbacPage';
@@ -173,6 +182,24 @@ export function App() {
           element={guard(S.MONEY, P.PAYOUTS_READ, <ManualWeeklyPayoutsPage />)}
         />
         <Route path="bonuses" element={guard(S.MONEY, P.BONUSES_READ, <BonusesPage />)} />
+        <Route path="referrals" element={guard(S.MONEY, P.REFERRALS_READ, <ReferralsPage />)} />
+        <Route
+          path="referral-bonus"
+          element={guard(S.MONEY, P.REFERRALS_READ, <ReferralBonusPage />)}
+        />
+        <Route
+          path="referral-reports"
+          element={guard(S.MONEY, P.REFERRALS_READ, <ReferralReportsPage />)}
+        />
+        <Route path="incentives" element={guard(S.MONEY, P.REFERRALS_READ, <IncentivesPage />)} />
+        <Route
+          path="incentives/weekly"
+          element={guard(S.MONEY, P.REFERRALS_READ, <WeeklyIncentivesPage />)}
+        />
+        <Route
+          path="incentives/reports"
+          element={guard(S.MONEY, P.REFERRALS_READ, <IncentiveReportsPage />)}
+        />
         <Route
           path="bulk-topup"
           element={guard(S.MONEY, [P.BONUSES_READ, P.WALLET_READ], <BulkTopupPage />)}
@@ -180,6 +207,10 @@ export function App() {
 
         <Route path="calls" element={guard(S.ACTIVITY, P.CALLS_READ, <CallsPage />)} />
         <Route path="calls/:id" element={guard(S.ACTIVITY, P.CALLS_READ, <CallDetailPage />)} />
+        <Route
+          path="card-guess"
+          element={guard(S.ACTIVITY, P.CARD_GUESS_READ, <CardGuessPage />)}
+        />
         <Route path="crashes" element={guard(S.ACTIVITY, P.CRASHES_READ, <AppCrashesPage />)} />
 
         <Route path="moderation" element={guard(S.ACTIVITY, P.MODERATION_READ, <ModerationPage />)} />

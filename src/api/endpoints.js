@@ -290,6 +290,16 @@ export const notificationsApi = {
   history: (params) => get('/admin/notifications/history', params),
 };
 
+// --- Card Guess -------------------------------------------------------------
+
+export const cardGuessApi = {
+  settings: () => get('/admin/card-guess/settings'),
+  updateSettings: (body) => put('/admin/card-guess/settings', body),
+  rounds: (params) => get('/admin/card-guess/rounds', params),
+  leaderboard: (params) => get('/admin/card-guess/leaderboard', params),
+  weeklyLeaderboard: (params) => get('/admin/card-guess/leaderboard/weekly', params),
+};
+
 // --- Bonuses ----------------------------------------------------------------
 
 export const bonusesApi = {
@@ -298,6 +308,35 @@ export const bonusesApi = {
   weeklySettings: () => get('/admin/bonuses/weekly/settings'),
   updateWeeklySettings: (body) => put('/admin/bonuses/weekly/settings', body),
   runWeekly: (body) => post('/admin/bonuses/weekly/run', body),
+};
+
+// --- Listener referrals -----------------------------------------------------
+
+export const referralsApi = {
+  list: (params) => get('/admin/referrals', params),
+  create: (body) => post('/admin/referrals', body),
+  get: (id) => get(`/admin/referrals/${id}`),
+  update: (id, body) => patch(`/admin/referrals/${id}`, body),
+  stop: (id, body) => post(`/admin/referrals/${id}/stop`, body),
+  resume: (id, body) => post(`/admin/referrals/${id}/resume`, body),
+  addIncentiveWeeks: (id, body) => post(`/admin/referrals/${id}/incentive-weeks`, body),
+  updateIncentiveWeek: (id, weekId, body) =>
+    patch(`/admin/referrals/${id}/incentive-weeks/${weekId}`, body),
+  bonusSettings: () => get('/admin/referrals/bonus-settings'),
+  updateBonusSettings: (body) => put('/admin/referrals/bonus-settings', body),
+  referralReport: (params) => get('/admin/referrals/reports/referrals', params),
+  weeklyIncentiveReport: (params) => get('/admin/referrals/reports/weekly-incentives', params),
+  incentives: (params) => get('/admin/referrals/incentives', params),
+  exportReferralReport: (params) =>
+    downloadCsv('/admin/referrals/reports/referrals', params, 'referral-report.csv'),
+  exportWeeklyIncentiveReport: (params) =>
+    downloadCsv(
+      '/admin/referrals/reports/weekly-incentives',
+      params,
+      'weekly-incentive-report.csv',
+    ),
+  exportIncentives: (params) =>
+    downloadCsv('/admin/referrals/incentives', params, 'incentives-report.csv'),
 };
 
 // --- Bulk wallet top-up -----------------------------------------------------

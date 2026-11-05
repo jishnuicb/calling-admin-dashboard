@@ -170,7 +170,7 @@ export function AuthProvider({ children }) {
       canDeleteUsers: !isSubadmin && (isSuperAdmin || permissions.has('users:delete')),
       canAdjustWallet: !isSubadmin && (isSuperAdmin || permissions.has('wallet:adjust')),
       canBulkTopup: !isSubadmin && (isSuperAdmin || permissions.has('bonuses:write') || permissions.has('wallet:adjust')),
-      /** Subadmins never see user (caller) email or phone — no reveal. */
+      /** Subadmins: user email always hidden; phone hidden unless FEMALE + phone key reveal. */
       hidesUserContact: isSubadmin,
       permissions,
       sections,

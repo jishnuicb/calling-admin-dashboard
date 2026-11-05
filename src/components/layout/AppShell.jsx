@@ -12,6 +12,7 @@ import {
   CreditCard,
   Flag,
   Gift,
+  Handshake,
   KeyRound,
   Languages,
   ImagePlus,
@@ -31,6 +32,7 @@ import {
   Landmark,
   Scale,
   GalleryHorizontal,
+  Spade,
   Users,
   UserCheck,
   UserRoundSearch,
@@ -113,6 +115,29 @@ const NAV_SECTIONS = [
         permission: P.PAYOUTS_READ,
       },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
+      { to: '/referrals', label: 'Referrals', icon: Handshake, permission: P.REFERRALS_READ },
+      {
+        to: '/referral-bonus',
+        label: 'Referral Bonus',
+        icon: Gift,
+        permission: P.REFERRALS_READ,
+      },
+      {
+        to: '/referral-reports',
+        label: 'Referral Report',
+        icon: ClipboardList,
+        permission: P.REFERRALS_READ,
+      },
+      {
+        label: 'Incentives',
+        icon: IndianRupee,
+        permission: P.REFERRALS_READ,
+        children: [
+          { to: '/incentives', label: 'Incentive', end: true },
+          { to: '/incentives/weekly', label: 'Weekly Incentive' },
+          { to: '/incentives/reports', label: 'Report' },
+        ],
+      },
       {
         to: '/bulk-topup',
         label: 'Bulk top-up',
@@ -127,6 +152,7 @@ const NAV_SECTIONS = [
     title: 'Activity',
     items: [
       { to: '/calls', label: 'Calls', icon: PhoneCall, permission: P.CALLS_READ },
+      { to: '/card-guess', label: 'Card Guess', icon: Spade, permission: P.CARD_GUESS_READ },
       { to: '/crashes', label: 'App crashes', icon: Bug, permission: P.CRASHES_READ },
       { to: '/moderation', label: 'Moderation', icon: Flag, permission: P.MODERATION_READ },
       { to: '/listener-blocks', label: 'Listener blocks', icon: Ban, permission: P.BLOCKS_READ },
@@ -189,6 +215,7 @@ function NavItem({ item, onNavigate }) {
               <li key={child.to}>
                 <NavLink
                   to={child.to}
+                  end={Boolean(child.end)}
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     clsx(
