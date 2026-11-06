@@ -71,6 +71,10 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
           price: pkg.price ?? '',
           originalPrice: pkg.originalPrice ?? '',
           discountPercent: pkg.discountPercent ?? 0,
+          displayDiscount:
+            pkg.displayDiscount == null || pkg.displayDiscount === ''
+              ? ''
+              : String(pkg.displayDiscount),
           currency: pkg.currency || 'INR',
           storeProductId: pkg.storeProductId || '',
           active: pkg.active ?? true,
@@ -82,6 +86,7 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
           price: '',
           originalPrice: '',
           discountPercent: 0,
+          displayDiscount: '',
           currency: 'INR',
           storeProductId: '',
           active: true,
@@ -106,6 +111,10 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
         form.originalPrice === '' || form.originalPrice == null
           ? null
           : Number(form.originalPrice),
+      displayDiscount:
+        form.displayDiscount === '' || form.displayDiscount == null
+          ? null
+          : Number(form.displayDiscount),
       market,
       platform,
       active: form.active,
@@ -224,6 +233,21 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
             <Input value={computedDiscount ? `${computedDiscount}% off` : 'No discount'} disabled />
           </Field>
         </div>
+
+        <Field
+          label="Display discount"
+          hint="Optional. Passed to the app exactly as entered (no calculation). Floats allowed, e.g. 12.5."
+          error={fieldErrors.displayDiscount}
+        >
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.displayDiscount}
+            onChange={(e) => setForm({ ...form, displayDiscount: e.target.value })}
+            placeholder="e.g. 12.5"
+          />
+        </Field>
 
         {totalTokens > 0 && Number(form.price) > 0 && (
           <div className="rounded-lg bg-ink-50 px-3.5 py-2.5 text-xs text-ink-600">
@@ -366,6 +390,17 @@ export function PackagesPage({ platform, market, title, description }) {
           )}
         </div>
       ),
+    },
+    {
+      key: 'displayDiscount',
+      header: 'Display discount',
+      align: 'right',
+      render: (row) =>
+        row.displayDiscount == null || row.displayDiscount === '' ? (
+          <span className="text-ink-400">—</span>
+        ) : (
+          <span className="tabular text-ink-800">{row.displayDiscount}</span>
+        ),
     },
     {
       key: 'perToken',
