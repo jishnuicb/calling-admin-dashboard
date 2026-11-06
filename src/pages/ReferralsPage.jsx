@@ -81,7 +81,22 @@ function WeekChips({ weeks, onRemove, disabled }) {
   );
 }
 
+/** Rough IST Monday YYYY-MM-DD for modal hint (server is authoritative). */
+function currentIstWeekStartHint() {
+  const now = new Date();
+  const istMs = now.getTime() + 5.5 * 60 * 60 * 1000;
+  const ist = new Date(istMs);
+  const day = ist.getUTCDay(); // 0 Sun … 6 Sat in shifted clock
+  const daysFromMonday = (day + 6) % 7;
+  ist.setUTCDate(ist.getUTCDate() - daysFromMonday);
+  const y = ist.getUTCFullYear();
+  const m = String(ist.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(ist.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function CreateReferralModal({ open, onClose }) {
+  const [mode, setMode] = useState('referral'); // 'referral' | 'incentive'
   const [form, setForm] = useState({
     referrerListenerUserId: '',
     referredUserId: '',
@@ -92,14 +107,28 @@ function CreateReferralModal({ open, onClose }) {
     incentiveAmountRupees: '',
     referralBonusRupees: '',
     note: '',
+    // Standalone incentive fields
+    listenerUserId: '',
+    bonusAmountRupees: '',
+    message: '',
   });
 
-  const create = useApiMutation({
+  const createReferral = useApiMutation({
     mutationFn: (body) => referralsApi.create(body),
     successMessage: 'Referral created',
     invalidate: [['referrals']],
     onSuccess: () => onClose(),
   });
+
+  const createIncentive = useApiMutation({
+    mutationFn: (body) => referralsApi.createIncentive(body),
+    successMessage: 'Incentive added for current week',
+    invalidate: [['referrals'], ['manual-weekly-payouts']],
+    onSuccess: () => onClose(),
+  });
+
+  const pending = createReferral.isPending || createIncentive.isPending;
+  const error = createReferral.error || createIncentive.error;
 
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -112,7 +141,7 @@ function CreateReferralModal({ open, onClose }) {
     );
   };
 
-  const submit = () => {
+  const submitReferral = () => {
     const weeks = [
       ...new Set([
         ...form.weekStarts,
@@ -133,126 +162,203 @@ function CreateReferralModal({ open, onClose }) {
     if (form.referralBonusRupees !== '') {
       body.referralBonusRupees = Number(form.referralBonusRupees);
     }
-    create.mutate(body);
+    createReferral.mutate(body);
   };
+
+  const submitIncentive = () => {
+    createIncentive.mutate({
+      listenerUserId: form.listenerUserId.trim(),
+      amountRupees: Number(form.bonusAmountRupees),
+      note: form.message.trim() || undefined,
+      type: 'INCENTIVE',
+    });
+  };
+
+  const isIncentive = mode === 'incentive';
+  const weekHint = currentIstWeekStartHint();
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       size="lg"
-      title="Create referral"
-      description="Link a referred user to an approved listener. Incentive weeks are IST Monday week starts (YYYY-MM-DD)."
+      title={isIncentive ? 'Add incentive' : 'Create referral'}
+      description={
+        isIncentive
+          ? `Credit an incentive to one approved listener for the current IST week (starts ${weekHint}). Amount rolls into the weekly bank-payout Incentives column.`
+          : 'Link a referred user to an approved listener. Incentive weeks are IST Monday week starts (YYYY-MM-DD).'
+      }
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={create.isPending}>
-            Create referral
+          <Button
+            onClick={isIncentive ? submitIncentive : submitReferral}
+            loading={pending}
+          >
+            {isIncentive ? 'Add incentive' : 'Create referral'}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
-        {create.error && <ErrorState error={create.error} compact />}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Referrer listener user ID" required hint="Approved listener UUID">
-            <Input
-              value={form.referrerListenerUserId}
-              placeholder="UUID"
-              onChange={(e) => set('referrerListenerUserId', e.target.value)}
-            />
-          </Field>
-          <Field label="Referred user ID" required hint="Caller/user UUID">
-            <Input
-              value={form.referredUserId}
-              placeholder="UUID"
-              onChange={(e) => set('referredUserId', e.target.value)}
-            />
-          </Field>
+        {error && <ErrorState error={error} compact />}
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={!isIncentive ? 'primary' : 'secondary'}
+            onClick={() => setMode('referral')}
+          >
+            Referral
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={isIncentive ? 'primary' : 'secondary'}
+            onClick={() => setMode('incentive')}
+          >
+            Incentive
+          </Button>
         </div>
 
-        <Toggle
-          checked={form.incentiveEligible}
-          onChange={(v) => set('incentiveEligible', v)}
-          label="Incentive eligible"
-        />
+        {isIncentive ? (
+          <>
+            <Field label="Listener user ID" required hint="Approved listener UUID (one user only)">
+              <Input
+                value={form.listenerUserId}
+                placeholder="UUID"
+                onChange={(e) => set('listenerUserId', e.target.value)}
+              />
+            </Field>
 
-        {form.incentiveEligible && (
-          <div className="space-y-2">
-            <Field
-              label="Incentive week starts"
-              hint="Comma-separated YYYY-MM-DD, or pick a date and add"
-            >
-              <div className="flex flex-wrap gap-2">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Bonus amount (₹)" required hint="Added to this week’s Incentives column">
                 <Input
-                  type="date"
-                  value={form.weekDate}
-                  onChange={(e) => set('weekDate', e.target.value)}
-                  className="w-44"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={form.bonusAmountRupees}
+                  onChange={(e) => set('bonusAmountRupees', e.target.value)}
                 />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    mergeWeeks(form.weekDate || form.weekText);
-                    set('weekDate', '');
-                    set('weekText', '');
-                  }}
-                >
-                  Add week
-                </Button>
+              </Field>
+              <Field label="Type" hint="Fixed — not editable">
+                <Input value="INCENTIVE" disabled readOnly />
+              </Field>
+            </div>
+
+            <Field label="Message" hint="Optional">
+              <Textarea
+                rows={2}
+                value={form.message}
+                onChange={(e) => set('message', e.target.value)}
+                placeholder="Optional message / admin note"
+              />
+            </Field>
+          </>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Referrer listener user ID" required hint="Approved listener UUID">
                 <Input
-                  value={form.weekText}
-                  placeholder="or paste: 2026-01-05, 2026-01-12"
-                  onChange={(e) => set('weekText', e.target.value)}
-                  className="min-w-[12rem] flex-1"
+                  value={form.referrerListenerUserId}
+                  placeholder="UUID"
+                  onChange={(e) => set('referrerListenerUserId', e.target.value)}
+                />
+              </Field>
+              <Field label="Referred user ID" required hint="Caller/user UUID">
+                <Input
+                  value={form.referredUserId}
+                  placeholder="UUID"
+                  onChange={(e) => set('referredUserId', e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Toggle
+              checked={form.incentiveEligible}
+              onChange={(v) => set('incentiveEligible', v)}
+              label="Incentive eligible"
+            />
+
+            {form.incentiveEligible && (
+              <div className="space-y-2">
+                <Field
+                  label="Incentive week starts"
+                  hint="Comma-separated YYYY-MM-DD, or pick a date and add"
+                >
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      type="date"
+                      value={form.weekDate}
+                      onChange={(e) => set('weekDate', e.target.value)}
+                      className="w-44"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        mergeWeeks(form.weekDate || form.weekText);
+                        set('weekDate', '');
+                        set('weekText', '');
+                      }}
+                    >
+                      Add week
+                    </Button>
+                    <Input
+                      value={form.weekText}
+                      placeholder="or paste: 2026-01-05, 2026-01-12"
+                      onChange={(e) => set('weekText', e.target.value)}
+                      className="min-w-[12rem] flex-1"
+                    />
+                  </div>
+                </Field>
+                <WeekChips
+                  weeks={form.weekStarts}
+                  onRemove={(w) =>
+                    set(
+                      'weekStarts',
+                      form.weekStarts.filter((x) => x !== w),
+                    )
+                  }
                 />
               </div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Weekly incentive (₹)" hint="Blank = default from Referral Bonus settings">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.incentiveAmountRupees}
+                  onChange={(e) => set('incentiveAmountRupees', e.target.value)}
+                />
+              </Field>
+              <Field label="Referral bonus (₹)" hint="One-time; blank = default">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.referralBonusRupees}
+                  onChange={(e) => set('referralBonusRupees', e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Note">
+              <Textarea
+                rows={2}
+                value={form.note}
+                onChange={(e) => set('note', e.target.value)}
+                placeholder="Optional admin note"
+              />
             </Field>
-            <WeekChips
-              weeks={form.weekStarts}
-              onRemove={(w) =>
-                set(
-                  'weekStarts',
-                  form.weekStarts.filter((x) => x !== w),
-                )
-              }
-            />
-          </div>
+          </>
         )}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Weekly incentive (₹)" hint="Blank = default from Referral Bonus settings">
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.incentiveAmountRupees}
-              onChange={(e) => set('incentiveAmountRupees', e.target.value)}
-            />
-          </Field>
-          <Field label="Referral bonus (₹)" hint="One-time; blank = default">
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.referralBonusRupees}
-              onChange={(e) => set('referralBonusRupees', e.target.value)}
-            />
-          </Field>
-        </div>
-
-        <Field label="Note">
-          <Textarea
-            rows={2}
-            value={form.note}
-            onChange={(e) => set('note', e.target.value)}
-            placeholder="Optional admin note"
-          />
-        </Field>
       </div>
     </Modal>
   );
@@ -777,7 +883,7 @@ export function ReferralsPage() {
           writable && (
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="size-4" />
-              Create referral
+              Create
             </Button>
           )
         }

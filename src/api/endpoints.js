@@ -328,6 +328,8 @@ export const referralsApi = {
   referralReport: (params) => get('/admin/referrals/reports/referrals', params),
   weeklyIncentiveReport: (params) => get('/admin/referrals/reports/weekly-incentives', params),
   incentives: (params) => get('/admin/referrals/incentives', params),
+  /** Standalone admin incentive for current IST week (type=INCENTIVE). */
+  createIncentive: (body) => post('/admin/referrals/incentives', body),
   exportReferralReport: (params) =>
     downloadCsv('/admin/referrals/reports/referrals', params, 'referral-report.csv'),
   exportWeeklyIncentiveReport: (params) =>
