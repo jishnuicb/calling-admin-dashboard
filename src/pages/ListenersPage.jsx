@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BadgeCheck, Download, Mic, Pencil, UserCheck } from 'lucide-react';
 import { languagesApi, listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
+import { AdminMaskedName } from '../components/AdminMaskedName';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import {
   Badge,
@@ -283,8 +284,18 @@ export function ListenersPage({ variant = 'applications' }) {
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate font-medium text-ink-900">{row.displayName || 'Unnamed'}</p>
-            <p className="truncate text-xs text-ink-500">{row.user?.name || row.userId}</p>
+            <AdminMaskedName
+              name={row.displayName}
+              originalName={row.originalDisplayName}
+              emptyLabel="Unnamed"
+            />
+            <AdminMaskedName
+              name={row.user?.name || row.userId}
+              originalName={row.user?.originalName}
+              emptyLabel={row.userId}
+              primaryClassName="truncate text-xs text-ink-500"
+              originalClassName="truncate text-[10px] text-ink-400"
+            />
             {row.user?.email ? (
               <p className="truncate text-xs text-ink-500">{row.user.email}</p>
             ) : null}

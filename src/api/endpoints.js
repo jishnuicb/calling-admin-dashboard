@@ -32,6 +32,7 @@ export const usersApi = {
   list: (params) => get('/admin/users', params),
   get: (id) => get(`/admin/users/${id}`),
   onlineCallers: () => get('/admin/users/online-callers'),
+  updateName: (id, body) => patch(`/admin/users/${id}/name`, body),
   setBlocked: (id, body) => post(`/admin/users/${id}/block`, body),
   delete: (id, body) => del(`/admin/users/${id}`, { data: body }),
   revealPhone: (id, body) => post(`/admin/users/${id}/phone/reveal`, body),
@@ -327,6 +328,8 @@ export const referralsApi = {
   referralReport: (params) => get('/admin/referrals/reports/referrals', params),
   weeklyIncentiveReport: (params) => get('/admin/referrals/reports/weekly-incentives', params),
   incentives: (params) => get('/admin/referrals/incentives', params),
+  /** Standalone admin incentive for current IST week (type=INCENTIVE). */
+  createIncentive: (body) => post('/admin/referrals/incentives', body),
   exportReferralReport: (params) =>
     downloadCsv('/admin/referrals/reports/referrals', params, 'referral-report.csv'),
   exportWeeklyIncentiveReport: (params) =>

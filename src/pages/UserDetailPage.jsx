@@ -1,12 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Ban, Bell, Coins, Copy, Eye, EyeOff, KeyRound, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Ban,
+  Bell,
+  Coins,
+  Copy,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Pencil,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
 import { usersApi, walletApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
+import { AdminMaskedName } from '../components/AdminMaskedName';
 import { SendNotificationModal } from '../components/SendNotificationModal';
 import {
   Badge,
@@ -342,10 +355,19 @@ export function UserDetailPage() {
   const [revealedUser, setRevealedUser] = useState(null);
   const [copied, setCopied] = useState(false);
   const [picturePreviewOpen, setPicturePreviewOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   const { data: user, isLoading, error, refetch } = useQuery({
     queryKey: qk.user(id),
     queryFn: () => usersApi.get(id),
+  });
+
+  const renameUser = useApiMutation({
+    mutationFn: () => usersApi.updateName(id, { name: renameValue.trim() }),
+    successMessage: 'User name updated',
+    invalidate: [qk.user(id), ['users']],
+    onSuccess: () => setRenameOpen(false),
   });
 
   const {
@@ -429,7 +451,13 @@ export function UserDetailPage() {
                 {(user.name || '?').slice(0, 1).toUpperCase()}
               </span>
             )}
-            {user.name || 'Unnamed user'}
+            <AdminMaskedName
+              name={user.name}
+              originalName={user.originalName}
+              emptyLabel="Unnamed user"
+              primaryClassName="text-xl font-semibold text-ink-900"
+              originalClassName="text-xs font-normal text-ink-500"
+            />
           </span>
         }
         description={
@@ -439,6 +467,18 @@ export function UserDetailPage() {
         }
         actions={
           <>
+            {can(P.USERS_WRITE) && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setRenameValue(user.originalName || user.name || '');
+                  setRenameOpen(true);
+                }}
+              >
+                <Pencil className="size-4" />
+                Rename
+              </Button>
+            )}
             {can(P.NOTIFICATIONS_SEND) && (
               <Button variant="secondary" onClick={() => setNotifyOpen(true)}>
                 <Bell className="size-4" />
@@ -840,6 +880,39 @@ export function UserDetailPage() {
       />
       <BlockUserModal open={blockOpen} onClose={() => setBlockOpen(false)} user={user} />
       <DeleteUserModal open={deleteOpen} onClose={() => setDeleteOpen(false)} user={user} />
+
+      <Modal
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        title="Rename user"
+        description="Updates the account display name. Uniqueness is enforced (same as the app)."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              loading={renameUser.isPending}
+              disabled={renameValue.trim().length < 2 || renameValue.trim().length > 120}
+              onClick={() => renameUser.mutate()}
+            >
+              Save name
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          {renameUser.error && <ErrorState error={renameUser.error} compact />}
+          <Field label="Name" required hint="2–120 characters">
+            <Input
+              value={renameValue}
+              maxLength={120}
+              autoFocus
+              onChange={(e) => setRenameValue(e.target.value)}
+            />
+          </Field>
+        </div>
+      </Modal>
 
       {user.profilePicture && (
         <Modal
