@@ -1,21 +1,89 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Users } from 'lucide-react';
+import { Pencil, Users } from 'lucide-react';
 import { usersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useAuth } from '../auth/AuthContext';
+import { P } from '../auth/permissions';
+import { AdminMaskedName } from '../components/AdminMaskedName';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
-import { Badge, Card, Field, PageHeader, SearchInput, Select, StatusBadge } from '../components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  Input,
+  Modal,
+  PageHeader,
+  SearchInput,
+  Select,
+  StatusBadge,
+} from '../components/ui';
+import { useApiMutation } from '../hooks/useApiMutation';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, fmtNumber, fmtRelative, fmtTokens } from '../lib/format';
+
+function RenameUserModal({ user, onClose }) {
+  const [name, setName] = useState(user.originalName || user.name || '');
+  const mutation = useApiMutation({
+    mutationFn: () => usersApi.updateName(user.id, { name: name.trim() }),
+    successMessage: 'User name updated',
+    invalidate: [['users'], qk.user(user.id)],
+    onSuccess: onClose,
+  });
+  const valid = name.trim().length >= 2 && name.trim().length <= 120;
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Rename user"
+      description="Updates the account display name. Uniqueness is enforced (same as the app)."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            loading={mutation.isPending}
+            disabled={!valid}
+            onClick={() => mutation.mutate()}
+          >
+            Save name
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+        <Field label="Name" required hint="2–120 characters">
+          <Input
+            value={name}
+            maxLength={120}
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            placeholder={user.originalName || user.name || ''}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && valid && !mutation.isPending) mutation.mutate();
+            }}
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
 
 /**
  * @param {'all'|'pendingOtp'} [variant]
  */
 export function UsersPage({ variant = 'all' }) {
   const navigate = useNavigate();
-  const { hidesUserContact } = useAuth();
+  const { hidesUserContact, can } = useAuth();
+  const canRename = can(P.USERS_WRITE);
   const isPendingOtp = variant === 'pendingOtp';
+  const [renameRow, setRenameRow] = useState(null);
 
   const table = useTableState({
     search: '',
@@ -63,7 +131,7 @@ export function UsersPage({ variant = 'all' }) {
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate font-medium text-ink-900">{row.name || 'Unnamed'}</p>
+            <AdminMaskedName name={row.name} originalName={row.originalName} />
             {!hidesUserContact && (
               <p className="truncate text-xs text-ink-500 tabular">{row.mobile || '—'}</p>
             )}
@@ -189,6 +257,29 @@ export function UsersPage({ variant = 'all' }) {
         </span>
       ),
     },
+    ...(canRename
+      ? [
+          {
+            key: 'actions',
+            header: '',
+            align: 'right',
+            render: (row) => (
+              <Button
+                size="sm"
+                variant="secondary"
+                title="Change user name"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRenameRow(row);
+                }}
+              >
+                <Pencil className="size-3.5" />
+                Rename
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -291,6 +382,10 @@ export function UsersPage({ variant = 'all' }) {
           onLimitChange={table.changeLimit}
         />
       </Card>
+
+      {renameRow && (
+        <RenameUserModal user={renameRow} onClose={() => setRenameRow(null)} />
+      )}
     </>
   );
 }

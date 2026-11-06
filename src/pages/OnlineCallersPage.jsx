@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Radio } from 'lucide-react';
 import { usersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
+import { AdminMaskedName } from '../components/AdminMaskedName';
 import { DataTable } from '../components/DataTable';
 import { Badge, Button, Card, ErrorState, PageHeader, StatusBadge } from '../components/ui';
 import { fmtRelative, titleCase } from '../lib/format';
@@ -37,7 +38,7 @@ export function OnlineCallersPage() {
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate font-medium text-ink-900">{row.name || 'Unnamed'}</p>
+            <AdminMaskedName name={row.name} originalName={row.originalName} />
             <p className="truncate text-xs text-ink-500 tabular">{row.mobile || '—'}</p>
             {row.email ? (
               <p className="truncate text-xs text-ink-500">{row.email}</p>
