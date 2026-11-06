@@ -41,13 +41,13 @@ function ExportButton({ onExport, busy }) {
   );
 }
 
-/** All incentive lines (referral-sourced today; sourceType filter for future kinds). */
+/** All incentive lines (referral + admin INCENTIVE grants). */
 export function IncentivesPage() {
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
   const table = useTableState(
     {
-      sourceType: 'REFERRAL',
+      sourceType: 'ALL',
       status: '',
       weekStart: '',
       search: '',
@@ -58,7 +58,7 @@ export function IncentivesPage() {
 
   const params = {
     ...table.params,
-    sourceType: table.filters.sourceType || undefined,
+    sourceType: table.filters.sourceType || 'ALL',
     status: table.filters.status || undefined,
     weekStart: table.filters.weekStart || undefined,
     search: table.filters.search || undefined,
@@ -74,7 +74,11 @@ export function IncentivesPage() {
     {
       key: 'sourceType',
       header: 'Type',
-      render: (row) => <Badge tone="brand">{row.sourceType || 'REFERRAL'}</Badge>,
+      render: (row) => (
+        <Badge tone={row.sourceType === 'INCENTIVE' ? 'success' : 'brand'}>
+          {row.sourceType || 'REFERRAL'}
+        </Badge>
+      ),
     },
     {
       key: 'week',
@@ -100,14 +104,17 @@ export function IncentivesPage() {
     {
       key: 'referred',
       header: 'Linked referred',
-      render: (row) => (
-        <div className="min-w-0">
-          <p className="truncate text-sm text-ink-800">
-            {personLabel(row.referred, row.referredUserId)}
-          </p>
-          <p className="font-mono text-[11px] text-ink-400">ref {shortId(row.referralId)}</p>
-        </div>
-      ),
+      render: (row) =>
+        row.sourceType === 'INCENTIVE' || !row.referralId ? (
+          <span className="text-xs text-ink-400">—</span>
+        ) : (
+          <div className="min-w-0">
+            <p className="truncate text-sm text-ink-800">
+              {personLabel(row.referred, row.referredUserId)}
+            </p>
+            <p className="font-mono text-[11px] text-ink-400">ref {shortId(row.referralId)}</p>
+          </div>
+        ),
     },
     {
       key: 'status',
@@ -153,7 +160,7 @@ export function IncentivesPage() {
     <>
       <PageHeader
         title="Incentive"
-        description="Listener incentives linked to referrals today. New incentive types can appear here with a different Type without changing this layout."
+        description="Referral week incentives and admin INCENTIVE grants for the current / selected weeks."
         actions={<ExportButton onExport={onExport} busy={exporting} />}
       />
 
@@ -164,7 +171,9 @@ export function IncentivesPage() {
               value={table.filters.sourceType}
               onChange={(e) => table.setFilter('sourceType', e.target.value)}
             >
+              <option value="ALL">All</option>
               <option value="REFERRAL">REFERRAL</option>
+              <option value="INCENTIVE">INCENTIVE</option>
             </Select>
           </Field>
           <Field label="Status" className="w-36">
@@ -208,7 +217,7 @@ export function IncentivesPage() {
           onRetry={refetch}
           emptyIcon={IndianRupee}
           emptyTitle="No incentives"
-          emptyDescription="Create a referral with incentive weeks to see rows here."
+          emptyDescription="Add a referral with incentive weeks, or create an INCENTIVE from Referrals → Create."
         />
         <Pagination
           meta={data?.meta}
@@ -420,7 +429,7 @@ export function IncentiveReportsPage() {
   const [exporting, setExporting] = useState(false);
 
   const allTable = useTableState(
-    { sourceType: 'REFERRAL', status: '', weekStart: '', search: '', referrerListenerUserId: '' },
+    { sourceType: 'ALL', status: '', weekStart: '', search: '', referrerListenerUserId: '' },
     { limit: 20 },
   );
   const weekTable = useTableState(
@@ -430,7 +439,7 @@ export function IncentiveReportsPage() {
 
   const allParams = {
     ...allTable.params,
-    sourceType: allTable.filters.sourceType || undefined,
+    sourceType: allTable.filters.sourceType || 'ALL',
     status: allTable.filters.status || undefined,
     weekStart: allTable.filters.weekStart || undefined,
     search: allTable.filters.search || undefined,
@@ -496,7 +505,9 @@ export function IncentiveReportsPage() {
                 value={allTable.filters.sourceType}
                 onChange={(e) => allTable.setFilter('sourceType', e.target.value)}
               >
+                <option value="ALL">All</option>
                 <option value="REFERRAL">REFERRAL</option>
+                <option value="INCENTIVE">INCENTIVE</option>
               </Select>
             </Field>
             <Field label="Status" className="w-36">
