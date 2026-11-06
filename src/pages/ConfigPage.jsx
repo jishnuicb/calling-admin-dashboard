@@ -47,39 +47,17 @@ const CONFIG_META = {
     note: 'Callers below this cannot initiate. Prevents a call that would end almost immediately.',
     group: 'Calling',
   },
-  'call.peakRate.startTimeIst': {
-    label: 'Peak start (IST)',
-    unit: 'HH:MM IST',
-    note: 'TEMP for testing — shared window for caller + listener. Default production: 00:00. 24h Asia/Kolkata (e.g. 14:00). Overnight OK (22:00 → 02:00). Window is [start, end).',
-    group: 'Peak rates (IST)',
-  },
-  'call.peakRate.endTimeIst': {
-    label: 'Peak end (IST)',
-    unit: 'HH:MM IST',
-    note: 'TEMP for testing — shared window for caller + listener. Default production: 06:00. Window is [start, end).',
-    group: 'Peak rates (IST)',
-  },
-  'call.peakRate.caller.enabled': {
-    label: 'Caller peak rate enabled',
-    note: 'When on, during the IST peak window callers are billed at the peak tokens/sec for NEW calls only. In-progress calls keep the rate snapshotted at initiate.',
-    group: 'Peak rates (IST)',
-  },
   'call.peakRate.caller.ratePerSecond': {
     label: 'Caller peak rate',
     unit: 'tokens per second',
-    note: 'Used for new calls during the peak window when caller peak is enabled.',
-    group: 'Peak rates (IST)',
-  },
-  'call.peakRate.listener.enabled': {
-    label: 'Listener peak earn rate enabled',
-    note: 'When on, during the IST peak window listeners earn the peak paise/sec for NEW calls only. Independent of caller peak enable.',
-    group: 'Peak rates (IST)',
+    note: 'Auto-applied every day 12:00 AM–6:00 AM IST for NEW calls (window hardcoded). In-progress calls keep the rate snapshotted at initiate.',
+    group: 'Peak rates (IST 12AM–6AM)',
   },
   'call.peakRate.listener.earnPaisePerSecond': {
     label: 'Listener peak earn rate',
     unit: 'paise per second',
-    note: 'Used for new calls during the peak window when listener peak is enabled. Decimals allowed (e.g. 4.45).',
-    group: 'Peak rates (IST)',
+    note: 'Auto-applied every day 12:00 AM–6:00 AM IST for NEW calls (window hardcoded). Decimals allowed (e.g. 4.45).',
+    group: 'Peak rates (IST 12AM–6AM)',
   },
   'listener.earnPaisePerSecond': {
     label: 'Listener earn rate',
