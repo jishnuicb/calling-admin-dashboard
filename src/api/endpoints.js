@@ -319,7 +319,9 @@ export const referralsApi = {
   get: (id) => get(`/admin/referrals/${id}`),
   update: (id, body) => patch(`/admin/referrals/${id}`, body),
   stop: (id, body) => post(`/admin/referrals/${id}/stop`, body),
+  revert: (id, body) => post(`/admin/referrals/${id}/revert`, body),
   resume: (id, body) => post(`/admin/referrals/${id}/resume`, body),
+  remove: (id) => del(`/admin/referrals/${id}`),
   addIncentiveWeeks: (id, body) => post(`/admin/referrals/${id}/incentive-weeks`, body),
   updateIncentiveWeek: (id, weekId, body) =>
     patch(`/admin/referrals/${id}/incentive-weeks/${weekId}`, body),
@@ -328,8 +330,11 @@ export const referralsApi = {
   referralReport: (params) => get('/admin/referrals/reports/referrals', params),
   weeklyIncentiveReport: (params) => get('/admin/referrals/reports/weekly-incentives', params),
   incentives: (params) => get('/admin/referrals/incentives', params),
-  /** Standalone admin incentive for current IST week (type=INCENTIVE). */
+  /** Standalone admin incentive for one or more IST weeks (type=INCENTIVE). */
   createIncentive: (body) => post('/admin/referrals/incentives', body),
+  revertIncentive: (id, body) => post(`/admin/referrals/incentives/${id}/revert`, body),
+  disableIncentive: (id, body) => post(`/admin/referrals/incentives/${id}/disable`, body),
+  removeIncentive: (id) => del(`/admin/referrals/incentives/${id}`),
   exportReferralReport: (params) =>
     downloadCsv('/admin/referrals/reports/referrals', params, 'referral-report.csv'),
   exportWeeklyIncentiveReport: (params) =>

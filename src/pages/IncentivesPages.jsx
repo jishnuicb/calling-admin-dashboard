@@ -1,22 +1,57 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ClipboardList, Download, IndianRupee } from 'lucide-react';
+import { ClipboardList, Download, IndianRupee, Plus, X } from 'lucide-react';
 import { referralsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
+import { useApiMutation } from '../hooks/useApiMutation';
+import { useAuth } from '../auth/AuthContext';
+import { P } from '../auth/permissions';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import {
   Badge,
   Button,
   Card,
+  ErrorState,
   Field,
   Input,
+  Modal,
   PageHeader,
   Select,
   Tabs,
+  Textarea,
 } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, fmtNumber, shortId } from '../lib/format';
+
+const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const parseWeekStarts = (raw) => {
+  if (Array.isArray(raw)) {
+    return [...new Set(raw.map((v) => String(v).trim()).filter((v) => WEEK_RE.test(v)))];
+  }
+  return [
+    ...new Set(
+      String(raw || '')
+        .split(/[\s,]+/)
+        .map((v) => v.trim())
+        .filter((v) => WEEK_RE.test(v)),
+    ),
+  ];
+};
+
+function currentIstWeekStartHint() {
+  const now = new Date();
+  const istMs = now.getTime() + 5.5 * 60 * 60 * 1000;
+  const ist = new Date(istMs);
+  const day = ist.getUTCDay();
+  const daysFromMonday = (day + 6) % 7;
+  ist.setUTCDate(ist.getUTCDate() - daysFromMonday);
+  const y = ist.getUTCFullYear();
+  const m = String(ist.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(ist.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 function personLabel(person, fallbackId) {
   if (!person) return shortId(fallbackId);
@@ -41,13 +76,170 @@ function ExportButton({ onExport, busy }) {
   );
 }
 
-/** All incentive lines (referral + admin INCENTIVE grants). */
+function WeekChips({ weeks, onRemove }) {
+  if (!weeks.length) {
+    return <p className="text-xs text-ink-500">No weeks added yet.</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {weeks.map((w) => (
+        <span
+          key={w}
+          className="inline-flex items-center gap-1 rounded-md bg-ink-100 px-2 py-1 font-mono text-xs text-ink-800"
+        >
+          {w}
+          <button
+            type="button"
+            onClick={() => onRemove(w)}
+            className="rounded p-0.5 text-ink-400 hover:bg-ink-200 hover:text-ink-700"
+            aria-label={`Remove ${w}`}
+          >
+            <X className="size-3" />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function CreateIncentiveModal({ open, onClose }) {
+  const [form, setForm] = useState({
+    listenerUserId: '',
+    amountRupees: '',
+    weekStarts: [currentIstWeekStartHint()],
+    weekDate: '',
+    weekText: '',
+    note: '',
+  });
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const create = useApiMutation({
+    mutationFn: (body) => referralsApi.createIncentive(body),
+    successMessage: 'Incentive added',
+    invalidate: [['referrals'], ['manual-weekly-payouts']],
+    onSuccess: () => onClose(),
+  });
+
+  const mergeWeeks = (extra) => {
+    const parsed = parseWeekStarts(extra);
+    if (!parsed.length) return;
+    set('weekStarts', [...new Set([...form.weekStarts, ...parsed])].sort());
+  };
+
+  const submit = () => {
+    const weeks = [
+      ...new Set([
+        ...form.weekStarts,
+        ...parseWeekStarts(form.weekText),
+        ...parseWeekStarts(form.weekDate),
+      ]),
+    ].sort();
+    create.mutate({
+      listenerUserId: form.listenerUserId.trim(),
+      amountRupees: Number(form.amountRupees),
+      weekStarts: weeks.length ? weeks : undefined,
+      note: form.note.trim() || undefined,
+      type: 'INCENTIVE',
+    });
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="lg"
+      title="Add incentive"
+      description={`Credit the same ₹ amount into one or more IST weeks (Mon–Sun). Each week is added to that listener’s weekly bank-payout Incentives column. Current IST week starts ${currentIstWeekStartHint()}.`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={submit} loading={create.isPending}>
+            Add incentive
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {create.error && <ErrorState error={create.error} compact />}
+        <Field label="Listener user ID" required hint="Approved listener UUID">
+          <Input
+            value={form.listenerUserId}
+            placeholder="UUID"
+            onChange={(e) => set('listenerUserId', e.target.value)}
+          />
+        </Field>
+        <Field label="Amount (₹)" required hint="Same amount applied to every selected week">
+          <Input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={form.amountRupees}
+            onChange={(e) => set('amountRupees', e.target.value)}
+          />
+        </Field>
+        <div className="space-y-2">
+          <Field label="IST week starts" hint="Pick dates or paste YYYY-MM-DD Mondays">
+            <div className="flex flex-wrap gap-2">
+              <Input
+                type="date"
+                value={form.weekDate}
+                onChange={(e) => set('weekDate', e.target.value)}
+                className="w-44"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  mergeWeeks(form.weekDate || form.weekText);
+                  set('weekDate', '');
+                  set('weekText', '');
+                }}
+              >
+                Add week
+              </Button>
+              <Input
+                value={form.weekText}
+                placeholder="or paste: 2026-01-05, 2026-01-12"
+                onChange={(e) => set('weekText', e.target.value)}
+                className="min-w-[12rem] flex-1"
+              />
+            </div>
+          </Field>
+          <WeekChips
+            weeks={form.weekStarts}
+            onRemove={(w) =>
+              set(
+                'weekStarts',
+                form.weekStarts.filter((x) => x !== w),
+              )
+            }
+          />
+        </div>
+        <Field label="Note">
+          <Textarea
+            rows={2}
+            value={form.note}
+            onChange={(e) => set('note', e.target.value)}
+            placeholder="Optional admin note"
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+/** Admin INCENTIVE grants only (not referrals). */
 export function IncentivesPage() {
+  const { can } = useAuth();
+  const writable = can(P.REFERRALS_WRITE);
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const table = useTableState(
     {
-      sourceType: 'ALL',
       status: '',
       weekStart: '',
       search: '',
@@ -58,7 +250,7 @@ export function IncentivesPage() {
 
   const params = {
     ...table.params,
-    sourceType: table.filters.sourceType || 'ALL',
+    sourceType: 'INCENTIVE',
     status: table.filters.status || undefined,
     weekStart: table.filters.weekStart || undefined,
     search: table.filters.search || undefined,
@@ -70,16 +262,19 @@ export function IncentivesPage() {
     queryFn: () => referralsApi.incentives(params),
   });
 
+  const revert = useApiMutation({
+    mutationFn: ({ id, stopReason }) => referralsApi.revertIncentive(id, { stopReason }),
+    successMessage: 'Incentive disabled',
+    invalidate: [['referrals'], ['manual-weekly-payouts']],
+  });
+
+  const remove = useApiMutation({
+    mutationFn: (id) => referralsApi.removeIncentive(id),
+    successMessage: 'Incentive deleted',
+    invalidate: [['referrals'], ['manual-weekly-payouts']],
+  });
+
   const columns = [
-    {
-      key: 'sourceType',
-      header: 'Type',
-      render: (row) => (
-        <Badge tone={row.sourceType === 'INCENTIVE' ? 'success' : 'brand'}>
-          {row.sourceType || 'REFERRAL'}
-        </Badge>
-      ),
-    },
     {
       key: 'week',
       header: 'Week',
@@ -102,38 +297,24 @@ export function IncentivesPage() {
       ),
     },
     {
-      key: 'referred',
-      header: 'Linked referred',
-      render: (row) =>
-        row.sourceType === 'INCENTIVE' || !row.referralId ? (
-          <span className="text-xs text-ink-400">—</span>
-        ) : (
-          <div className="min-w-0">
-            <p className="truncate text-sm text-ink-800">
-              {personLabel(row.referred, row.referredUserId)}
-            </p>
-            <p className="font-mono text-[11px] text-ink-400">ref {shortId(row.referralId)}</p>
-          </div>
-        ),
-    },
-    {
       key: 'status',
       header: 'Status',
       render: (row) => <StatusToneBadge status={row.status} />,
     },
     {
       key: 'amount',
-      header: 'Weekly ₹',
+      header: 'Amount ₹',
       align: 'right',
       render: (row) => (
         <span className="font-medium text-emerald-700">₹{fmtNumber(row.amountRupees)}</span>
       ),
     },
     {
-      key: 'bonus',
-      header: 'Ref. bonus ₹',
-      align: 'right',
-      render: (row) => `₹${fmtNumber(row.referralBonusRupees)}`,
+      key: 'note',
+      header: 'Note',
+      render: (row) => (
+        <span className="truncate text-xs text-ink-600">{row.note || '—'}</span>
+      ),
     },
     {
       key: 'createdAt',
@@ -141,6 +322,48 @@ export function IncentivesPage() {
       render: (row) => (
         <span className="whitespace-nowrap text-xs text-ink-600">{fmtDateTime(row.createdAt)}</span>
       ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (row) =>
+        writable ? (
+          <div className="flex flex-wrap justify-end gap-1">
+            {row.status === 'ACTIVE' && (
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={revert.isPending}
+                onClick={() => {
+                  if (!window.confirm('Disable this incentive week from live bank payouts?')) {
+                    return;
+                  }
+                  revert.mutate({ id: row.id });
+                }}
+              >
+                Disable
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="danger"
+              loading={remove.isPending}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    'Delete this incentive? Amount will be reverted from live payouts, then deleted.',
+                  )
+                ) {
+                  return;
+                }
+                remove.mutate(row.id);
+              }}
+            >
+              Delete
+            </Button>
+          </div>
+        ) : null,
     },
   ];
 
@@ -159,23 +382,23 @@ export function IncentivesPage() {
   return (
     <>
       <PageHeader
-        title="Incentive"
-        description="Referral week incentives and admin INCENTIVE grants for the current / selected weeks."
-        actions={<ExportButton onExport={onExport} busy={exporting} />}
+        title="Incentives"
+        description="Admin incentive amounts by IST week. Each ACTIVE week rolls into that listener’s weekly bank-payout Incentives column (no referral). Referrals are managed separately."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <ExportButton onExport={onExport} busy={exporting} />
+            {writable && (
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                <Plus className="size-4" />
+                Add incentive
+              </Button>
+            )}
+          </div>
+        }
       />
 
       <Card bodyClassName="">
         <FilterBar>
-          <Field label="Type" className="w-40">
-            <Select
-              value={table.filters.sourceType}
-              onChange={(e) => table.setFilter('sourceType', e.target.value)}
-            >
-              <option value="ALL">All</option>
-              <option value="REFERRAL">REFERRAL</option>
-              <option value="INCENTIVE">INCENTIVE</option>
-            </Select>
-          </Field>
           <Field label="Status" className="w-36">
             <Select
               value={table.filters.status}
@@ -209,6 +432,12 @@ export function IncentivesPage() {
           </Field>
         </FilterBar>
 
+        {(revert.error || remove.error) && (
+          <div className="px-5 pt-3">
+            <ErrorState error={revert.error || remove.error} compact />
+          </div>
+        )}
+
         <DataTable
           columns={columns}
           rows={data?.data}
@@ -217,7 +446,7 @@ export function IncentivesPage() {
           onRetry={refetch}
           emptyIcon={IndianRupee}
           emptyTitle="No incentives"
-          emptyDescription="Add a referral with incentive weeks, or create an INCENTIVE from Referrals → Create."
+          emptyDescription="Add an incentive with one or more IST weeks. Amounts appear automatically in weekly bank payouts."
         />
         <Pagination
           meta={data?.meta}
@@ -225,6 +454,10 @@ export function IncentivesPage() {
           onLimitChange={table.changeLimit}
         />
       </Card>
+
+      {createOpen && (
+        <CreateIncentiveModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      )}
     </>
   );
 }
