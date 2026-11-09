@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   StickyNote,
   Bell,
+  WifiOff,
   X,
 } from 'lucide-react';
 import { earningsApi, languagesApi, listenersApi, payoutsApi, securityApi } from '../api/endpoints';
@@ -511,6 +512,12 @@ export function ListenerDetailPage() {
     onSuccess: (data) => setRevealedApp(data),
   });
 
+  const forceOffline = useApiMutation({
+    mutationFn: () => listenersApi.forceOffline(id),
+    successMessage: 'Listener set offline',
+    invalidate: [qk.listener(id), ['listeners']],
+  });
+
   const professionalVerify = useApiMutation({
     mutationFn: () => listenersApi.professionalVerify(id),
     successMessage: 'Professional verification approved',
@@ -560,6 +567,8 @@ export function ListenerDetailPage() {
   const canApprove = status === 'PENDING' && can(P.LISTENERS_APPROVE);
   const canReject = status === 'PENDING' && can(P.LISTENERS_APPROVE);
   const canSuspend = status === 'APPROVED' && can(P.LISTENERS_SUSPEND);
+  const canForceOffline =
+    status === 'APPROVED' && Boolean(application.online) && can(P.LISTENERS_APPROVE);
   const canReactivate = status === 'SUSPENDED' && can(P.LISTENERS_SUSPEND);
   const canReopen =
     (status === 'APPROVED' || status === 'PENDING') && can(P.LISTENERS_APPROVE);
@@ -635,6 +644,25 @@ export function ListenerDetailPage() {
               <Button onClick={() => setDecision('approve')}>
                 <Check className="size-4" />
                 Approve
+              </Button>
+            )}
+            {canForceOffline && (
+              <Button
+                variant="secondary"
+                loading={forceOffline.isPending}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      'Set this listener offline? They leave discovery immediately and can go online again themselves.',
+                    )
+                  ) {
+                    return;
+                  }
+                  forceOffline.mutate();
+                }}
+              >
+                <WifiOff className="size-4" />
+                Set offline
               </Button>
             )}
             {canSuspend && (

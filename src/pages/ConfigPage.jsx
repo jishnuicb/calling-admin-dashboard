@@ -346,6 +346,16 @@ const CONFIG_META = {
     note: 'How long a no-socket online listener has to POST /listener/online-ack before the chunk is forfeited. Default 300000 (5 min). Min 5000, max 600000.',
     group: 'Listener online ping',
   },
+  'listener.missedCalls.autoOfflineEnabled': {
+    label: 'Auto-offline after consecutive missed calls',
+    note: 'When on, an online listener who gets consecutive MISSED (no-answer) calls with no other call outcome in between is set offline and must go online manually. Logged in Audit as listener.auto_offline_missed_calls.',
+    group: 'Listener presence',
+  },
+  'listener.missedCalls.autoOfflineThreshold': {
+    label: 'Consecutive missed calls before offline',
+    note: 'Number of adjacent MISSED calls required (default 2). Minimum 2. Time between misses does not matter — only that no answered/rejected/cancelled/ended call sits between them.',
+    group: 'Listener presence',
+  },
   'security.ipBlock.enabled': {
     label: 'IP block enabled',
     note: 'When on, IPs that exceed rate/OTP limits are auto-blocked (and manual blocks apply). Blocked IPs get 403 IP_BLOCKED on API and socket.',

@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
-import { usersApi, walletApi } from '../api/endpoints';
+import { listenersApi, usersApi, walletApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
@@ -37,6 +37,34 @@ import {
   Textarea,
 } from '../components/ui';
 import { fmtDateTime, fmtNumber, fmtSigned, fmtTokens, titleCase } from '../lib/format';
+
+function ForceListenerOfflineButton({ applicationId }) {
+  const forceOffline = useApiMutation({
+    mutationFn: () => listenersApi.forceOffline(applicationId),
+    successMessage: 'Listener set offline',
+    invalidate: [['users'], ['listeners']],
+  });
+
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      loading={forceOffline.isPending}
+      onClick={() => {
+        if (
+          !window.confirm(
+            'Set this listener offline? They leave discovery immediately and can go online again themselves.',
+          )
+        ) {
+          return;
+        }
+        forceOffline.mutate();
+      }}
+    >
+      Set offline
+    </Button>
+  );
+}
 
 function paymentMarketLabel(market) {
   if (market === 'INDIAN') return 'India';
@@ -827,13 +855,18 @@ export function UserDetailPage() {
                 </div>
 
                 {user.listener.status === 'APPROVED' && (
-                  <p className="text-xs text-ink-500">
-                    {user.listener.online
-                      ? 'Online (manual — stays online if app is closed)'
-                      : user.listener.manualOffline
-                        ? 'Offline (went offline manually)'
-                        : 'Offline'}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-ink-500">
+                      {user.listener.online
+                        ? 'Online (manual — stays online if app is closed)'
+                        : user.listener.manualOffline
+                          ? 'Offline (went offline manually)'
+                          : 'Offline'}
+                    </p>
+                    {user.listener.online && can(P.LISTENERS_APPROVE) && (
+                      <ForceListenerOfflineButton applicationId={user.listener.id} />
+                    )}
+                  </div>
                 )}
 
                 {/* Listener speaking languages (separate from preferred userLanguages). */}

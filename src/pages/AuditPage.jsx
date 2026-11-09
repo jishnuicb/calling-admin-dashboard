@@ -98,6 +98,8 @@ const ACTION_TONES = {
   TERMINATE: 'danger',
   REFUND: 'warning',
   ADJUST: 'warning',
+  'listener.auto_offline_missed_calls': 'warning',
+  'listener.force_offline': 'warning',
 };
 
 export function AuditPage() {
