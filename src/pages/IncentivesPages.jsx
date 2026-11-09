@@ -334,7 +334,7 @@ export function IncentivesPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                loading={revert.isPending}
+                loading={revert.isPending && revert.variables?.id === row.id}
                 onClick={() => {
                   if (!window.confirm('Disable this incentive week from live bank payouts?')) {
                     return;
@@ -348,7 +348,7 @@ export function IncentivesPage() {
             <Button
               size="sm"
               variant="danger"
-              loading={remove.isPending}
+              loading={remove.isPending && remove.variables === row.id}
               onClick={() => {
                 if (
                   !window.confirm(
@@ -462,7 +462,7 @@ export function IncentivesPage() {
   );
 }
 
-/** One IST week board of incentives (referral-backed). */
+/** One IST week board: admin INCENTIVE grants + legacy referral incentive weeks. */
 export function WeeklyIncentivesPage() {
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
@@ -496,7 +496,11 @@ export function WeeklyIncentivesPage() {
     {
       key: 'type',
       header: 'Type',
-      render: () => <Badge tone="brand">REFERRAL</Badge>,
+      render: (row) => (
+        <Badge tone={row.sourceType === 'INCENTIVE' ? 'success' : 'brand'}>
+          {row.sourceType || 'REFERRAL'}
+        </Badge>
+      ),
     },
     {
       key: 'week',
@@ -522,11 +526,14 @@ export function WeeklyIncentivesPage() {
     {
       key: 'referred',
       header: 'Referred',
-      render: (row) => (
-        <p className="truncate text-sm text-ink-800">
-          {personLabel(row.referred, row.referredUserId)}
-        </p>
-      ),
+      render: (row) =>
+        row.sourceType === 'INCENTIVE' || !row.referredUserId ? (
+          <span className="text-xs text-ink-400">—</span>
+        ) : (
+          <p className="truncate text-sm text-ink-800">
+            {personLabel(row.referred, row.referredUserId)}
+          </p>
+        ),
     },
     {
       key: 'status',
@@ -565,7 +572,7 @@ export function WeeklyIncentivesPage() {
     <>
       <PageHeader
         title="Weekly Incentive"
-        description="Incentives for one IST Mon–Sun week. These amounts feed Weekly bank payouts when ACTIVE."
+        description="All incentive lines for one IST Mon–Sun week (admin incentives + referral weeks). ACTIVE amounts feed Weekly bank payouts."
         actions={<ExportButton onExport={onExport} busy={exporting} />}
       />
 
@@ -643,7 +650,7 @@ export function WeeklyIncentivesPage() {
           onRetry={refetch}
           emptyIcon={ClipboardList}
           emptyTitle="No weekly incentives"
-          emptyDescription="Pick a week or create referral incentive weeks first."
+          emptyDescription="Pick a week, or add incentives from the Incentive page."
         />
         <Pagination
           meta={data?.meta}
