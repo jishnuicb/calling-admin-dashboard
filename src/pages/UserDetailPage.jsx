@@ -695,7 +695,7 @@ export function UserDetailPage() {
               <div className="mt-4 border-t border-ink-100 pt-4">
                 <Field
                   label="Send custom OTP via SMS"
-                  hint="Enters the code you choose, texts it to the account phone, and stores it as the backup OTP. Does not use the app send-OTP flow."
+                  hint="Enter a 6-digit code, texts it to the account phone, and stores it as the backup OTP. Does not use the app send-OTP flow."
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Input
