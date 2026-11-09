@@ -11,6 +11,7 @@ import {
   EyeOff,
   KeyRound,
   Pencil,
+  Send,
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
@@ -382,6 +383,7 @@ export function UserDetailPage() {
   const [decryptKey, setDecryptKey] = useState('');
   const [revealedUser, setRevealedUser] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [customOtp, setCustomOtp] = useState('');
   const [picturePreviewOpen, setPicturePreviewOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -420,6 +422,13 @@ export function UserDetailPage() {
     mutationFn: () => usersApi.generateBackupOtp(id),
     successMessage: 'Backup OTP generated',
     invalidate: [['users', 'backup-otp', id]],
+  });
+
+  const sendCustomOtp = useApiMutation({
+    mutationFn: () => usersApi.sendCustomOtp(id, { otp: customOtp.trim() }),
+    successMessage: 'Custom OTP sent via SMS',
+    invalidate: [['users', 'backup-otp', id]],
+    onSuccess: () => setCustomOtp(''),
   });
 
   useEffect(
@@ -682,9 +691,45 @@ export function UserDetailPage() {
                 </div>
               </div>
             )}
+            {can(P.USERS_WRITE) && user.status !== 'DELETED' && (
+              <div className="mt-4 border-t border-ink-100 pt-4">
+                <Field
+                  label="Send custom OTP via SMS"
+                  hint="Enters the code you choose, texts it to the account phone, and stores it as the backup OTP. Does not use the app send-OTP flow."
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input
+                      value={customOtp}
+                      onChange={(e) =>
+                        setCustomOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
+                      }
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="6-digit OTP"
+                      className="font-mono tracking-widest sm:max-w-[10rem]"
+                      maxLength={6}
+                    />
+                    <Button
+                      size="sm"
+                      loading={sendCustomOtp.isPending}
+                      disabled={customOtp.trim().length !== 6}
+                      onClick={() => sendCustomOtp.mutate()}
+                    >
+                      <Send className="size-4" />
+                      Send SMS
+                    </Button>
+                  </div>
+                </Field>
+              </div>
+            )}
             {generateBackup.error && (
               <div className="mt-3">
                 <ErrorState error={generateBackup.error} compact />
+              </div>
+            )}
+            {sendCustomOtp.error && (
+              <div className="mt-3">
+                <ErrorState error={sendCustomOtp.error} compact />
               </div>
             )}
           </Card>
