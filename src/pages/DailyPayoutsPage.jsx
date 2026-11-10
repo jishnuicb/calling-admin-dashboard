@@ -136,9 +136,7 @@ function DetailModal({ payoutId, onClose }) {
 
 export function DailyPayoutsPage() {
   const canWrite = useAuth().can(P.PAYOUTS_WRITE);
-  const table = useTableState({
-    initialFilters: { status: 'PENDING_APPROVAL' },
-  });
+  const table = useTableState({ status: 'PENDING_APPROVAL' });
   const [detailId, setDetailId] = useState(null);
   const [rejectId, setRejectId] = useState(null);
 
@@ -157,7 +155,7 @@ export function DailyPayoutsPage() {
     {
       key: 'listener',
       header: 'Listener',
-      cell: (row) => (
+      render: (row) => (
         <div className="min-w-0">
           <p className="truncate font-medium">
             {row.listener?.displayName || row.listener?.name || '—'}
@@ -177,7 +175,7 @@ export function DailyPayoutsPage() {
     {
       key: 'amount',
       header: 'Amount',
-      cell: (row) => (
+      render: (row) => (
         <div className="text-sm">
           <p className="font-medium">{fmtPaise(row.amountPaise)}</p>
           <p className="text-xs text-ink-500">
@@ -189,19 +187,19 @@ export function DailyPayoutsPage() {
     {
       key: 'status',
       header: 'Status',
-      cell: (row) => <StatusBadge status={row.status} />,
+      render: (row) => <StatusBadge status={row.status} />,
     },
     {
       key: 'requestedAt',
       header: 'Requested',
-      cell: (row) => (
+      render: (row) => (
         <span className="text-xs text-ink-600">{fmtDateTime(row.requestedAt || row.createdAt)}</span>
       ),
     },
     {
       key: 'actions',
       header: '',
-      cell: (row) => (
+      render: (row) => (
         <div className="flex flex-wrap justify-end gap-1">
           <Button size="sm" variant="secondary" onClick={() => setDetailId(row.id)}>
             View
@@ -250,13 +248,8 @@ export function DailyPayoutsPage() {
       {error && <ErrorState error={error} />}
       {approve.error && <ErrorState error={approve.error} compact />}
 
-      <DataTable columns={columns} rows={data?.items || []} loading={isLoading} />
-      <Pagination
-        page={table.page}
-        limit={table.limit}
-        total={data?.total || 0}
-        onPageChange={table.setPage}
-      />
+      <DataTable columns={columns} rows={data?.data || []} loading={isLoading} />
+      <Pagination meta={data?.meta} onPageChange={table.setPage} />
 
       {detailId && <DetailModal payoutId={detailId} onClose={() => setDetailId(null)} />}
       {rejectId && <RejectModal payoutId={rejectId} onClose={() => setRejectId(null)} />}
