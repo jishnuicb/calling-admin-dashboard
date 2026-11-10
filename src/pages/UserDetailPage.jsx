@@ -383,7 +383,6 @@ export function UserDetailPage() {
   const [decryptKey, setDecryptKey] = useState('');
   const [revealedUser, setRevealedUser] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [customOtp, setCustomOtp] = useState('');
   const [picturePreviewOpen, setPicturePreviewOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState('');
@@ -424,11 +423,10 @@ export function UserDetailPage() {
     invalidate: [['users', 'backup-otp', id]],
   });
 
-  const sendCustomOtp = useApiMutation({
-    mutationFn: () => usersApi.sendCustomOtp(id, { otp: customOtp.trim() }),
-    successMessage: 'Custom OTP sent via SMS',
+  const sendUserOtp = useApiMutation({
+    mutationFn: () => usersApi.sendOtp(id),
+    successMessage: 'OTP sent to user phone',
     invalidate: [['users', 'backup-otp', id]],
-    onSuccess: () => setCustomOtp(''),
   });
 
   useEffect(
@@ -693,33 +691,22 @@ export function UserDetailPage() {
             )}
             {can(P.USERS_WRITE) && user.status !== 'DELETED' && (
               <div className="mt-4 border-t border-ink-100 pt-4">
-                <Field
-                  label="Send custom OTP via SMS"
-                  hint="Enter a 6-digit code, texts it to the account phone, and stores it as the backup OTP. Does not use the app send-OTP flow."
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Input
-                      value={customOtp}
-                      onChange={(e) =>
-                        setCustomOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
-                      }
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      placeholder="6-digit OTP"
-                      className="font-mono tracking-widest sm:max-w-[10rem]"
-                      maxLength={6}
-                    />
-                    <Button
-                      size="sm"
-                      loading={sendCustomOtp.isPending}
-                      disabled={customOtp.trim().length !== 6}
-                      onClick={() => sendCustomOtp.mutate()}
-                    >
-                      <Send className="size-4" />
-                      Send SMS
-                    </Button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-ink-900">Send login OTP</p>
+                    <p className="text-xs text-ink-500">
+                      Same MSG91 widget OTP as app login, sent to this account phone.
+                    </p>
                   </div>
-                </Field>
+                  <Button
+                    size="sm"
+                    loading={sendUserOtp.isPending}
+                    onClick={() => sendUserOtp.mutate()}
+                  >
+                    <Send className="size-4" />
+                    Send OTP
+                  </Button>
+                </div>
               </div>
             )}
             {generateBackup.error && (
@@ -727,9 +714,9 @@ export function UserDetailPage() {
                 <ErrorState error={generateBackup.error} compact />
               </div>
             )}
-            {sendCustomOtp.error && (
+            {sendUserOtp.error && (
               <div className="mt-3">
-                <ErrorState error={sendCustomOtp.error} compact />
+                <ErrorState error={sendUserOtp.error} compact />
               </div>
             )}
           </Card>

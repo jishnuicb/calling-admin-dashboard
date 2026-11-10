@@ -25,6 +25,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/fake-listeners', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/listener-calling-time', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/listener-shifts', section: S.PEOPLE, permission: P.LISTENERS_READ },
+  { path: '/missed-call-auto-offline', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/languages', section: S.PEOPLE, permission: P.LANGUAGES_READ },
   { path: '/avatars', section: S.PEOPLE, permission: P.AVATARS_READ },
   { path: '/otp', section: S.PEOPLE, permission: P.OTP_READ },

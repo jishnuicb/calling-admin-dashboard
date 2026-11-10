@@ -20,6 +20,7 @@ export const qk = {
   listenerCallingTimeDetail: (id, params) => ['listeners', 'calling-time', 'detail', id, params],
   listenerShifts: (params) => ['listeners', 'shifts', params],
   listenerShift: (id) => ['listeners', 'shifts', 'detail', id],
+  missedCallAutoOffline: (params) => ['listeners', 'missed-call-auto-offline', params],
   listenerDecoys: ['listeners', 'decoys'],
 
   otpSummary: ['otp', 'summary'],

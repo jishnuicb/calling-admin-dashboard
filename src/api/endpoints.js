@@ -38,7 +38,7 @@ export const usersApi = {
   revealPhone: (id, body) => post(`/admin/users/${id}/phone/reveal`, body),
   getBackupOtp: (id) => get(`/admin/users/${id}/backup-otp`),
   generateBackupOtp: (id) => post(`/admin/users/${id}/backup-otp/generate`),
-  sendCustomOtp: (id, body) => post(`/admin/users/${id}/backup-otp/send`, body),
+  sendOtp: (id) => post(`/admin/users/${id}/otp/send`),
   setPaymentMarket: (id, body) => put(`/admin/users/${id}/payment-market`, body),
 };
 
@@ -89,6 +89,8 @@ export const listenersApi = {
   createShift: (body) => post('/admin/listeners/shifts', body),
   updateShift: (id, body) => patch(`/admin/listeners/shifts/${id}`, body),
   removeShift: (id) => del(`/admin/listeners/shifts/${id}`),
+  listMissedCallAutoOffline: (params) =>
+    get('/admin/listeners/missed-call-auto-offline', params),
   listDecoys: () => get('/admin/listeners/decoys'),
   addDecoy: (body) => post('/admin/listeners/decoys', body),
   removeDecoy: (listenerId) => del(`/admin/listeners/decoys/${listenerId}`),
