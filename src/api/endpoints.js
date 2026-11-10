@@ -81,6 +81,14 @@ export const listenersApi = {
   clearPhoto: (id) => del(`/admin/listeners/applications/${id}/photo`),
   syncBeneficiary: (id, body) =>
     post(`/admin/listeners/applications/${id}/beneficiary/sync`, body || {}),
+  enableDailyPayout: (id, body) =>
+    post(`/admin/listeners/applications/${id}/daily-payout/enable`, body || {}),
+  disableDailyPayout: (id) =>
+    post(`/admin/listeners/applications/${id}/daily-payout/disable`),
+  retryDailyPayoutSetup: (id, body) =>
+    post(`/admin/listeners/applications/${id}/daily-payout/retry-setup`, body || {}),
+  updateDailyPayoutSettings: (id, body) =>
+    patch(`/admin/listeners/applications/${id}/daily-payout/settings`, body),
   getOnlineTime: (params) => get('/admin/listeners/online-time', params),
   getListenerOnlineTime: (id, params) => get(`/admin/listeners/${id}/online-time`, params),
   getCallingTime: (params) => get('/admin/listeners/calling-time', params),
@@ -140,6 +148,14 @@ export const payoutsApi = {
   markPaid: (id, body) => post(`/admin/payouts/${id}/mark-paid`, body),
   cancel: (id) => post(`/admin/payouts/${id}/cancel`),
   runSchedule: (body) => post('/admin/payouts/run', body),
+};
+
+/** Opt-in daily RazorpayX payouts (parallel to Cashfree / weekly bank). */
+export const dailyPayoutsApi = {
+  list: (params) => get('/admin/daily-payouts', params),
+  get: (id) => get(`/admin/daily-payouts/${id}`),
+  approve: (id) => post(`/admin/daily-payouts/${id}/approve`),
+  reject: (id, body) => post(`/admin/daily-payouts/${id}/reject`, body || {}),
 };
 
 // --- OTP request state / lockouts -------------------------------------------

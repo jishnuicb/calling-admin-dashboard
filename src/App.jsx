@@ -47,6 +47,7 @@ import {
 } from './pages/IncentivesPages';
 import { BulkTopupPage } from './pages/BulkTopupPage';
 import { ManualWeeklyPayoutsPage } from './pages/ManualWeeklyPayoutsPage';
+import { DailyPayoutsPage } from './pages/DailyPayoutsPage';
 import { RbacPage } from './pages/RbacPage';
 import { ConfigPage } from './pages/ConfigPage';
 import { LegalPage } from './pages/LegalPage';
@@ -190,6 +191,10 @@ export function App() {
         <Route
           path="weekly-bank-payouts"
           element={guard(S.MONEY, P.PAYOUTS_READ, <ManualWeeklyPayoutsPage />)}
+        />
+        <Route
+          path="daily-payouts"
+          element={guard(S.MONEY, P.PAYOUTS_READ, <DailyPayoutsPage />)}
         />
         <Route path="bonuses" element={guard(S.MONEY, P.BONUSES_READ, <BonusesPage />)} />
         <Route path="referrals" element={guard(S.MONEY, P.REFERRALS_READ, <ReferralsPage />)} />

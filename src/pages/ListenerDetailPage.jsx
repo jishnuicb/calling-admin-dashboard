@@ -496,6 +496,40 @@ export function ListenerDetailPage() {
     invalidate: [qk.listener(id), ['listeners']],
   });
 
+  const enableDailyPayout = useApiMutation({
+    mutationFn: () =>
+      listenersApi.enableDailyPayout(id, {
+        decryptionKey: decryptKey.trim() || undefined,
+        requiresApproval: true,
+      }),
+    successMessage: (data) =>
+      data?.ok ? 'Daily Razorpay payout enabled' : data?.message || 'Razorpay setup failed',
+    invalidate: [qk.listener(id), ['listeners']],
+  });
+
+  const disableDailyPayout = useApiMutation({
+    mutationFn: () => listenersApi.disableDailyPayout(id),
+    successMessage: 'Daily Razorpay payout disabled',
+    invalidate: [qk.listener(id), ['listeners']],
+  });
+
+  const retryDailyPayoutSetup = useApiMutation({
+    mutationFn: () =>
+      listenersApi.retryDailyPayoutSetup(id, {
+        decryptionKey: decryptKey.trim() || undefined,
+      }),
+    successMessage: (data) =>
+      data?.ok ? 'Razorpay fund account ready' : data?.message || 'Razorpay setup failed',
+    invalidate: [qk.listener(id), ['listeners']],
+  });
+
+  const updateDailyApproval = useApiMutation({
+    mutationFn: (requiresApproval) =>
+      listenersApi.updateDailyPayoutSettings(id, { requiresApproval }),
+    successMessage: 'Daily payout approval setting updated',
+    invalidate: [qk.listener(id), ['listeners']],
+  });
+
   const unlockKey = useApiMutation({
     mutationFn: () => securityApi.unlockSensitiveKey({ decryptionKey: decryptKey }),
     successMessage: 'Decryption key unlocked for this server process',
@@ -1178,6 +1212,93 @@ export function ListenerDetailPage() {
             </div>
           )}
         </Card>
+
+        {can(P.PAYOUTS_WRITE) && (
+          <Card
+            title="Daily Razorpay payout"
+            description="Opt-in only (default off). Enabling creates a Razorpay contact + fund account from bank details. Max 70% of available. Weekly bank payouts stay synced."
+            className="lg:col-span-2"
+          >
+            <DescList
+              items={[
+                {
+                  label: 'Daily payout',
+                  value: application.dailyPayoutEnabled ? 'Enabled' : 'Disabled',
+                },
+                {
+                  label: 'Admin approval',
+                  value: application.dailyPayoutRequiresApproval === false ? 'Off' : 'On (default)',
+                },
+                {
+                  label: 'Razorpay setup',
+                  value: application.razorpayPayoutSetupStatus || 'NONE',
+                },
+                {
+                  label: 'Fund account',
+                  value: application.razorpayFundAccountId || '—',
+                  mono: true,
+                },
+              ]}
+            />
+            {application.razorpayPayoutSetupError && (
+              <p className="mt-2 text-xs text-amber-700">{application.razorpayPayoutSetupError}</p>
+            )}
+            {(enableDailyPayout.error ||
+              disableDailyPayout.error ||
+              retryDailyPayoutSetup.error ||
+              updateDailyApproval.error) && (
+              <div className="mt-2">
+                <ErrorState
+                  error={
+                    enableDailyPayout.error ||
+                    disableDailyPayout.error ||
+                    retryDailyPayoutSetup.error ||
+                    updateDailyApproval.error
+                  }
+                  compact
+                />
+              </div>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {!application.dailyPayoutEnabled ? (
+                <Button
+                  size="sm"
+                  loading={enableDailyPayout.isPending}
+                  onClick={() => enableDailyPayout.mutate()}
+                >
+                  Enable daily payout
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={disableDailyPayout.isPending}
+                  onClick={() => disableDailyPayout.mutate()}
+                >
+                  Disable daily payout
+                </Button>
+              )}
+              {(application.razorpayPayoutSetupStatus === 'FAILED' ||
+                application.razorpayPayoutSetupStatus === 'NONE') && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  loading={retryDailyPayoutSetup.isPending}
+                  onClick={() => retryDailyPayoutSetup.mutate()}
+                >
+                  Retry Razorpay setup
+                </Button>
+              )}
+              {application.dailyPayoutEnabled && (
+                <Toggle
+                  checked={application.dailyPayoutRequiresApproval !== false}
+                  onChange={(checked) => updateDailyApproval.mutate(checked)}
+                  label="Require admin approval before payout"
+                />
+              )}
+            </div>
+          </Card>
+        )}
       </div>
 
       {decision && (

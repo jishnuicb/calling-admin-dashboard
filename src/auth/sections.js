@@ -40,6 +40,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/earnings', section: S.MONEY, permission: P.EARNINGS_READ },
   { path: '/payouts', section: S.MONEY, permission: P.PAYOUTS_READ },
   { path: '/weekly-bank-payouts', section: S.MONEY, permission: P.PAYOUTS_READ },
+  { path: '/daily-payouts', section: S.MONEY, permission: P.PAYOUTS_READ },
   { path: '/bonuses', section: S.MONEY, permission: P.BONUSES_READ },
   { path: '/referrals', section: S.MONEY, permission: P.REFERRALS_READ },
   { path: '/referral-bonus', section: S.MONEY, permission: P.REFERRALS_READ },

@@ -726,6 +726,36 @@ function WeekSheetTab() {
       render: (row) => <span className="font-semibold">{fmtPaise(row.totalAmountPaise)}</span>,
     },
     {
+      key: 'dailyPaid',
+      header: 'Daily paid',
+      align: 'right',
+      render: (row) =>
+        row.dailyPaidAmountPaise || row.dailyReservedAmountPaise ? (
+          <div className="text-right text-xs">
+            <p>{fmtPaise(row.dailyPaidAmountPaise || 0)}</p>
+            {row.dailyReservedAmountPaise > 0 && (
+              <p className="text-amber-700">reserved {fmtPaise(row.dailyReservedAmountPaise)}</p>
+            )}
+          </div>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'weeklyBank',
+      header: 'Weekly bank',
+      align: 'right',
+      render: (row) => (
+        <span className="font-semibold text-ink-800">
+          {fmtPaise(
+            row.weeklyBankPayableAmountPaise != null
+              ? row.weeklyBankPayableAmountPaise
+              : row.totalAmountPaise,
+          )}
+        </span>
+      ),
+    },
+    {
       key: 'status',
       header: 'Status',
       render: (row) => <StatusBadge status={row.status} />,
@@ -1048,6 +1078,24 @@ function HistoryTab() {
       header: 'Total',
       align: 'right',
       render: (row) => <span className="font-semibold">{fmtPaise(row.totalAmountPaise)}</span>,
+    },
+    {
+      key: 'dailyPaid',
+      header: 'Daily paid',
+      align: 'right',
+      render: (row) =>
+        row.dailyPaidAmountPaise ? fmtPaise(row.dailyPaidAmountPaise) : '—',
+    },
+    {
+      key: 'weeklyBank',
+      header: 'Weekly bank',
+      align: 'right',
+      render: (row) =>
+        fmtPaise(
+          row.weeklyBankPayableAmountPaise != null
+            ? row.weeklyBankPayableAmountPaise
+            : row.totalAmountPaise,
+        ),
     },
     {
       key: 'paidAt',

@@ -48,6 +48,8 @@ export const qk = {
   earnings: (params) => ['earnings', 'list', params],
   earningsSummary: (params) => ['earnings', 'summary', params],
   payouts: (params) => ['payouts', 'list', params],
+  dailyPayouts: (params) => ['daily-payouts', 'list', params],
+  dailyPayout: (id) => ['daily-payouts', 'detail', id],
   payout: (id) => ['payouts', 'detail', id],
 
   calls: (params) => ['calls', 'list', params],

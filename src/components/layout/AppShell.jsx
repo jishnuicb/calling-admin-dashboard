@@ -123,6 +123,12 @@ const NAV_SECTIONS = [
         icon: Landmark,
         permission: P.PAYOUTS_READ,
       },
+      {
+        to: '/daily-payouts',
+        label: 'Daily Razorpay payouts',
+        icon: Banknote,
+        permission: P.PAYOUTS_READ,
+      },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
       { to: '/referrals', label: 'Referrals', icon: Handshake, permission: P.REFERRALS_READ },
       {
