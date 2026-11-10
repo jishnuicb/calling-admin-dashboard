@@ -59,6 +59,7 @@ export const listenersApi = {
   forceOffline: (id) => post(`/admin/listeners/applications/${id}/force-offline`),
   reactivate: (id, body) => post(`/admin/listeners/applications/${id}/reactivate`, body),
   reopen: (id, body) => post(`/admin/listeners/applications/${id}/reopen`, body),
+  closeReopen: (id, body) => post(`/admin/listeners/applications/${id}/close-reopen`, body),
   professionalVerify: (id) => post(`/admin/listeners/applications/${id}/professional-verify`),
   revealBank: (id, body) => post(`/admin/listeners/applications/${id}/bank-details/reveal`, body),
   revealPhone: (id, body) => post(`/admin/listeners/applications/${id}/phone/reveal`, body),

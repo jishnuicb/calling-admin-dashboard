@@ -100,6 +100,17 @@ const DECISIONS = {
     reasonLabel: 'Reason for reopening',
     reasonPlaceholder: 'Please update your details and resubmit.',
   },
+  closeReopen: {
+    title: 'Close reopen',
+    description:
+      'Mark bank/details as reviewed after the listener resubmitted. Clears the reopened flag only — status and online state stay the same. You can reopen again later if needed.',
+    confirmLabel: 'Close reopen',
+    variant: 'primary',
+    reasonRequired: false,
+    notesField: 'verificationNotes',
+    notesLabel: 'Verification notes',
+    notesPlaceholder: 'Bank details verified after resubmit.',
+  },
 };
 
 function EditProfileModal({ application, onClose }) {
@@ -306,7 +317,8 @@ function ReviewModal({ decision, application, onClose }) {
       if (config.notesField && notes) body[config.notesField] = notes;
       return listenersApi[decision](application.id, body);
     },
-    successMessage: `Application ${decision}d`,
+    successMessage:
+      decision === 'closeReopen' ? 'Reopen closed' : `Application ${decision}d`,
     invalidate: [['listeners'], ['users'], ['dashboard']],
     onSuccess: () => {
       setReason('');
@@ -572,6 +584,10 @@ export function ListenerDetailPage() {
   const canReactivate = status === 'SUSPENDED' && can(P.LISTENERS_SUSPEND);
   const canReopen =
     (status === 'APPROVED' || status === 'PENDING') && can(P.LISTENERS_APPROVE);
+  const canCloseReopen =
+    Boolean(application.isReopened) &&
+    (status === 'APPROVED' || status === 'PENDING') &&
+    can(P.LISTENERS_APPROVE);
   const canProfessionalVerify =
     status === 'APPROVED' &&
     !application.isProfessionalVerified &&
@@ -683,6 +699,12 @@ export function ListenerDetailPage() {
                 Reopen
               </Button>
             )}
+            {canCloseReopen && (
+              <Button onClick={() => setDecision('closeReopen')}>
+                <Check className="size-4" />
+                Close reopen
+              </Button>
+            )}
             {canProfessionalVerify && (
               <Button
                 variant="secondary"
@@ -707,7 +729,18 @@ export function ListenerDetailPage() {
         <Card title="Application" className="lg:col-span-2">
           <DescList
             items={[
-              { label: 'Status', value: <StatusBadge status={status} /> },
+              {
+                label: 'Status',
+                value: (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <StatusBadge status={status} />
+                    {application.isReopened && <Badge tone="warning">Reopened</Badge>}
+                    {application.isReopened && application.resubmittedAt && (
+                      <Badge tone="success">Details updated</Badge>
+                    )}
+                  </div>
+                ),
+              },
               {
                 label: 'Availability',
                 value:
