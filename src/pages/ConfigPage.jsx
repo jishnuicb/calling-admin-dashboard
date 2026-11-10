@@ -405,6 +405,8 @@ const APP_SETTINGS_KEYS = new Set([
   'company.whatsappNumber',
   'company.supportEmail',
   'payment.mode',
+  'app.reviewReminder.enabled',
+  'app.reviewReminder.intervalMinutes',
 ]);
 
 function AppSettingsCard({ writable }) {
@@ -420,6 +422,8 @@ function AppSettingsCard({ writable }) {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [supportEmail, setSupportEmail] = useState('');
   const [paymentMode, setPaymentMode] = useState('SANDBOX');
+  const [reviewReminderEnabled, setReviewReminderEnabled] = useState(false);
+  const [reviewReminderIntervalMinutes, setReviewReminderIntervalMinutes] = useState(10080);
 
   useEffect(() => {
     if (!data) return;
@@ -430,6 +434,8 @@ function AppSettingsCard({ writable }) {
     setWhatsappNumber(data.whatsappNumber || '');
     setSupportEmail(data.supportEmail || '');
     setPaymentMode(data.payment?.mode || 'SANDBOX');
+    setReviewReminderEnabled(Boolean(data.reviewReminder?.enabled));
+    setReviewReminderIntervalMinutes(data.reviewReminder?.intervalMinutes ?? 10080);
   }, [data]);
 
   const mutation = useApiMutation({
@@ -442,6 +448,8 @@ function AppSettingsCard({ writable }) {
         whatsappNumber: whatsappNumber.trim(),
         supportEmail: supportEmail.trim(),
         paymentMode,
+        reviewReminderEnabled,
+        reviewReminderIntervalMinutes: Number(reviewReminderIntervalMinutes),
       }),
     successMessage: 'App settings saved',
     invalidate: [qk.appSettings, qk.config],
@@ -458,7 +466,9 @@ function AppSettingsCard({ writable }) {
     releaseType !== (data.version?.releaseType || 'MINOR') ||
     whatsappNumber.trim() !== (data.whatsappNumber || '') ||
     supportEmail.trim() !== (data.supportEmail || '') ||
-    paymentMode !== (data.payment?.mode || 'SANDBOX');
+    paymentMode !== (data.payment?.mode || 'SANDBOX') ||
+    reviewReminderEnabled !== Boolean(data.reviewReminder?.enabled) ||
+    Number(reviewReminderIntervalMinutes) !== (data.reviewReminder?.intervalMinutes ?? 10080);
 
   return (
     <Card
@@ -595,6 +605,39 @@ function AppSettingsCard({ writable }) {
               <option value="LIVE">LIVE</option>
             </Select>
           </Field>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            Review reminder
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Show review reminder"
+              hint="When on, the app may prompt users to leave a store review."
+            >
+              <Toggle
+                checked={reviewReminderEnabled}
+                disabled={!writable}
+                onChange={setReviewReminderEnabled}
+                label={reviewReminderEnabled ? 'Enabled' : 'Disabled'}
+              />
+            </Field>
+            <Field
+              label="Interval (minutes)"
+              hint="Minimum minutes between review prompts (1–525600). Default 10080 (7 days)."
+            >
+              <Input
+                type="number"
+                min={1}
+                max={525600}
+                step={1}
+                value={reviewReminderIntervalMinutes}
+                disabled={!writable}
+                onChange={(e) => setReviewReminderIntervalMinutes(e.target.value)}
+              />
+            </Field>
+          </div>
         </div>
       </div>
     </Card>
