@@ -52,6 +52,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/card-guess', section: S.ACTIVITY, permission: P.CARD_GUESS_READ },
   { path: '/crashes', section: S.ACTIVITY, permission: P.CRASHES_READ },
   { path: '/moderation', section: S.ACTIVITY, permission: P.MODERATION_READ },
+  { path: '/chats', section: S.ACTIVITY, permission: P.CHATS_READ },
   { path: '/listener-blocks', section: S.ACTIVITY, permission: P.BLOCKS_READ },
   { path: '/account-deletion', section: S.ACTIVITY, permission: P.ACCOUNT_DELETION_READ },
   { path: '/notifications', section: S.ACTIVITY, permission: P.NOTIFICATIONS_READ },

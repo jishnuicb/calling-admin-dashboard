@@ -55,6 +55,9 @@ export const P = {
   MODERATION_READ: 'moderation:read',
   MODERATION_REVIEW: 'moderation:review',
 
+  CHATS_READ: 'chats:read',
+  CHATS_WRITE: 'chats:write',
+
   BLOCKS_READ: 'blocks:read',
   BLOCKS_WRITE: 'blocks:write',
 

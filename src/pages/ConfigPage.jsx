@@ -106,6 +106,76 @@ const CONFIG_META = {
     note: 'How long the support backup OTP (issued on send or by admin) remains valid. Default 300 (5 minutes). Range 60–3600.',
     group: 'OTP & verification',
   },
+  'chat.enabled': {
+    label: 'In-app chat enabled',
+    note: 'Master switch. When off, apps hide chat and APIs reject open/send. Default off — no impact on current users.',
+    group: 'In-app chat',
+  },
+  'chat.minCallDurationSeconds': {
+    label: 'Min call duration to unlock chat',
+    unit: 'seconds',
+    note: 'Call must reach at least this billed duration before chat is offered from history. Default 1.',
+    group: 'In-app chat',
+  },
+  'chat.expiryHours': {
+    label: 'Chat session expiry',
+    unit: 'hours',
+    note: 'After this, Firebase session messages are purged and clients see an empty new session on re-open. Default 24.',
+    group: 'In-app chat',
+  },
+  'chat.blockUrls': {
+    label: 'Block URLs in chat',
+    note: 'When true, messages containing links are rejected.',
+    group: 'In-app chat',
+  },
+  'chat.partnerOpenCooldownMinutes': {
+    label: 'Cooldown before opening another partner',
+    unit: 'minutes',
+    note: 'After opening chat with one partner, wait this long before opening a different partner. 0 = no cooldown.',
+    group: 'In-app chat',
+  },
+  'chat.caller.maxMessageLength': {
+    label: 'Caller max message length',
+    unit: 'characters',
+    note: 'Default 40.',
+    group: 'In-app chat',
+  },
+  'chat.caller.maxMessagesPerHour': {
+    label: 'Caller messages per hour',
+    note: 'Default 5.',
+    group: 'In-app chat',
+  },
+  'chat.caller.maxMessagesPerDay': {
+    label: 'Caller messages per day',
+    note: 'Default 20.',
+    group: 'In-app chat',
+  },
+  'chat.caller.maxPartnersPerDay': {
+    label: 'Caller max chat partners per day',
+    note: 'Default 5.',
+    group: 'In-app chat',
+  },
+  'chat.host.maxMessageLength': {
+    label: 'Host max message length',
+    unit: 'characters',
+    note: 'Default 40.',
+    group: 'In-app chat',
+  },
+  'chat.host.maxMessagesPerHour': {
+    label: 'Host messages per hour',
+    note: 'Default 5.',
+    group: 'In-app chat',
+  },
+  'chat.host.maxMessagesPerDay': {
+    label: 'Host messages per day',
+    note: 'Default 20.',
+    group: 'In-app chat',
+  },
+  'chat.host.maxPartnersPerDay': {
+    label: 'Host max chat partners per day',
+    note: 'Default 20.',
+    group: 'In-app chat',
+  },
   'discovery.defaultLanguage': {
     label: 'Default discovery language',
     note: 'Applied when a caller browses listeners without choosing a language. Must match a language name in the master list, or no default is applied.',

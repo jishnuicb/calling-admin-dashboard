@@ -291,6 +291,16 @@ export const moderationApi = {
   review: (id, body) => post(`/admin/moderation/reports/${id}/review`, body),
 };
 
+// --- In-app chat (DB monitoring) -------------------------------------------
+
+export const chatsApi = {
+  list: (params) => get('/admin/chats', params),
+  messages: (threadId, params) => get(`/admin/chats/${threadId}/messages`, params),
+  blocks: (params) => get('/admin/chats/blocks', params),
+  block: (body) => post('/admin/chats/blocks', body),
+  unblock: (body) => post('/admin/chats/blocks/unblock', body),
+};
+
 // --- Listener → caller blocks (admin-managed) ------------------------------
 
 export const blocksApi = {

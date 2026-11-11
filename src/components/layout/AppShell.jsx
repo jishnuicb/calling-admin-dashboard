@@ -21,6 +21,7 @@ import {
   LogOut,
   Menu,
   Ban,
+  MessageSquare,
   Package,
   PhoneCall,
   PhoneOff,
@@ -170,6 +171,7 @@ const NAV_SECTIONS = [
       { to: '/card-guess', label: 'Card Guess', icon: Spade, permission: P.CARD_GUESS_READ },
       { to: '/crashes', label: 'App crashes', icon: Bug, permission: P.CRASHES_READ },
       { to: '/moderation', label: 'Moderation', icon: Flag, permission: P.MODERATION_READ },
+      { to: '/chats', label: 'In-app chats', icon: MessageSquare, permission: P.CHATS_READ },
       { to: '/listener-blocks', label: 'Listener blocks', icon: Ban, permission: P.BLOCKS_READ },
       {
         to: '/account-deletion',

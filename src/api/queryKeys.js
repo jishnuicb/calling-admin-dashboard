@@ -63,6 +63,10 @@ export const qk = {
   moderation: (params) => ['moderation', 'list', params],
   report: (id) => ['moderation', 'detail', id],
 
+  chats: (params) => ['chats', 'list', params],
+  chatMessages: (threadId, params) => ['chats', 'messages', threadId, params],
+  chatBlocks: (params) => ['chats', 'blocks', params],
+
   blocks: (params) => ['blocks', 'list', params],
 
   accountDeletion: (params) => ['accountDeletion', 'list', params],

@@ -33,6 +33,7 @@ import { CardGuessPage } from './pages/CardGuessPage';
 import { AppCrashesPage } from './pages/AppCrashesPage';
 import { ModerationPage } from './pages/ModerationPage';
 import { ModerationDetailPage } from './pages/ModerationDetailPage';
+import { ChatThreadsPage } from './pages/ChatThreadsPage';
 import { ListenerBlocksPage } from './pages/ListenerBlocksPage';
 import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { NotificationsPage } from './pages/NotificationsPage';
@@ -233,6 +234,7 @@ export function App() {
           path="moderation/:id"
           element={guard(S.ACTIVITY, P.MODERATION_READ, <ModerationDetailPage />)}
         />
+        <Route path="chats" element={guard(S.ACTIVITY, P.CHATS_READ, <ChatThreadsPage />)} />
         <Route
           path="listener-blocks"
           element={guard(S.ACTIVITY, P.BLOCKS_READ, <ListenerBlocksPage />)}
