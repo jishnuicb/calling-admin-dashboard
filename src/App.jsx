@@ -22,6 +22,7 @@ import { OtpPage } from './pages/OtpPage';
 import { IpBlocksPage } from './pages/IpBlocksPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { PaymentDetailPage } from './pages/PaymentDetailPage';
+import { PaymentErrorsPage } from './pages/PaymentErrorsPage';
 import { PaymentGatewaysPage } from './pages/PaymentGatewaysPage';
 import { PackagesPage, PACKAGE_MENUS } from './pages/PackagesPage';
 import { WalletsPage } from './pages/WalletsPage';
@@ -158,6 +159,10 @@ export function App() {
         <Route path="otp" element={guard(S.PEOPLE, P.OTP_READ, <OtpPage />)} />
 
         <Route path="payments" element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentsPage />)} />
+        <Route
+          path="payment-errors"
+          element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentErrorsPage />)}
+        />
         <Route path="payments/:id" element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentDetailPage />)} />
         <Route
           path="payment-gateways"
