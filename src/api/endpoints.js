@@ -243,6 +243,11 @@ export const paymentsApi = {
   refund: (id, body) => post(`/admin/payments/${id}/refund`, body),
   report: (params) => get('/admin/payments/report', params),
   downloadReport: (params) => downloadCsv('/admin/payments/report', params, 'payments-report.csv'),
+  // Additive tracking (does not change list/detail payment shapes).
+  events: (params) => get('/admin/payments/events', params),
+  errors: (params) => get('/admin/payments/errors', params),
+  paymentEvents: (id, params) => get(`/admin/payments/${id}/events`, params),
+  paymentErrors: (id, params) => get(`/admin/payments/${id}/errors`, params),
 };
 
 export const paymentGatewaysApi = {

@@ -126,8 +126,30 @@ export function PaymentDetailPage() {
     queryFn: () => paymentsApi.get(id),
   });
 
+  const {
+    data: eventsData,
+    isLoading: eventsLoading,
+    error: eventsError,
+  } = useQuery({
+    queryKey: qk.paymentEvents(id, { limit: 50 }),
+    queryFn: () => paymentsApi.paymentEvents(id, { limit: 50 }),
+    enabled: Boolean(id),
+  });
+
+  const {
+    data: errorsData,
+    isLoading: errorsLoading,
+  } = useQuery({
+    queryKey: qk.paymentErrorListForPayment(id, { limit: 20 }),
+    queryFn: () => paymentsApi.paymentErrors(id, { limit: 20 }),
+    enabled: Boolean(id),
+  });
+
   if (isLoading) return <LoadingBlock label="Loading payment…" />;
   if (error) return <ErrorState error={error} onRetry={refetch} />;
+
+  const timeline = eventsData?.data || [];
+  const errorRows = errorsData?.data || [];
 
   const remainingRefundable =
     Math.round((Number(payment.amount || 0) - Number(payment.refundAmount || 0)) * 100) / 100;
@@ -274,6 +296,68 @@ export function PaymentDetailPage() {
             <JsonBlock value={payment.webhookPayload} />
           </Card>
         )}
+
+        <Card
+          title="Action timeline"
+          description="Package select → checkout → gateway → settle/cancel. Includes client beacons and server events."
+          className="lg:col-span-3"
+        >
+          {eventsLoading && <p className="text-sm text-ink-500">Loading timeline…</p>}
+          {eventsError && <ErrorState error={eventsError} compact />}
+          {!eventsLoading && !timeline.length && (
+            <p className="text-sm text-ink-500">No tracked events yet for this payment.</p>
+          )}
+          <ul className="space-y-2">
+            {timeline.map((ev) => (
+              <li key={ev.id} className="rounded border border-ink-100 px-3 py-2 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium text-ink-900">
+                    {ev.event}{' '}
+                    <span className="text-xs font-normal text-ink-500">· {ev.source}</span>
+                  </span>
+                  <span className="text-xs text-ink-500">{fmtDateTime(ev.createdAt)}</span>
+                </div>
+                {(ev.status || ev.reason) && (
+                  <p className="mt-1 text-xs text-ink-600">
+                    {ev.status ? `Status: ${ev.status}` : ''}
+                    {ev.status && ev.reason ? ' · ' : ''}
+                    {ev.reason || ''}
+                  </p>
+                )}
+                {ev.meta && <div className="mt-2"><JsonBlock value={ev.meta} /></div>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+
+        <Card
+          title="Error log"
+          description="Separate error records with provider/client response details."
+          className="lg:col-span-3"
+        >
+          {errorsLoading && <p className="text-sm text-ink-500">Loading errors…</p>}
+          {!errorsLoading && !errorRows.length && (
+            <p className="text-sm text-ink-500">No errors logged for this payment.</p>
+          )}
+          <ul className="space-y-2">
+            {errorRows.map((err) => (
+              <li key={err.id} className="rounded border border-rose-100 bg-rose-50/40 px-3 py-2 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium text-rose-800">
+                    {err.code || 'ERROR'}{' '}
+                    <span className="text-xs font-normal text-ink-500">· {err.source}</span>
+                  </span>
+                  <span className="text-xs text-ink-500">{fmtDateTime(err.createdAt)}</span>
+                </div>
+                <p className="mt-1 whitespace-pre-wrap text-rose-900">{err.message}</p>
+                {err.httpStatus != null && (
+                  <p className="mt-1 text-xs text-ink-600">HTTP {err.httpStatus}</p>
+                )}
+                {err.details && <div className="mt-2"><JsonBlock value={err.details} /></div>}
+              </li>
+            ))}
+          </ul>
+        </Card>
       </div>
 
       {refundOpen && <RefundModal payment={payment} onClose={() => setRefundOpen(false)} />}

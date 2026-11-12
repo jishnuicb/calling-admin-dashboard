@@ -43,6 +43,7 @@ import {
   Wallet,
   X,
   Bug,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { P } from '../../auth/permissions';
@@ -92,6 +93,12 @@ const NAV_SECTIONS = [
     title: 'Money',
     items: [
       { to: '/payments', label: 'Payments', icon: CreditCard, permission: P.PAYMENTS_READ },
+      {
+        to: '/payment-errors',
+        label: 'Payment errors',
+        icon: AlertTriangle,
+        permission: P.PAYMENTS_READ,
+      },
       {
         to: '/payment-gateways',
         label: 'Payment gateways',

@@ -41,6 +41,9 @@ export const qk = {
 
   payments: (params) => ['payments', 'list', params],
   payment: (id) => ['payments', 'detail', id],
+  paymentEvents: (id, params) => ['payments', 'events', id, params],
+  paymentErrors: (params) => ['payments', 'errors', params],
+  paymentErrorListForPayment: (id, params) => ['payments', 'errors', id, params],
   paymentGateways: ['paymentGateways'],
 
   packages: ['packages'],

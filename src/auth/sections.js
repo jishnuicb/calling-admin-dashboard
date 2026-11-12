@@ -31,6 +31,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/otp', section: S.PEOPLE, permission: P.OTP_READ },
   { path: '/ip-blocks', section: S.SYSTEM, permission: P.SECURITY_READ },
   { path: '/payments', section: S.MONEY, permission: P.PAYMENTS_READ },
+  { path: '/payment-errors', section: S.MONEY, permission: P.PAYMENTS_READ },
   { path: '/payment-gateways', section: S.MONEY, permission: P.PAYMENTS_READ },
   { path: '/packages/android-india', section: S.MONEY, permission: P.PACKAGES_WRITE },
   { path: '/packages/android-international', section: S.MONEY, permission: P.PACKAGES_WRITE },
