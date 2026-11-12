@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { MessageSquare } from 'lucide-react';
+import { Ban, MessageSquare } from 'lucide-react';
 import { chatsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -139,15 +139,37 @@ function BlockModal({ open, onClose }) {
   );
 }
 
+function personLabel(user, fallbackId) {
+  if (!user) return shortId(fallbackId);
+  return user.displayName || user.name || shortId(user.id || fallbackId);
+}
+
 export function ChatThreadsPage() {
   const canWrite = useAuth().can(P.CHATS_WRITE);
   const table = useTableState({ status: '', search: '' });
+  const blocksTable = useTableState({ scope: '' });
   const [detailId, setDetailId] = useState(null);
   const [blockOpen, setBlockOpen] = useState(false);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.chats(table.params),
     queryFn: () => chatsApi.list(table.params),
+  });
+
+  const {
+    data: blocksData,
+    isLoading: blocksLoading,
+    error: blocksError,
+    refetch: refetchBlocks,
+  } = useQuery({
+    queryKey: qk.chatBlocks(blocksTable.params),
+    queryFn: () => chatsApi.blocks(blocksTable.params),
+  });
+
+  const unblock = useApiMutation({
+    mutationFn: (blockId) => chatsApi.unblock({ blockId }),
+    successMessage: 'Chat unblocked',
+    invalidate: [['chats']],
   });
 
   const columns = [
@@ -205,6 +227,70 @@ export function ChatThreadsPage() {
     },
   ];
 
+  const blockColumns = [
+    {
+      key: 'scope',
+      header: 'Scope',
+      render: (row) => <StatusBadge status={row.scope} />,
+    },
+    {
+      key: 'blocker',
+      header: 'Blocked by',
+      render: (row) => (
+        <div className="min-w-0 text-xs">
+          <p className="font-medium text-ink-800">
+            {row.blockerUserId ? personLabel(row.blocker, row.blockerUserId) : 'Admin (global)'}
+          </p>
+          {row.blockerUserId && (
+            <p className="font-mono text-[11px] text-ink-500">{shortId(row.blockerUserId)}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'blocked',
+      header: 'Blocked user',
+      render: (row) => (
+        <div className="min-w-0 text-xs">
+          <p className="font-medium text-ink-800">{personLabel(row.blocked, row.blockedUserId)}</p>
+          <p className="font-mono text-[11px] text-ink-500">{shortId(row.blockedUserId)}</p>
+          {row.blocked?.mobile ? (
+            <p className="text-[11px] text-ink-500">{row.blocked.mobile}</p>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: 'reason',
+      header: 'Reason',
+      render: (row) => <span className="text-sm text-ink-700">{row.reason || '—'}</span>,
+    },
+    {
+      key: 'createdAt',
+      header: 'Blocked at',
+      render: (row) => (
+        <span className="text-xs text-ink-600">{fmtDateTime(row.createdAt)}</span>
+      ),
+    },
+  ];
+
+  if (canWrite) {
+    blockColumns.push({
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <Button
+          size="sm"
+          variant="secondary"
+          loading={unblock.isPending}
+          onClick={() => unblock.mutate(row.id)}
+        >
+          Unblock
+        </Button>
+      ),
+    });
+  }
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -248,6 +334,41 @@ export function ChatThreadsPage() {
           emptyIcon={MessageSquare}
         />
         <Pagination meta={data?.meta} onPageChange={table.setPage} onLimitChange={table.changeLimit} />
+      </Card>
+
+      <Card>
+        <div className="border-b border-ink-100 px-4 py-3">
+          <h2 className="text-sm font-semibold text-ink-900">Chat blocks</h2>
+          <p className="mt-0.5 text-xs text-ink-500">
+            Includes in-app (HOST) blocks from the chat window and admin chat bans. Unblock restores
+            chat for that pair.
+          </p>
+        </div>
+        <FilterBar>
+          <Select
+            value={blocksTable.filters.scope || ''}
+            onChange={(e) => blocksTable.setFilter('scope', e.target.value || undefined)}
+          >
+            <option value="">All scopes</option>
+            <option value="HOST">HOST (in-app)</option>
+            <option value="ADMIN">ADMIN</option>
+          </Select>
+        </FilterBar>
+        <DataTable
+          columns={blockColumns}
+          rows={blocksData?.data || []}
+          loading={blocksLoading}
+          error={blocksError}
+          onRetry={refetchBlocks}
+          emptyTitle="No chat blocks"
+          emptyDescription="When a host or caller blocks chat in-app, it shows here."
+          emptyIcon={Ban}
+        />
+        <Pagination
+          meta={blocksData?.meta}
+          onPageChange={blocksTable.setPage}
+          onLimitChange={blocksTable.changeLimit}
+        />
       </Card>
 
       {detailId && <MessagesModal threadId={detailId} onClose={() => setDetailId(null)} />}
