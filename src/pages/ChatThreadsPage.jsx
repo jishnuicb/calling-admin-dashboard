@@ -24,20 +24,25 @@ import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, shortId } from '../lib/format';
 
 function MessagesModal({ threadId, onClose }) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: qk.chatMessages(threadId),
-    queryFn: () => chatsApi.messages(threadId, { limit: 100 }),
+  const [chatKey, setChatKey] = useState('');
+  const [appliedKey, setAppliedKey] = useState('');
+
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
+    queryKey: qk.chatMessages(threadId, appliedKey ? 'unlocked' : 'locked'),
+    queryFn: () =>
+      chatsApi.messagesWithKey(threadId, { limit: 100 }, appliedKey || undefined),
     enabled: Boolean(threadId),
   });
 
   const rows = data?.data || [];
+  const decrypted = Boolean(data?.decrypted);
 
   return (
     <Modal
       open={Boolean(threadId)}
       onClose={onClose}
       title={threadId ? `Messages · ${shortId(threadId)}` : 'Messages'}
-      description="Read-only DB messages for monitoring. Not a live chat window."
+      description="Bodies are encrypted at rest. Enter the chat decryption key to read them. Key is not stored."
       size="lg"
       footer={
         <Button variant="secondary" onClick={onClose}>
@@ -45,8 +50,51 @@ function MessagesModal({ threadId, onClose }) {
         </Button>
       }
     >
+      <div className="mb-4 space-y-2">
+        <Field
+          label="Chat decryption key"
+          hint="Same as CHAT_MESSAGE_ENCRYPTION_KEY on the server (UAT/production)."
+        >
+          <div className="flex flex-wrap gap-2">
+            <Input
+              type="password"
+              autoComplete="off"
+              className="min-w-[16rem] flex-1 font-mono text-xs"
+              value={chatKey}
+              onChange={(e) => setChatKey(e.target.value)}
+              placeholder="Paste chat key to decrypt"
+            />
+            <Button
+              size="sm"
+              loading={isFetching}
+              disabled={chatKey.trim().length < 16}
+              onClick={() => setAppliedKey(chatKey.trim())}
+            >
+              Decrypt
+            </Button>
+            {appliedKey && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setAppliedKey('');
+                  setChatKey('');
+                }}
+              >
+                Lock
+              </Button>
+            )}
+          </div>
+        </Field>
+        <p className="text-xs text-ink-500">
+          {decrypted
+            ? 'Showing decrypted message bodies for this view only.'
+            : 'Showing encrypted placeholders until you decrypt.'}
+        </p>
+      </div>
+
       {isLoading && <p className="text-sm text-ink-500">Loading…</p>}
-      {error && <ErrorState error={error} />}
+      {error && <ErrorState error={error} onRetry={refetch} />}
       {!isLoading && !error && !rows.length && (
         <p className="text-sm text-ink-500">No messages in this thread.</p>
       )}
@@ -56,6 +104,7 @@ function MessagesModal({ threadId, onClose }) {
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-500">
               <span>
                 {m.senderRole} · {shortId(m.senderUserId)}
+                {m.encrypted ? ' · encrypted' : ''}
               </span>
               <span>{fmtDateTime(m.createdAt)}</span>
             </div>

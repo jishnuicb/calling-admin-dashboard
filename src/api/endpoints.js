@@ -301,6 +301,13 @@ export const moderationApi = {
 export const chatsApi = {
   list: (params) => get('/admin/chats', params),
   messages: (threadId, params) => get(`/admin/chats/${threadId}/messages`, params),
+  /** Prefer header so the key is less likely to land in access logs than query. */
+  messagesWithKey: (threadId, params = {}, decryptionKey) =>
+    get(`/admin/chats/${threadId}/messages`, params, {
+      headers: decryptionKey
+        ? { 'x-chat-decryption-key': String(decryptionKey).trim() }
+        : undefined,
+    }),
   blocks: (params) => get('/admin/chats/blocks', params),
   block: (body) => post('/admin/chats/blocks', body),
   unblock: (body) => post('/admin/chats/blocks/unblock', body),
