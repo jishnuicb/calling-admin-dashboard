@@ -21,6 +21,7 @@ import {
   LogOut,
   Menu,
   Ban,
+  MessageSquare,
   Package,
   PhoneCall,
   PhoneOff,
@@ -130,6 +131,12 @@ const NAV_SECTIONS = [
         icon: Landmark,
         permission: P.PAYOUTS_READ,
       },
+      {
+        to: '/daily-payouts',
+        label: 'Daily Razorpay payouts',
+        icon: Banknote,
+        permission: P.PAYOUTS_READ,
+      },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
       { to: '/referrals', label: 'Referrals', icon: Handshake, permission: P.REFERRALS_READ },
       {
@@ -171,6 +178,7 @@ const NAV_SECTIONS = [
       { to: '/card-guess', label: 'Card Guess', icon: Spade, permission: P.CARD_GUESS_READ },
       { to: '/crashes', label: 'App crashes', icon: Bug, permission: P.CRASHES_READ },
       { to: '/moderation', label: 'Moderation', icon: Flag, permission: P.MODERATION_READ },
+      { to: '/chats', label: 'In-app chats', icon: MessageSquare, permission: P.CHATS_READ },
       { to: '/listener-blocks', label: 'Listener blocks', icon: Ban, permission: P.BLOCKS_READ },
       {
         to: '/account-deletion',

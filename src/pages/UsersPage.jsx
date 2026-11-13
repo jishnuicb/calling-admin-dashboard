@@ -91,6 +91,8 @@ export function UsersPage({ variant = 'all' }) {
     gender: '',
     country: '',
     isListener: '',
+    createdFrom: '',
+    createdTo: '',
   });
 
   const listParams = {
@@ -346,6 +348,23 @@ export function UsersPage({ variant = 'all' }) {
               value={table.filters.country}
               onChange={(v) => table.setFilter('country', v)}
               placeholder="e.g. Oman, Qatar"
+            />
+          </Field>
+
+          <Field label="Created from (IST)" className="w-40" hint="Inclusive start of day">
+            <Input
+              type="date"
+              value={table.filters.createdFrom}
+              onChange={(e) => table.setFilter('createdFrom', e.target.value)}
+            />
+          </Field>
+
+          <Field label="Created to (IST)" className="w-40" hint="Inclusive end of day">
+            <Input
+              type="date"
+              value={table.filters.createdTo}
+              min={table.filters.createdFrom || undefined}
+              onChange={(e) => table.setFilter('createdTo', e.target.value)}
             />
           </Field>
         </FilterBar>

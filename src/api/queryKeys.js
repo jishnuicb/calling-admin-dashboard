@@ -51,6 +51,8 @@ export const qk = {
   earnings: (params) => ['earnings', 'list', params],
   earningsSummary: (params) => ['earnings', 'summary', params],
   payouts: (params) => ['payouts', 'list', params],
+  dailyPayouts: (params) => ['daily-payouts', 'list', params],
+  dailyPayout: (id) => ['daily-payouts', 'detail', id],
   payout: (id) => ['payouts', 'detail', id],
 
   calls: (params) => ['calls', 'list', params],
@@ -63,6 +65,10 @@ export const qk = {
 
   moderation: (params) => ['moderation', 'list', params],
   report: (id) => ['moderation', 'detail', id],
+
+  chats: (params) => ['chats', 'list', params],
+  chatMessages: (threadId, params) => ['chats', 'messages', threadId, params],
+  chatBlocks: (params) => ['chats', 'blocks', params],
 
   blocks: (params) => ['blocks', 'list', params],
 
