@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ClipboardList, Download, IndianRupee, Plus, X } from 'lucide-react';
+import { ClipboardList, Download, IndianRupee, Pencil, Plus, X } from 'lucide-react';
 import { referralsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -149,7 +149,7 @@ function CreateIncentiveModal({ open, onClose }) {
       onClose={onClose}
       size="lg"
       title="Add incentive"
-      description={`Credit the same ₹ amount into one or more IST weeks (Mon–Sun). Each week is added to that listener’s weekly bank-payout Incentives column. Current IST week starts ${currentIstWeekStartHint()}.`}
+      description={`Schedule the same ₹ amount for one or more IST weeks (Mon–Sun). Amounts go live in listener money and weekly payout at the next Monday 00:00 IST after each week (not immediately). Current IST week starts ${currentIstWeekStartHint()}.`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -231,6 +231,85 @@ function CreateIncentiveModal({ open, onClose }) {
   );
 }
 
+function EditIncentiveModal({ row, open, onClose }) {
+  const [form, setForm] = useState({
+    amountRupees: row?.amountRupees != null ? String(row.amountRupees) : '',
+    note: row?.note || '',
+    status: row?.status || 'ACTIVE',
+  });
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const update = useApiMutation({
+    mutationFn: (body) => referralsApi.updateIncentive(row.id, body),
+    successMessage: 'Incentive updated',
+    invalidate: [['referrals'], ['manual-weekly-payouts']],
+    onSuccess: () => onClose(),
+  });
+
+  const submit = () => {
+    const body = {
+      amountRupees: Number(form.amountRupees),
+      note: form.note.trim() || null,
+      status: form.status,
+    };
+    if (form.status === 'STOPPED' && row.status === 'ACTIVE') {
+      body.stopReason = 'Disabled by admin';
+    }
+    update.mutate(body);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="md"
+      title="Edit incentive"
+      description={
+        row?.credited
+          ? 'This amount is already live in listener money / weekly payouts. Changes apply immediately.'
+          : `Scheduled — goes live ${row?.creditsAt ? fmtDateTime(row.creditsAt) : 'next Monday 00:00 IST'}. Disable before then to prevent credit.`
+      }
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={submit} loading={update.isPending}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {update.error && <ErrorState error={update.error} compact />}
+        <Field label="Amount (₹)" required>
+          <Input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={form.amountRupees}
+            onChange={(e) => set('amountRupees', e.target.value)}
+          />
+        </Field>
+        <Field label="Status">
+          <Select value={form.status} onChange={(e) => set('status', e.target.value)}>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="STOPPED">STOPPED (disabled)</option>
+          </Select>
+        </Field>
+        <Field label="Note">
+          <Textarea
+            rows={2}
+            value={form.note}
+            onChange={(e) => set('note', e.target.value)}
+            placeholder="Optional admin note"
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
 /** Admin INCENTIVE grants only (not referrals). */
 export function IncentivesPage() {
   const { can } = useAuth();
@@ -238,6 +317,7 @@ export function IncentivesPage() {
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editRow, setEditRow] = useState(null);
   const table = useTableState(
     {
       status: '',
@@ -302,6 +382,28 @@ export function IncentivesPage() {
       render: (row) => <StatusToneBadge status={row.status} />,
     },
     {
+      key: 'credit',
+      header: 'Credit',
+      render: (row) => {
+        if (row.status === 'STOPPED') {
+          return <Badge tone="danger">Won’t credit</Badge>;
+        }
+        if (row.credited) {
+          return <Badge tone="success">Live</Badge>;
+        }
+        return (
+          <div className="min-w-0">
+            <Badge tone="neutral">Scheduled</Badge>
+            {row.creditsAt && (
+              <p className="mt-0.5 whitespace-nowrap text-[11px] text-ink-500">
+                {fmtDateTime(row.creditsAt)} IST Mon
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'amount',
       header: 'Amount ₹',
       align: 'right',
@@ -330,13 +432,23 @@ export function IncentivesPage() {
       render: (row) =>
         writable ? (
           <div className="flex flex-wrap justify-end gap-1">
+            <Button size="sm" variant="secondary" onClick={() => setEditRow(row)}>
+              <Pencil className="size-3.5" />
+              Edit
+            </Button>
             {row.status === 'ACTIVE' && (
               <Button
                 size="sm"
                 variant="secondary"
                 loading={revert.isPending && revert.variables?.id === row.id}
                 onClick={() => {
-                  if (!window.confirm('Disable this incentive week from live bank payouts?')) {
+                  if (
+                    !window.confirm(
+                      row.credited
+                        ? 'Disable this incentive? It will be removed from live listener money and weekly payouts.'
+                        : 'Disable this incentive? It will not be credited on the scheduled Monday.',
+                    )
+                  ) {
                     return;
                   }
                   revert.mutate({ id: row.id });
@@ -352,7 +464,7 @@ export function IncentivesPage() {
               onClick={() => {
                 if (
                   !window.confirm(
-                    'Delete this incentive? Amount will be reverted from live payouts, then deleted.',
+                    'Delete this incentive? Amount will be removed from live payouts (if already credited), then deleted.',
                   )
                 ) {
                   return;
@@ -383,7 +495,7 @@ export function IncentivesPage() {
     <>
       <PageHeader
         title="Incentives"
-        description="Admin incentive amounts by IST week. Each ACTIVE week rolls into that listener’s weekly bank-payout Incentives column (no referral). Referrals are managed separately."
+        description="Admin incentive amounts by IST week. ACTIVE amounts go live in listener money and weekly payout at the next Monday 00:00 IST after that week (editable/disableable before then). Referrals are managed separately."
         actions={
           <div className="flex flex-wrap gap-2">
             <ExportButton onExport={onExport} busy={exporting} />
@@ -446,7 +558,7 @@ export function IncentivesPage() {
           onRetry={refetch}
           emptyIcon={IndianRupee}
           emptyTitle="No incentives"
-          emptyDescription="Add an incentive with one or more IST weeks. Amounts appear automatically in weekly bank payouts."
+          emptyDescription="Add an incentive with one or more IST weeks. Amounts credit automatically next Monday 00:00 IST."
         />
         <Pagination
           meta={data?.meta}
@@ -457,6 +569,14 @@ export function IncentivesPage() {
 
       {createOpen && (
         <CreateIncentiveModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      )}
+      {editRow && (
+        <EditIncentiveModal
+          key={editRow.id}
+          row={editRow}
+          open={Boolean(editRow)}
+          onClose={() => setEditRow(null)}
+        />
       )}
     </>
   );

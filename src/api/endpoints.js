@@ -373,6 +373,7 @@ export const referralsApi = {
   incentives: (params) => get('/admin/referrals/incentives', params),
   /** Standalone admin incentive for one or more IST weeks (type=INCENTIVE). */
   createIncentive: (body) => post('/admin/referrals/incentives', body),
+  updateIncentive: (id, body) => patch(`/admin/referrals/incentives/${id}`, body),
   revertIncentive: (id, body) => post(`/admin/referrals/incentives/${id}/revert`, body),
   disableIncentive: (id, body) => post(`/admin/referrals/incentives/${id}/disable`, body),
   removeIncentive: (id) => del(`/admin/referrals/incentives/${id}`),
