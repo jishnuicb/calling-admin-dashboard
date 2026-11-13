@@ -119,10 +119,20 @@ export function SearchInput({ value, onChange, placeholder = 'Search…', classN
     <div className={clsx('relative', className)}>
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
       <input
+        type="search"
+        name="admin-table-search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className={clsx(inputBase, 'pl-9')}
+        // Stop Chrome/password managers from treating filter search as a login field.
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        data-1p-ignore
+        data-lpignore="true"
+        data-form-type="other"
       />
       {value && (
         <button

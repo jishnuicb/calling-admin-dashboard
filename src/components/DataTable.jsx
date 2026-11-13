@@ -176,18 +176,39 @@ export function Pagination({ meta, onPageChange, onLimitChange }) {
 /** Filter bar wrapper: consistent spacing and wrapping for every list page. */
 export function FilterBar({ children, onReset, className }) {
   return (
-    <div
+    <form
+      autoComplete="off"
+      onSubmit={(e) => e.preventDefault()}
       className={clsx(
         'flex flex-wrap items-end gap-3 border-b border-ink-200 bg-ink-50/40 px-4 py-3',
         className,
       )}
     >
+      {/* Dummy fields absorb Chrome login autofill so real filter inputs stay clean. */}
+      <input
+        type="text"
+        name="prevent-autofill-user"
+        autoComplete="username"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute h-0 w-0 opacity-0"
+        readOnly
+      />
+      <input
+        type="password"
+        name="prevent-autofill-pass"
+        autoComplete="current-password"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute h-0 w-0 opacity-0"
+        readOnly
+      />
       {children}
       {onReset && (
         <Button size="sm" variant="ghost" onClick={onReset} className="ml-auto">
           Reset filters
         </Button>
       )}
-    </div>
+    </form>
   );
 }

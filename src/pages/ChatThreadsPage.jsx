@@ -28,21 +28,22 @@ function MessagesModal({ threadId, onClose }) {
   const [appliedKey, setAppliedKey] = useState('');
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: qk.chatMessages(threadId, appliedKey ? 'unlocked' : 'locked'),
+    queryKey: qk.chatMessages(threadId, appliedKey ? `unlocked:${appliedKey.length}` : 'locked'),
     queryFn: () =>
       chatsApi.messagesWithKey(threadId, { limit: 100 }, appliedKey || undefined),
     enabled: Boolean(threadId),
+    retry: false,
   });
 
-  const rows = data?.data || [];
-  const decrypted = Boolean(data?.decrypted);
+  const rows = error ? [] : data?.data || [];
+  const decrypted = Boolean(data?.decrypted) && !error;
 
   return (
     <Modal
       open={Boolean(threadId)}
       onClose={onClose}
       title={threadId ? `Messages · ${shortId(threadId)}` : 'Messages'}
-      description="Bodies are encrypted at rest. Enter the chat decryption key to read them. Key is not stored."
+      description="Bodies are encrypted at rest. Enter the permanent decryption key (same as bank/phone reveal). The key is never stored in env or the database."
       size="lg"
       footer={
         <Button variant="secondary" onClick={onClose}>
@@ -52,17 +53,21 @@ function MessagesModal({ threadId, onClose }) {
     >
       <div className="mb-4 space-y-2">
         <Field
-          label="Chat decryption key"
-          hint="Same as CHAT_MESSAGE_ENCRYPTION_KEY on the server (UAT/production)."
+          label="Permanent decryption key"
+          hint="Same key used to reveal listener phone and bank details. Never kept in .env."
         >
           <div className="flex flex-wrap gap-2">
             <Input
               type="password"
-              autoComplete="off"
+              name="chat-decryption-key"
+              autoComplete="new-password"
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
               className="min-w-[16rem] flex-1 font-mono text-xs"
               value={chatKey}
               onChange={(e) => setChatKey(e.target.value)}
-              placeholder="Paste chat key to decrypt"
+              placeholder="Enter permanent decryption key"
             />
             <Button
               size="sm"
@@ -70,7 +75,7 @@ function MessagesModal({ threadId, onClose }) {
               disabled={chatKey.trim().length < 16}
               onClick={() => setAppliedKey(chatKey.trim())}
             >
-              Decrypt
+              Reveal messages
             </Button>
             {appliedKey && (
               <Button
@@ -81,7 +86,7 @@ function MessagesModal({ threadId, onClose }) {
                   setChatKey('');
                 }}
               >
-                Lock
+                Hide
               </Button>
             )}
           </div>
@@ -89,7 +94,7 @@ function MessagesModal({ threadId, onClose }) {
         <p className="text-xs text-ink-500">
           {decrypted
             ? 'Showing decrypted message bodies for this view only.'
-            : 'Showing encrypted placeholders until you decrypt.'}
+            : 'Showing [encrypted] until you reveal with the permanent key.'}
         </p>
       </div>
 
