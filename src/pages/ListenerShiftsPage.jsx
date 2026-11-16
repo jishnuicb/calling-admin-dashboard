@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, Plus } from 'lucide-react';
+import { CalendarClock, Download, Plus } from 'lucide-react';
 import { listenersApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
@@ -19,6 +19,7 @@ import {
   Select,
   Textarea,
 } from '../components/ui';
+import { useToast } from '../components/ui/Toast';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, shortId } from '../lib/format';
 
@@ -162,9 +163,11 @@ function ShiftFormModal({ open, onClose, initial }) {
 
 export function ListenerShiftsPage() {
   const { can } = useAuth();
+  const toast = useToast();
   const writable = can(P.LISTENERS_APPROVE);
   const [createOpen, setCreateOpen] = useState(false);
   const [editRow, setEditRow] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const table = useTableState(
     {
@@ -186,6 +189,14 @@ export function ListenerShiftsPage() {
     toDate: table.filters.toDate || undefined,
   };
 
+  const exportParams = {
+    status: params.status,
+    search: params.search,
+    listenerUserId: params.listenerUserId,
+    fromDate: params.fromDate,
+    toDate: params.toDate,
+  };
+
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: qk.listenerShifts(params),
     queryFn: () => listenersApi.listShifts(params),
@@ -196,6 +207,18 @@ export function ListenerShiftsPage() {
     successMessage: 'Shift deleted',
     invalidate: [['listeners', 'shifts']],
   });
+
+  const onDownload = async () => {
+    setDownloading(true);
+    try {
+      await listenersApi.exportShiftsCsv(exportParams);
+      toast.success('Shifts CSV downloaded');
+    } catch (err) {
+      toast.error(err);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const columns = [
     {
@@ -277,12 +300,18 @@ export function ListenerShiftsPage() {
         title="Listener shifts"
         description="Shift timings per listener (IST). Multiple shifts allowed. This is scheduling metadata only — it does not change call or discovery APIs."
         actions={
-          writable && (
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="size-4" />
-              Add shift
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="secondary" loading={downloading} onClick={onDownload}>
+              <Download className="size-4" />
+              Download CSV
             </Button>
-          )
+            {writable && (
+              <Button size="sm" onClick={() => setCreateOpen(true)}>
+                <Plus className="size-4" />
+                Add shift
+              </Button>
+            )}
+          </div>
         }
       />
 

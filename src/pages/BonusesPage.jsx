@@ -59,6 +59,35 @@ function WeeklySettingsCard() {
 
   // Seed local forms once from the shared GET — do not reset both forms on every
   // refetch (saving one audience used to wipe in-progress edits on the other).
+  const normalizeListenerForm = (src) => {
+    const tiersFromApi = Array.isArray(src?.tiers) ? src.tiers : [];
+    const tiers = [1, 2, 3].map((tier) => {
+      const found = tiersFromApi.find((t) => Number(t.tier) === tier);
+      if (found) {
+        return {
+          tier,
+          enabled: Boolean(found.enabled),
+          targetMinutes: found.targetMinutes ?? (tier === 1 ? src.targetMinutes : ''),
+          rewardTokens: found.rewardTokens ?? (tier === 1 ? src.rewardTokens : ''),
+        };
+      }
+      if (tier === 1) {
+        return {
+          tier: 1,
+          enabled: Boolean(src.enabled),
+          targetMinutes: src.targetMinutes ?? '',
+          rewardTokens: src.rewardTokens ?? '',
+        };
+      }
+      return { tier, enabled: false, targetMinutes: '', rewardTokens: '' };
+    });
+    return {
+      ...src,
+      tiers,
+      periodStartInput: toDateInput(src.periodStart, src.periodStartDate),
+    };
+  };
+
   useEffect(() => {
     if (!data) return;
     setCaller((prev) =>
@@ -69,17 +98,7 @@ function WeeklySettingsCard() {
             periodStartInput: toDateInput(data.caller.periodStart, data.caller.periodStartDate),
           },
     );
-    setListener((prev) =>
-      prev
-        ? prev
-        : {
-            ...data.listener,
-            periodStartInput: toDateInput(
-              data.listener.periodStart,
-              data.listener.periodStartDate,
-            ),
-          },
-    );
+    setListener((prev) => (prev ? prev : normalizeListenerForm(data.listener)));
   }, [data]);
 
   const saveCaller = useApiMutation({
@@ -103,31 +122,42 @@ function WeeklySettingsCard() {
     successMessage: 'Listener weekly bonus updated',
     invalidate: [['config']],
     onSuccess: (updated) => {
-      const withInput = {
-        ...updated,
-        periodStartInput: toDateInput(updated.periodStart, updated.periodStartDate),
-      };
-      setListener(withInput);
+      setListener(normalizeListenerForm(updated));
       queryClient.setQueryData(qk.weeklySettings, (prev) =>
         prev ? { ...prev, listener: updated } : prev,
       );
     },
   });
 
-  const renderEditor = (label, form, setForm, audience) => {
-    if (!form) return null;
-    const isListener = audience === 'LISTENER';
-    const save = isListener ? saveListener : saveCaller;
+  const setListenerTier = (tier, patch) => {
+    setListener((prev) => {
+      if (!prev) return prev;
+      const tiers = (prev.tiers || []).map((t) =>
+        Number(t.tier) === tier ? { ...t, ...patch } : t,
+      );
+      const next = { ...prev, tiers };
+      // Keep top-level fields mirrored to tier 1 (existing API fields).
+      if (tier === 1) {
+        if (patch.enabled !== undefined) next.enabled = patch.enabled;
+        if (patch.targetMinutes !== undefined) next.targetMinutes = patch.targetMinutes;
+        if (patch.rewardTokens !== undefined) next.rewardTokens = patch.rewardTokens;
+      }
+      return next;
+    });
+  };
+
+  const renderCallerEditor = () => {
+    if (!caller) return null;
     return (
       <div className="space-y-3 rounded-lg border border-ink-100 p-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-ink-900">{label}</p>
-          <Badge tone={isListener ? 'info' : 'brand'}>{audience}</Badge>
+          <p className="text-sm font-semibold text-ink-900">User weekly bonus</p>
+          <Badge tone="brand">CALLER</Badge>
         </div>
         <Toggle
-          checked={Boolean(form.enabled)}
-          disabled={!writable || save.isPending}
-          onChange={(v) => setForm({ ...form, enabled: v })}
+          checked={Boolean(caller.enabled)}
+          disabled={!writable || saveCaller.isPending}
+          onChange={(v) => setCaller({ ...caller, enabled: v })}
           label="Enabled"
         />
         <div className="grid grid-cols-2 gap-3">
@@ -135,25 +165,18 @@ function WeeklySettingsCard() {
             <Input
               type="number"
               min="1"
-              value={form.targetMinutes ?? ''}
-              disabled={!writable || save.isPending}
-              onChange={(e) => setForm({ ...form, targetMinutes: e.target.value })}
+              value={caller.targetMinutes ?? ''}
+              disabled={!writable || saveCaller.isPending}
+              onChange={(e) => setCaller({ ...caller, targetMinutes: e.target.value })}
             />
           </Field>
-          <Field
-            label={isListener ? 'Reward (₹)' : 'Reward tokens'}
-            hint={
-              isListener
-                ? 'Rupees credited to listener earnings. Example: 100 = ₹100.'
-                : 'Credited as tokens to the user wallet.'
-            }
-          >
+          <Field label="Reward tokens" hint="Credited as tokens to the user wallet.">
             <Input
               type="number"
               min="0"
-              value={form.rewardTokens ?? ''}
-              disabled={!writable || save.isPending}
-              onChange={(e) => setForm({ ...form, rewardTokens: e.target.value })}
+              value={caller.rewardTokens ?? ''}
+              disabled={!writable || saveCaller.isPending}
+              onChange={(e) => setCaller({ ...caller, rewardTokens: e.target.value })}
             />
           </Field>
         </div>
@@ -164,36 +187,143 @@ function WeeklySettingsCard() {
           >
             <Input
               type="date"
-              value={form.periodStartInput || ''}
-              disabled={!writable || save.isPending}
-              onChange={(e) => setForm({ ...form, periodStartInput: e.target.value })}
+              value={caller.periodStartInput || ''}
+              disabled={!writable || saveCaller.isPending}
+              onChange={(e) => setCaller({ ...caller, periodStartInput: e.target.value })}
             />
           </Field>
           <Field label="Period end" hint="Read-only — Sunday of the same IST week.">
-            <Input type="date" value={weekEndDateFromStart(form.periodStartInput)} disabled />
+            <Input type="date" value={weekEndDateFromStart(caller.periodStartInput)} disabled />
           </Field>
         </div>
         {writable && (
           <Button
             size="sm"
-            loading={save.isPending}
+            loading={saveCaller.isPending}
             onClick={() =>
-              save.mutate({
-                audience,
-                enabled: Boolean(form.enabled),
-                targetMinutes: Number(form.targetMinutes),
-                rewardTokens: Number(form.rewardTokens),
-                // Send calendar date only — API treats it as IST Monday week start.
-                periodStart: form.periodStartInput || undefined,
+              saveCaller.mutate({
+                audience: 'CALLER',
+                enabled: Boolean(caller.enabled),
+                targetMinutes: Number(caller.targetMinutes),
+                rewardTokens: Number(caller.rewardTokens),
+                periodStart: caller.periodStartInput || undefined,
               })
             }
           >
-            Save {label.toLowerCase()}
+            Save user weekly bonus
           </Button>
         )}
-        {save.error && (
+        {saveCaller.error && (
           <div className="mt-1">
-            <ErrorState error={save.error} compact />
+            <ErrorState error={saveCaller.error} compact />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderListenerEditor = () => {
+    if (!listener) return null;
+    const tiers = listener.tiers || [];
+    return (
+      <div className="space-y-3 rounded-lg border border-ink-100 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-ink-900">Listener weekly bonus</p>
+          <Badge tone="info">LISTENER</Badge>
+        </div>
+        <p className="text-xs text-ink-500">
+          Up to 3 bonuses. Enable any combination (only 1st, only 2nd, 1st+3rd, all three, etc.).
+          A listener is paid only for the highest tier they reach — not the sum of lower tiers.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            label="Period start"
+            hint="IST Monday. Shared by all listener tiers."
+          >
+            <Input
+              type="date"
+              value={listener.periodStartInput || ''}
+              disabled={!writable || saveListener.isPending}
+              onChange={(e) => setListener({ ...listener, periodStartInput: e.target.value })}
+            />
+          </Field>
+          <Field label="Period end" hint="Read-only — Sunday of the same IST week.">
+            <Input type="date" value={weekEndDateFromStart(listener.periodStartInput)} disabled />
+          </Field>
+        </div>
+        <div className="space-y-3">
+          {tiers.map((tier) => (
+            <div
+              key={tier.tier}
+              className="space-y-2 rounded-md border border-ink-100 bg-ink-50/40 p-3"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-ink-800">Bonus {tier.tier}</p>
+                <Toggle
+                  checked={Boolean(tier.enabled)}
+                  disabled={!writable || saveListener.isPending}
+                  onChange={(v) => setListenerTier(tier.tier, { enabled: v })}
+                  label="Enabled"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Target minutes">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={tier.targetMinutes ?? ''}
+                    disabled={!writable || saveListener.isPending}
+                    onChange={(e) =>
+                      setListenerTier(tier.tier, { targetMinutes: e.target.value })
+                    }
+                  />
+                </Field>
+                <Field
+                  label="Reward (₹)"
+                  hint="Rupees credited to listener earnings. Example: 1000 = ₹1000."
+                >
+                  <Input
+                    type="number"
+                    min="0"
+                    value={tier.rewardTokens ?? ''}
+                    disabled={!writable || saveListener.isPending}
+                    onChange={(e) =>
+                      setListenerTier(tier.tier, { rewardTokens: e.target.value })
+                    }
+                  />
+                </Field>
+              </div>
+            </div>
+          ))}
+        </div>
+        {writable && (
+          <Button
+            size="sm"
+            loading={saveListener.isPending}
+            onClick={() => {
+              const tier1 = (listener.tiers || []).find((t) => Number(t.tier) === 1) || {};
+              saveListener.mutate({
+                audience: 'LISTENER',
+                // Keep existing top-level fields = tier 1 (apps/API unchanged).
+                enabled: Boolean(tier1.enabled),
+                targetMinutes: Number(tier1.targetMinutes),
+                rewardTokens: Number(tier1.rewardTokens),
+                periodStart: listener.periodStartInput || undefined,
+                tiers: (listener.tiers || []).map((t) => ({
+                  tier: Number(t.tier),
+                  enabled: Boolean(t.enabled),
+                  targetMinutes: Number(t.targetMinutes),
+                  rewardTokens: Number(t.rewardTokens),
+                })),
+              });
+            }}
+          >
+            Save listener weekly bonus
+          </Button>
+        )}
+        {saveListener.error && (
+          <div className="mt-1">
+            <ErrorState error={saveListener.error} compact />
           </div>
         )}
       </div>
@@ -203,15 +333,15 @@ function WeeklySettingsCard() {
   return (
     <Card
       title="Weekly bonus settings"
-      description="Set start date (end auto = +7 days). Cron awards after period end, then rolls the start forward. Users get tokens; listeners get ₹ earnings."
+      description="Set start date (end auto = +7 days). Cron awards after period end, then rolls the start forward. Users get tokens; listeners get ₹ earnings (up to 3 independent targets)."
     >
       {error && <ErrorState error={error} onRetry={refetch} compact />}
       {isLoading && !data ? (
         <p className="text-sm text-ink-500">Loading settings…</p>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {renderEditor('User weekly bonus', caller, setCaller, 'CALLER')}
-          {renderEditor('Listener weekly bonus', listener, setListener, 'LISTENER')}
+          {renderCallerEditor()}
+          {renderListenerEditor()}
         </div>
       )}
     </Card>
