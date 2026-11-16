@@ -94,6 +94,8 @@ export const listenersApi = {
   getCallingTime: (params) => get('/admin/listeners/calling-time', params),
   getListenerCallingTime: (id, params) => get(`/admin/listeners/${id}/calling-time`, params),
   listShifts: (params) => get('/admin/listeners/shifts', params),
+  exportShiftsCsv: (params) =>
+    downloadCsv('/admin/listeners/shifts/export', params, 'listener-shifts.csv'),
   getShift: (id) => get(`/admin/listeners/shifts/${id}`),
   createShift: (body) => post('/admin/listeners/shifts', body),
   updateShift: (id, body) => patch(`/admin/listeners/shifts/${id}`, body),
