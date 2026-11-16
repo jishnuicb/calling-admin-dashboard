@@ -233,7 +233,7 @@ function WeeklySettingsCard() {
         </div>
         <p className="text-xs text-ink-500">
           Up to 3 bonuses. Enable any combination (only 1st, only 2nd, 1st+3rd, all three, etc.).
-          Each enabled tier pays separately when the listener hits that minute target.
+          A listener is paid only for the highest tier they reach — not the sum of lower tiers.
         </p>
         <div className="grid grid-cols-2 gap-3">
           <Field
