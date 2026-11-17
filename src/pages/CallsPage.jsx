@@ -51,10 +51,6 @@ export function CallsPage() {
     refetchInterval: table.filters.status === 'ACTIVE' ? 10_000 : false,
   });
 
-  console.log('Calls API response:', data);
-  console.log('Calls rows:', data?.data);
-console.log('Calls rows length:', data?.data?.length);
-
   const exportCsv = async () => {
     try {
       await callsApi.downloadReport({ from: table.filters.from, to: table.filters.to });
@@ -87,6 +83,17 @@ console.log('Calls rows length:', data?.data?.length);
       render: (row) => fmtDuration(row.durationSeconds),
     },
     {
+      key: 'ringDuration',
+      header: 'Ring time',
+      align: 'right',
+      render: (row) =>
+        row.ringDurationSeconds != null ? (
+          fmtDuration(row.ringDurationSeconds)
+        ) : (
+          <span className="text-ink-400">—</span>
+        ),
+    },
+    {
       key: 'tokens',
       header: 'Tokens',
       align: 'right',
@@ -117,6 +124,27 @@ console.log('Calls rows length:', data?.data?.length);
         ) : (
           <span className="text-ink-400">—</span>
         ),
+    },
+    {
+      key: 'listenerReport',
+      header: 'Listener report',
+      render: (row) => {
+        const report = row.listenerReportAgainstCaller;
+        if (!report) return <span className="text-ink-400">—</span>;
+        const reason = String(report.reason || '')
+          .replace(/_/g, ' ')
+          .toLowerCase();
+        return (
+          <div className="min-w-0 max-w-[11rem]">
+            <Badge tone="warning">{reason || 'reported'}</Badge>
+            {report.description ? (
+              <p className="mt-1 truncate text-[11px] text-ink-500" title={report.description}>
+                {report.description}
+              </p>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       key: 'initiatedAt',

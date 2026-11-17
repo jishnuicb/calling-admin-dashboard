@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { BarChart3, Download, FileText } from 'lucide-react';
 import { reportsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
@@ -15,7 +25,7 @@ import {
 } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
 import { slicePage, useTableState } from '../hooks/useTableState';
-import { fmtNumber, titleCase } from '../lib/format';
+import { fmtMoney, fmtNumber, titleCase } from '../lib/format';
 
 /**
  * Generic report runner.
@@ -191,6 +201,71 @@ export function ReportsPage() {
                   ))}
                 </div>
               )}
+
+              {selected === 'payout-vs-revenue' &&
+                Array.isArray(report?.dailySeries) &&
+                report.dailySeries.length > 0 && (
+                  <Card
+                    title="Daily payout vs revenue (IST)"
+                    description="Net revenue and accrued payout by calendar day in Asia/Kolkata."
+                  >
+                    <div className="h-72 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={report.dailySeries}
+                          margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 11, fill: '#6b7280' }}
+                            tickFormatter={(value, index) => {
+                              const point = report.dailySeries[index];
+                              if (!point) return value;
+                              return report.dailySeries.length <= 14
+                                ? `${point.weekday} ${String(value).slice(5)}`
+                                : String(value).slice(5);
+                            }}
+                            minTickGap={24}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: '#6b7280' }}
+                            tickFormatter={(v) => fmtNumber(v)}
+                            width={56}
+                          />
+                          <Tooltip
+                            formatter={(value, name) => [fmtMoney(value), name]}
+                            labelFormatter={(label, payload) => {
+                              const point = payload?.[0]?.payload;
+                              return point?.weekday
+                                ? `${point.weekday} ${label} (IST)`
+                                : `${label} (IST)`;
+                            }}
+                          />
+                          <Legend />
+                          <Line
+                            type="monotone"
+                            dataKey="netRevenueRupees"
+                            name="Revenue"
+                            stroke="#2563eb"
+                            strokeWidth={2}
+                            dot={report.dailySeries.length <= 31}
+                            activeDot={{ r: 4 }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="payoutRupees"
+                            name="Payout"
+                            stroke="#dc2626"
+                            strokeWidth={2}
+                            dot={report.dailySeries.length <= 31}
+                            activeDot={{ r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                )}
 
               <Card
                 title={titleCase(selected)}

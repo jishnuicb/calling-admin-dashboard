@@ -149,6 +149,15 @@ export function CallDetailPage() {
               },
               { label: 'Initiated', value: fmtDateTimeSeconds(call.initiatedAt) },
               { label: 'Ring deadline', value: fmtDateTimeSeconds(call.ringTimeoutAt) },
+              {
+                label: 'Ring time',
+                value:
+                  call.ringDurationSeconds != null
+                    ? fmtDuration(call.ringDurationSeconds)
+                    : call.log?.ringDurationSeconds != null
+                      ? fmtDuration(call.log.ringDurationSeconds)
+                      : null,
+              },
               { label: 'Answered', value: fmtDateTimeSeconds(call.answeredAt) },
               {
                 label: 'Billing started',
@@ -203,6 +212,17 @@ export function CallDetailPage() {
                   {fmtDuration(call.durationSeconds ?? call.elapsedSeconds)}
                 </p>
               </div>
+              {(call.ringDurationSeconds != null || call.log?.ringDurationSeconds != null) && (
+                <div className="border-t border-ink-100 pt-3">
+                  <p className="text-xs font-medium text-ink-500">Ring time</p>
+                  <p className="mt-0.5 text-lg font-semibold tabular text-ink-800">
+                    {fmtDuration(call.ringDurationSeconds ?? call.log?.ringDurationSeconds)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-ink-500">
+                    Time ringing before answer, cancel, or miss
+                  </p>
+                </div>
+              )}
               {(call.wallClockDurationSeconds != null ||
                 call.billingMismatch?.wallClockSeconds != null) && (
                 <div className="border-t border-ink-100 pt-3">
@@ -292,6 +312,13 @@ export function CallDetailPage() {
             <DescList
               items={[
                 { label: 'Billable duration', value: fmtDuration(call.log.durationSeconds) },
+                {
+                  label: 'Ring time',
+                  value:
+                    call.log.ringDurationSeconds != null
+                      ? fmtDuration(call.log.ringDurationSeconds)
+                      : null,
+                },
                 {
                   label: 'Wall-clock duration',
                   value:
