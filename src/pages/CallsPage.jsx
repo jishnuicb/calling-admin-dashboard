@@ -87,6 +87,17 @@ console.log('Calls rows length:', data?.data?.length);
       render: (row) => fmtDuration(row.durationSeconds),
     },
     {
+      key: 'ringDuration',
+      header: 'Ring time',
+      align: 'right',
+      render: (row) =>
+        row.ringDurationSeconds != null ? (
+          fmtDuration(row.ringDurationSeconds)
+        ) : (
+          <span className="text-ink-400">—</span>
+        ),
+    },
+    {
       key: 'tokens',
       header: 'Tokens',
       align: 'right',
