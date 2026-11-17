@@ -384,15 +384,21 @@ export function PackagesPage({ platform, market, title, description }) {
       header: 'Tokens',
       align: 'right',
       render: (row) => (
-        <div>
-          <p className="font-medium text-ink-800">{fmtTokens(row.tokens)}</p>
-          {Number(row.firstPaymentBonusTokens) > 0 && (
-            <p className="text-[11px] text-emerald-700">
-              +{fmtTokens(row.firstPaymentBonusTokens)} first pay
-            </p>
-          )}
-        </div>
+        <span className="font-medium text-ink-800">{fmtTokens(row.tokens)}</span>
       ),
+    },
+    {
+      key: 'firstPaymentBonusTokens',
+      header: 'First payment bonus',
+      align: 'right',
+      render: (row) => {
+        const n = Number(row.firstPaymentBonusTokens) || 0;
+        return n > 0 ? (
+          <span className="font-medium tabular text-emerald-700">+{fmtTokens(n)}</span>
+        ) : (
+          <span className="text-ink-400">—</span>
+        );
+      },
     },
     {
       key: 'price',
