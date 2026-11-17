@@ -68,6 +68,7 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
       ? {
           name: pkg.name || '',
           tokens: pkg.tokens ?? '',
+          firstPaymentBonusTokens: pkg.firstPaymentBonusTokens ?? 0,
           price: pkg.price ?? '',
           originalPrice: pkg.originalPrice ?? '',
           discountPercent: pkg.discountPercent ?? 0,
@@ -83,6 +84,7 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
       : {
           name: '',
           tokens: '',
+          firstPaymentBonusTokens: 0,
           price: '',
           originalPrice: '',
           discountPercent: 0,
@@ -106,6 +108,7 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
       name: form.name.trim(),
       tokens: Number(form.tokens),
       bonusTokens: 0,
+      firstPaymentBonusTokens: Math.max(0, Number(form.firstPaymentBonusTokens) || 0),
       price: Number(form.price),
       originalPrice:
         form.originalPrice === '' || form.originalPrice == null
@@ -177,13 +180,25 @@ function PackageFormModal({ open, onClose, pkg, platform, market, catalogTitle }
           />
         </Field>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <Field label="Tokens" required error={fieldErrors.tokens}>
             <Input
               type="number"
               min="1"
               value={form.tokens}
               onChange={(e) => setForm({ ...form, tokens: e.target.value })}
+            />
+          </Field>
+          <Field
+            label="First payment bonus"
+            hint="Extra tokens only on the user’s first successful purchase. 0 = off."
+            error={fieldErrors.firstPaymentBonusTokens}
+          >
+            <Input
+              type="number"
+              min="0"
+              value={form.firstPaymentBonusTokens}
+              onChange={(e) => setForm({ ...form, firstPaymentBonusTokens: e.target.value })}
             />
           </Field>
         </div>
@@ -371,6 +386,11 @@ export function PackagesPage({ platform, market, title, description }) {
       render: (row) => (
         <div>
           <p className="font-medium text-ink-800">{fmtTokens(row.tokens)}</p>
+          {Number(row.firstPaymentBonusTokens) > 0 && (
+            <p className="text-[11px] text-emerald-700">
+              +{fmtTokens(row.firstPaymentBonusTokens)} first pay
+            </p>
+          )}
         </div>
       ),
     },
