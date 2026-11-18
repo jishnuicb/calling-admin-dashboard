@@ -469,15 +469,15 @@ const CONFIG_META = {
     note: 'Comma/newline-separated real client IPs that get a fake OTP-send 200 (no MSG91).',
     group: 'IP security',
   },
-  'security.appCheck.enabled': {
-    label: 'App Check master switch',
-    note: 'When on and mode is off, treated as enforce. Prefer setting mode explicitly.',
-    group: 'IP security',
-  },
   'security.appCheck.mode': {
     label: 'App Check mode (SMS OTP only)',
-    note: 'Applies only to SMS OTP send (not WhatsApp). off = skip. monitor = log only. enforce = require X-Firebase-AppCheck; on failure returns OTP_SEND_FAILED (“try with WhatsApp”).',
+    note: 'SMS OTP only (not WhatsApp). off = skip. monitor = log only. enforce = require X-Firebase-AppCheck; missing/invalid → OTP_SEND_FAILED (“try with WhatsApp”).',
     group: 'IP security',
+    options: [
+      { value: 'off', label: 'off — skip App Check' },
+      { value: 'monitor', label: 'monitor — log only, never block' },
+      { value: 'enforce', label: 'enforce — require token on SMS' },
+    ],
   },
   'security.googleSignup.enabled': {
     label: 'Google signup IP limit',
@@ -752,14 +752,18 @@ function AppSettingsCard({ writable }) {
 }
 
 function EditConfigModal({ entry, onClose }) {
-  const isBoolean = typeof entry.value === 'boolean' || entry.type === 'boolean';
+  const meta = CONFIG_META[entry.key] || {};
+  const selectOptions = Array.isArray(meta.options) ? meta.options : null;
+  const isBoolean = !selectOptions && (typeof entry.value === 'boolean' || entry.type === 'boolean');
   // Some settings are genuinely textual (the default discovery language), so the
   // editor cannot assume a number - coercing one would save NaN.
-  const isText = !isBoolean && (typeof entry.value === 'string' || entry.type === 'string');
+  const isText =
+    !selectOptions && !isBoolean && (typeof entry.value === 'string' || entry.type === 'string');
   const [value, setValue] = useState(entry.value);
   const [description, setDescription] = useState(entry.description || '');
 
   const coercedValue = () => {
+    if (selectOptions) return String(value);
     if (isBoolean) return Boolean(value);
     if (isText) return String(value);
     return Number(value);
@@ -779,7 +783,6 @@ function EditConfigModal({ entry, onClose }) {
     onSuccess: onClose,
   });
 
-  const meta = CONFIG_META[entry.key] || {};
   const changed = String(value) !== String(entry.value);
 
   return (
@@ -806,7 +809,21 @@ function EditConfigModal({ entry, onClose }) {
       <div className="space-y-4">
         {mutation.error && <ErrorState error={mutation.error} compact />}
 
-        {isBoolean ? (
+        {selectOptions ? (
+          <Field label="Value" required>
+            <Select
+              autoFocus
+              value={String(value)}
+              onChange={(e) => setValue(e.target.value)}
+            >
+              {selectOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : isBoolean ? (
           <div className="rounded-lg bg-ink-50 px-3.5 py-3">
             <Toggle
               checked={Boolean(value)}
