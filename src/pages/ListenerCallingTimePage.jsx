@@ -356,7 +356,7 @@ function ListenerCallingTimeDetailModal({ listenerId, month, week, onClose }) {
 
             <div className="flex items-center gap-2">
               <Link
-                to={`/listeners/${listener.id}`}
+                to={`/listeners/${listener.applicationId || listener.id}`}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-700 shadow-sm hover:bg-ink-50"
               >
                 View profile

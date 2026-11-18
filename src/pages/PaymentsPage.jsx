@@ -7,7 +7,7 @@ import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import { Button, Card, Field, Input, PageHeader, SearchInput, Select, StatusBadge } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
 import { useTableState } from '../hooks/useTableState';
-import { fmtDateTime, fmtMoney, fmtTokens, shortId } from '../lib/format';
+import { fmtDateTime, fmtMoney, fmtNumber, fmtTokens, shortId } from '../lib/format';
 
 export function PaymentsPage() {
   const navigate = useNavigate();
@@ -150,6 +150,38 @@ export function PaymentsPage() {
         }
       />
 
+      {data?.summary && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-ink-500">Total payments</p>
+            <p className="mt-1 text-xl font-semibold tabular text-ink-900">
+              {fmtNumber(data.summary.totalPayments || 0)}
+            </p>
+            <p className="mt-0.5 text-[11px] text-ink-400">
+              {data.summary.timezone || 'Asia/Kolkata'} date filter
+            </p>
+          </div>
+          <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-ink-500">Failed payments</p>
+            <p className="mt-1 text-xl font-semibold tabular text-rose-700">
+              {fmtNumber(data.summary.failedPayments || 0)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-ink-500">Successful revenue</p>
+            <p className="mt-1 truncate text-xl font-semibold tabular text-ink-900">
+              {fmtMoney(data.summary.successfulRevenue || 0)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-ink-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-medium text-ink-500">Successful tokens</p>
+            <p className="mt-1 text-xl font-semibold tabular text-ink-900">
+              {fmtTokens(data.summary.successfulTokensSold || 0)}
+            </p>
+          </div>
+        </div>
+      )}
+
       <Card bodyClassName="">
         <FilterBar onReset={table.isFiltered ? table.reset : undefined}>
           <Field label="Search" className="w-full sm:w-56">
@@ -191,14 +223,14 @@ export function PaymentsPage() {
             />
           </Field>
 
-          <Field label="From" className="w-36">
+          <Field label="From (IST)" className="w-36">
             <Input
               type="date"
               value={table.filters.from}
               onChange={(e) => table.setFilter('from', e.target.value)}
             />
           </Field>
-          <Field label="To" className="w-36">
+          <Field label="To (IST)" className="w-36">
             <Input
               type="date"
               value={table.filters.to}
