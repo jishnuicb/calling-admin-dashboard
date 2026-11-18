@@ -189,7 +189,7 @@ export function IpBlocksPage() {
     <div className="space-y-6">
       <PageHeader
         title="Blocked IPs"
-        description="Auto-blocks from per-IP rate limits and OTP abuse, plus manual blocks. Unblock restores access immediately."
+        description="Auto-blocks from rate limits, OTP abuse, Google multi-account signup locks, plus manual blocks. Unblock restores access immediately."
         actions={
           canWrite ? (
             <Button onClick={() => setBlockOpen(true)}>
@@ -201,7 +201,7 @@ export function IpBlocksPage() {
       />
 
       {settings && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Card className="p-4">
             <p className="text-xs uppercase tracking-wide text-ink-500">Enabled</p>
             <p className="mt-1 font-semibold">{settings.enabled ? 'Yes' : 'No'}</p>
@@ -222,6 +222,14 @@ export function IpBlocksPage() {
             <p className="text-xs uppercase tracking-wide text-ink-500">Auto-ban TTL</p>
             <p className="mt-1 font-semibold">
               {settings.banTtlSeconds ? `${settings.banTtlSeconds}s` : 'Until unblock'}
+            </p>
+          </Card>
+          <Card className="p-4">
+            <p className="text-xs uppercase tracking-wide text-ink-500">Google signup / IP</p>
+            <p className="mt-1 font-semibold">
+              {settings.googleSignup?.enabled === false
+                ? 'Off'
+                : `${settings.googleSignup?.maxAccountsPerWindow ?? 2} / ${Math.round((settings.googleSignup?.windowMs ?? 900000) / 60000)}m → ${Math.round((settings.googleSignup?.lockTtlSeconds ?? 86400) / 3600)}h lock`}
             </p>
           </Card>
         </div>
@@ -248,6 +256,7 @@ export function IpBlocksPage() {
               <option value="RATE_LIMIT">RATE_LIMIT</option>
               <option value="OTP_ABUSE">OTP_ABUSE</option>
               <option value="OTP_SPRAY">OTP_SPRAY</option>
+              <option value="GOOGLE_SIGNUP">GOOGLE_SIGNUP</option>
               <option value="MANUAL">MANUAL</option>
             </Select>
           </Field>
@@ -268,7 +277,7 @@ export function IpBlocksPage() {
           error={error}
           onRetry={refetch}
           emptyTitle="No blocked IPs"
-          emptyDescription="IPs appear here after auto rate-limit / OTP abuse blocks, or when you block manually."
+          emptyDescription="IPs appear here after rate-limit, OTP abuse, Google signup locks, or manual blocks."
         />
         <Pagination meta={data?.meta} page={table.page} onPageChange={table.setPage} />
       </Card>

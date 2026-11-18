@@ -464,6 +464,33 @@ const CONFIG_META = {
     note: 'How long auto-blocks last (0 = until admin unblocks). Default 3600 (1 hour). Manual blocks default to until unblock.',
     group: 'IP security',
   },
+  'security.otpHoneypot.ips': {
+    label: 'OTP send honeypot IPs',
+    note: 'Comma/newline-separated real client IPs that get a fake OTP-send 200 (no MSG91).',
+    group: 'IP security',
+  },
+  'security.googleSignup.enabled': {
+    label: 'Google signup IP limit',
+    note: 'When on, limit how many new Google accounts one IP can create in a window. Returning Google logins stay allowed. Locks appear on Blocked IPs with reason GOOGLE_SIGNUP.',
+    group: 'IP security',
+  },
+  'security.googleSignup.maxAccountsPerWindow': {
+    label: 'Google accounts per IP (max)',
+    note: 'Max new Google accounts from one IP inside the window. Default 2.',
+    group: 'IP security',
+  },
+  'security.googleSignup.windowMs': {
+    label: 'Google signup window',
+    unit: 'milliseconds',
+    note: 'Window for counting new Google accounts per IP. Default 900000 (15 min).',
+    group: 'IP security',
+  },
+  'security.googleSignup.lockTtlSeconds': {
+    label: 'Google signup lock duration',
+    unit: 'seconds',
+    note: 'After hitting the max, how long further new Google accounts from that IP are blocked. Default 86400 (24h).',
+    group: 'IP security',
+  },
 };
 
 /** Edited in the dedicated App & support card — hide from the generic list. */
