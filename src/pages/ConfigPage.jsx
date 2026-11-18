@@ -469,6 +469,16 @@ const CONFIG_META = {
     note: 'Comma/newline-separated real client IPs that get a fake OTP-send 200 (no MSG91).',
     group: 'IP security',
   },
+  'security.appCheck.enabled': {
+    label: 'App Check master switch',
+    note: 'When on and mode is off, treated as enforce. Prefer setting mode explicitly.',
+    group: 'IP security',
+  },
+  'security.appCheck.mode': {
+    label: 'App Check mode (SMS OTP only)',
+    note: 'Applies only to SMS OTP send (not WhatsApp). off = skip. monitor = log only. enforce = require X-Firebase-AppCheck; on failure returns OTP_SEND_FAILED (“try with WhatsApp”).',
+    group: 'IP security',
+  },
   'security.googleSignup.enabled': {
     label: 'Google signup IP limit',
     note: 'When on, limit how many new Google accounts one IP can create in a window. Returning Google logins stay allowed. Locks appear on Blocked IPs with reason GOOGLE_SIGNUP.',
