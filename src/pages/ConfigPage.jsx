@@ -508,6 +508,9 @@ const APP_SETTINGS_KEYS = new Set([
   'payment.mode',
   'app.reviewReminder.enabled',
   'app.reviewReminder.intervalMinutes',
+  'app.maintenance.enabled',
+  'app.maintenance.startAt',
+  'app.maintenance.endAt',
 ]);
 
 function AppSettingsCard({ writable }) {
@@ -529,6 +532,9 @@ function AppSettingsCard({ writable }) {
   const [paymentMode, setPaymentMode] = useState('SANDBOX');
   const [reviewReminderEnabled, setReviewReminderEnabled] = useState(false);
   const [reviewReminderIntervalMinutes, setReviewReminderIntervalMinutes] = useState(10080);
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceStartAt, setMaintenanceStartAt] = useState('');
+  const [maintenanceEndAt, setMaintenanceEndAt] = useState('');
 
   useEffect(() => {
     if (!data) return;
@@ -545,6 +551,9 @@ function AppSettingsCard({ writable }) {
     setPaymentMode(data.payment?.mode || 'SANDBOX');
     setReviewReminderEnabled(Boolean(data.reviewReminder?.enabled));
     setReviewReminderIntervalMinutes(data.reviewReminder?.intervalMinutes ?? 10080);
+    setMaintenanceEnabled(Boolean(data.maintenance?.enabled));
+    setMaintenanceStartAt(data.maintenance?.startAtLocal || '');
+    setMaintenanceEndAt(data.maintenance?.endAtLocal || '');
   }, [data]);
 
   const mutation = useApiMutation({
@@ -563,6 +572,9 @@ function AppSettingsCard({ writable }) {
         paymentMode,
         reviewReminderEnabled,
         reviewReminderIntervalMinutes: Number(reviewReminderIntervalMinutes),
+        maintenanceEnabled,
+        maintenanceStartAt: maintenanceStartAt.trim(),
+        maintenanceEndAt: maintenanceEndAt.trim(),
       }),
     successMessage: 'App settings saved',
     invalidate: [qk.appSettings, qk.config],
@@ -586,7 +598,10 @@ function AppSettingsCard({ writable }) {
     supportEmail.trim() !== (data.supportEmail || '') ||
     paymentMode !== (data.payment?.mode || 'SANDBOX') ||
     reviewReminderEnabled !== Boolean(data.reviewReminder?.enabled) ||
-    Number(reviewReminderIntervalMinutes) !== (data.reviewReminder?.intervalMinutes ?? 10080);
+    Number(reviewReminderIntervalMinutes) !== (data.reviewReminder?.intervalMinutes ?? 10080) ||
+    maintenanceEnabled !== Boolean(data.maintenance?.enabled) ||
+    maintenanceStartAt.trim() !== (data.maintenance?.startAtLocal || '') ||
+    maintenanceEndAt.trim() !== (data.maintenance?.endAtLocal || '');
 
   return (
     <Card
@@ -819,6 +834,51 @@ function AppSettingsCard({ writable }) {
               />
             </Field>
           </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            Maintenance
+          </p>
+          <p className="mb-2 text-xs text-ink-500">
+            Returned as additive <code className="rounded bg-ink-100 px-1">maintenance</code> on GET
+            /app/settings as soon as you save. Server does not auto-block; the app uses enabled +
+            from/to (IST).
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Maintenance mode" hint="Master switch for clients.">
+              <Toggle
+                checked={maintenanceEnabled}
+                disabled={!writable}
+                onChange={setMaintenanceEnabled}
+                label={maintenanceEnabled ? 'Enabled' : 'Disabled'}
+              />
+            </Field>
+            <Field label="From (IST)" hint="Date + time. Empty = unset.">
+              <Input
+                type="datetime-local"
+                value={maintenanceStartAt}
+                disabled={!writable}
+                onChange={(e) => setMaintenanceStartAt(e.target.value)}
+              />
+            </Field>
+            <Field label="To (IST)" hint="Date + time. Empty = unset.">
+              <Input
+                type="datetime-local"
+                value={maintenanceEndAt}
+                disabled={!writable}
+                onChange={(e) => setMaintenanceEndAt(e.target.value)}
+              />
+            </Field>
+          </div>
+          {(data.maintenance?.startAt || data.maintenance?.endAt) && (
+            <p className="mt-2 text-xs text-ink-500">
+              Saved:{' '}
+              <span className="font-medium tabular text-ink-800">
+                {data.maintenance?.startAtLocal || '—'} → {data.maintenance?.endAtLocal || '—'}
+              </span>
+            </p>
+          )}
         </div>
       </div>
     </Card>
