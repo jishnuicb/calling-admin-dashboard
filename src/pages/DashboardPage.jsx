@@ -15,7 +15,6 @@ import {
   Activity,
   BadgeCheck,
   CircleDollarSign,
-  Clock,
   Coins,
   Flag,
   PhoneCall,
@@ -85,16 +84,10 @@ export function DashboardPage() {
     moderation,
     listenersPerLanguage,
     ledger,
-    agora,
   } = data;
 
   const languageChart = (listenersPerLanguage || []).filter((l) => l.listenerCount > 0).slice(0, 12);
   const openReports = (moderation?.PENDING || 0) + (moderation?.UNDER_REVIEW || 0);
-  const agoraConfigured = Boolean(agora?.configured);
-  const agoraUsedPercent =
-    agoraConfigured && agora?.packageMinutes > 0
-      ? Math.min(100, Math.round(((agora.usedMinutes || 0) / agora.packageMinutes) * 100))
-      : 0;
 
   return (
     <>
@@ -192,53 +185,6 @@ export function DashboardPage() {
           sub={`${fmtDuration(calls.totalDurationSeconds)} talk time`}
           to="/calls"
         />
-      </div>
-
-      <div className="mb-4">
-        <Card
-          title="Agora usage"
-          description={`Current UTC calendar month (${agora?.month || '—'} · timezone UTC). Matches Agora Console usage dates.`}
-          actions={
-            <Link to="/config" className="text-xs font-medium text-brand-600 hover:underline">
-              Set package minutes
-            </Link>
-          }
-        >
-          {agoraConfigured ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-ink-700">
-                <span className="flex size-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
-                  <Clock className="size-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-medium text-ink-900">
-                    {fmtNumber(agora.usedMinutes)} / {fmtNumber(agora.packageMinutes)} minutes
-                  </p>
-                  <p className="text-xs text-ink-500">
-                    Used of package · {agoraUsedPercent}% · current UTC month
-                  </p>
-                </div>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-ink-100">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    agoraUsedPercent >= 90
-                      ? 'bg-red-500'
-                      : agoraUsedPercent >= 70
-                        ? 'bg-amber-500'
-                        : 'bg-sky-500'
-                  }`}
-                  style={{ width: `${agoraUsedPercent}%` }}
-                />
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-ink-500">
-              Set <span className="font-medium text-ink-700">agora.packageMinutes</span> in
-              Configuration to your Agora monthly package size (UTC month).
-            </p>
-          )}
-        </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
