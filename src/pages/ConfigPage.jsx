@@ -847,12 +847,16 @@ function AppSettingsCard({ writable }) {
             Maintenance
           </p>
           <p className="mb-2 text-xs text-ink-500">
-            Returned as additive <code className="rounded bg-ink-100 px-1">maintenance</code> on GET
-            /app/settings as soon as you save. Server does not auto-block; the app uses enabled +
-            from/to (IST).
+            When active, app APIs return{' '}
+            <code className="rounded bg-ink-100 px-1">503 MAINTENANCE</code>. Admin,{' '}
+            <code className="rounded bg-ink-100 px-1">/app/settings</code>, and payment webhooks stay
+            open. Optional from/to are IST wall clock.
+            {data.maintenance?.active ? (
+              <span className="ml-1 font-medium text-amber-700">Blocking is on now.</span>
+            ) : null}
           </p>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Maintenance mode" hint="Master switch for clients.">
+            <Field label="Maintenance mode" hint="Blocks app APIs when active.">
               <Toggle
                 checked={maintenanceEnabled}
                 disabled={!writable}
