@@ -23,7 +23,7 @@ import {
 } from '../components/ui';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useTableState } from '../hooks/useTableState';
-import { fmtDateTime, fmtNumber, fmtRelative, fmtTokens } from '../lib/format';
+import { fmtDateTime, fmtNumber, fmtTokens } from '../lib/format';
 
 function RenameUserModal({ user, onClose }) {
   const [name, setName] = useState(user.originalName || user.name || '');
@@ -254,9 +254,7 @@ export function UsersPage({ variant = 'all' }) {
       key: 'createdAt',
       header: 'Registered',
       render: (row) => (
-        <span className="text-xs text-ink-600" title={fmtDateTime(row.createdAt)}>
-          {fmtRelative(row.createdAt)}
-        </span>
+        <span className="whitespace-nowrap text-xs text-ink-600">{fmtDateTime(row.createdAt)}</span>
       ),
     },
     ...(canRename

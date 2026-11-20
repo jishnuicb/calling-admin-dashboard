@@ -499,6 +499,10 @@ const APP_SETTINGS_KEYS = new Set([
   'app.version.minor',
   'app.version.patch',
   'app.releaseType',
+  'app.ios.version.major',
+  'app.ios.version.minor',
+  'app.ios.version.patch',
+  'app.ios.releaseType',
   'company.whatsappNumber',
   'company.supportEmail',
   'payment.mode',
@@ -516,6 +520,10 @@ function AppSettingsCard({ writable }) {
   const [minor, setMinor] = useState(0);
   const [patch, setPatch] = useState(0);
   const [releaseType, setReleaseType] = useState('MINOR');
+  const [iosMajor, setIosMajor] = useState(1);
+  const [iosMinor, setIosMinor] = useState(0);
+  const [iosPatch, setIosPatch] = useState(0);
+  const [iosReleaseType, setIosReleaseType] = useState('MINOR');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [supportEmail, setSupportEmail] = useState('');
   const [paymentMode, setPaymentMode] = useState('SANDBOX');
@@ -528,6 +536,10 @@ function AppSettingsCard({ writable }) {
     setMinor(data.version?.minor ?? 0);
     setPatch(data.version?.patch ?? 0);
     setReleaseType(data.version?.releaseType || 'MINOR');
+    setIosMajor(data.iosVersion?.major ?? data.version?.major ?? 1);
+    setIosMinor(data.iosVersion?.minor ?? data.version?.minor ?? 0);
+    setIosPatch(data.iosVersion?.patch ?? data.version?.patch ?? 0);
+    setIosReleaseType(data.iosVersion?.releaseType || data.version?.releaseType || 'MINOR');
     setWhatsappNumber(data.whatsappNumber || '');
     setSupportEmail(data.supportEmail || '');
     setPaymentMode(data.payment?.mode || 'SANDBOX');
@@ -542,6 +554,10 @@ function AppSettingsCard({ writable }) {
         minor: Number(minor),
         patch: Number(patch),
         releaseType,
+        iosMajor: Number(iosMajor),
+        iosMinor: Number(iosMinor),
+        iosPatch: Number(iosPatch),
+        iosReleaseType,
         whatsappNumber: whatsappNumber.trim(),
         supportEmail: supportEmail.trim(),
         paymentMode,
@@ -556,11 +572,16 @@ function AppSettingsCard({ writable }) {
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   const label = `${Number(major) || 0}.${Number(minor) || 0}.${Number(patch) || 0}`;
+  const iosLabel = `${Number(iosMajor) || 0}.${Number(iosMinor) || 0}.${Number(iosPatch) || 0}`;
   const dirty =
     Number(major) !== (data.version?.major ?? 1) ||
     Number(minor) !== (data.version?.minor ?? 0) ||
     Number(patch) !== (data.version?.patch ?? 0) ||
     releaseType !== (data.version?.releaseType || 'MINOR') ||
+    Number(iosMajor) !== (data.iosVersion?.major ?? data.version?.major ?? 1) ||
+    Number(iosMinor) !== (data.iosVersion?.minor ?? data.version?.minor ?? 0) ||
+    Number(iosPatch) !== (data.iosVersion?.patch ?? data.version?.patch ?? 0) ||
+    iosReleaseType !== (data.iosVersion?.releaseType || data.version?.releaseType || 'MINOR') ||
     whatsappNumber.trim() !== (data.whatsappNumber || '') ||
     supportEmail.trim() !== (data.supportEmail || '') ||
     paymentMode !== (data.payment?.mode || 'SANDBOX') ||
@@ -584,7 +605,11 @@ function AppSettingsCard({ writable }) {
 
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
-            App release
+            Android / legacy app release
+          </p>
+          <p className="mb-2 text-xs text-ink-500">
+            Returned as <code className="rounded bg-ink-100 px-1">version</code> on GET /app/settings
+            (existing apps keep using this).
           </p>
           <div className="grid gap-3 sm:grid-cols-4">
             <Field label="Major" required>
@@ -633,6 +658,65 @@ function AppSettingsCard({ writable }) {
             Current label: <span className="font-medium tabular text-ink-800">{label}</span>
             {data.version?.label && data.version.label !== label ? (
               <span className="text-ink-400"> (saved as {data.version.label})</span>
+            ) : null}
+          </p>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            iOS app release
+          </p>
+          <p className="mb-2 text-xs text-ink-500">
+            Returned as additive <code className="rounded bg-ink-100 px-1">iosVersion</code> on GET
+            /app/settings. Does not change <code className="rounded bg-ink-100 px-1">version</code>.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Field label="Major" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={iosMajor}
+                disabled={!writable}
+                onChange={(e) => setIosMajor(e.target.value)}
+              />
+            </Field>
+            <Field label="Minor" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={iosMinor}
+                disabled={!writable}
+                onChange={(e) => setIosMinor(e.target.value)}
+              />
+            </Field>
+            <Field label="Patch" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={iosPatch}
+                disabled={!writable}
+                onChange={(e) => setIosPatch(e.target.value)}
+              />
+            </Field>
+            <Field label="Release type" required>
+              <Select
+                value={iosReleaseType}
+                disabled={!writable}
+                onChange={(e) => setIosReleaseType(e.target.value)}
+              >
+                <option value="MAJOR">MAJOR</option>
+                <option value="MINOR">MINOR</option>
+                <option value="PATCH">PATCH</option>
+              </Select>
+            </Field>
+          </div>
+          <p className="mt-2 text-xs text-ink-500">
+            Current label: <span className="font-medium tabular text-ink-800">{iosLabel}</span>
+            {data.iosVersion?.label && data.iosVersion.label !== iosLabel ? (
+              <span className="text-ink-400"> (saved as {data.iosVersion.label})</span>
             ) : null}
           </p>
         </div>
