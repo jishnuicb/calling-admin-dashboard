@@ -15,6 +15,7 @@ import {
   Activity,
   BadgeCheck,
   CircleDollarSign,
+  Clock,
   Coins,
   Flag,
   PhoneCall,
