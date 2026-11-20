@@ -47,6 +47,12 @@ const CONFIG_META = {
     note: 'Callers below this cannot initiate. Prevents a call that would end almost immediately.',
     group: 'Calling',
   },
+  'agora.packageMinutes': {
+    label: 'Agora monthly package minutes',
+    unit: 'minutes',
+    note: 'Your Agora Console subscription package size for the current UTC month. Dashboard usage bar ≈ (talk seconds × 2 participants / 60) of this package. Set 0 to hide the bar.',
+    group: 'Calling',
+  },
   'call.peakRate.caller.ratePerSecond': {
     label: 'Caller peak rate',
     unit: 'tokens per second',
