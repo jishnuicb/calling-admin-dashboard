@@ -778,6 +778,11 @@ export function UserDetailPage() {
                 full: true,
               },
               { label: 'Registered', value: fmtDateTime(user.createdAt) },
+              {
+                label: 'Signup IP',
+                value: user.signupIp || '—',
+                mono: Boolean(user.signupIp),
+              },
               { label: 'Last login', value: fmtDateTime(user.lastLoginAt) },
               {
                 label: 'Last login via',

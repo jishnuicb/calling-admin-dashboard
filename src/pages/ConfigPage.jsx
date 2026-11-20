@@ -47,6 +47,12 @@ const CONFIG_META = {
     note: 'Callers below this cannot initiate. Prevents a call that would end almost immediately.',
     group: 'Calling',
   },
+  'agora.packageMinutes': {
+    label: 'Agora monthly package minutes',
+    unit: 'minutes',
+    note: 'Your Agora Console subscription package size for the current UTC month. Dashboard usage bar ≈ (talk seconds × 2 participants / 60) of this package. Set 0 to hide the bar.',
+    group: 'Calling',
+  },
   'call.peakRate.caller.ratePerSecond': {
     label: 'Caller peak rate',
     unit: 'tokens per second',
@@ -499,11 +505,18 @@ const APP_SETTINGS_KEYS = new Set([
   'app.version.minor',
   'app.version.patch',
   'app.releaseType',
+  'app.ios.version.major',
+  'app.ios.version.minor',
+  'app.ios.version.patch',
+  'app.ios.releaseType',
   'company.whatsappNumber',
   'company.supportEmail',
   'payment.mode',
   'app.reviewReminder.enabled',
   'app.reviewReminder.intervalMinutes',
+  'app.maintenance.enabled',
+  'app.maintenance.startAt',
+  'app.maintenance.endAt',
 ]);
 
 function AppSettingsCard({ writable }) {
@@ -516,11 +529,18 @@ function AppSettingsCard({ writable }) {
   const [minor, setMinor] = useState(0);
   const [patch, setPatch] = useState(0);
   const [releaseType, setReleaseType] = useState('MINOR');
+  const [iosMajor, setIosMajor] = useState(1);
+  const [iosMinor, setIosMinor] = useState(0);
+  const [iosPatch, setIosPatch] = useState(0);
+  const [iosReleaseType, setIosReleaseType] = useState('MINOR');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [supportEmail, setSupportEmail] = useState('');
   const [paymentMode, setPaymentMode] = useState('SANDBOX');
   const [reviewReminderEnabled, setReviewReminderEnabled] = useState(false);
   const [reviewReminderIntervalMinutes, setReviewReminderIntervalMinutes] = useState(10080);
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceStartAt, setMaintenanceStartAt] = useState('');
+  const [maintenanceEndAt, setMaintenanceEndAt] = useState('');
 
   useEffect(() => {
     if (!data) return;
@@ -528,11 +548,18 @@ function AppSettingsCard({ writable }) {
     setMinor(data.version?.minor ?? 0);
     setPatch(data.version?.patch ?? 0);
     setReleaseType(data.version?.releaseType || 'MINOR');
+    setIosMajor(data.iosVersion?.major ?? data.version?.major ?? 1);
+    setIosMinor(data.iosVersion?.minor ?? data.version?.minor ?? 0);
+    setIosPatch(data.iosVersion?.patch ?? data.version?.patch ?? 0);
+    setIosReleaseType(data.iosVersion?.releaseType || data.version?.releaseType || 'MINOR');
     setWhatsappNumber(data.whatsappNumber || '');
     setSupportEmail(data.supportEmail || '');
     setPaymentMode(data.payment?.mode || 'SANDBOX');
     setReviewReminderEnabled(Boolean(data.reviewReminder?.enabled));
     setReviewReminderIntervalMinutes(data.reviewReminder?.intervalMinutes ?? 10080);
+    setMaintenanceEnabled(Boolean(data.maintenance?.enabled));
+    setMaintenanceStartAt(data.maintenance?.startAtLocal || '');
+    setMaintenanceEndAt(data.maintenance?.endAtLocal || '');
   }, [data]);
 
   const mutation = useApiMutation({
@@ -542,11 +569,18 @@ function AppSettingsCard({ writable }) {
         minor: Number(minor),
         patch: Number(patch),
         releaseType,
+        iosMajor: Number(iosMajor),
+        iosMinor: Number(iosMinor),
+        iosPatch: Number(iosPatch),
+        iosReleaseType,
         whatsappNumber: whatsappNumber.trim(),
         supportEmail: supportEmail.trim(),
         paymentMode,
         reviewReminderEnabled,
         reviewReminderIntervalMinutes: Number(reviewReminderIntervalMinutes),
+        maintenanceEnabled,
+        maintenanceStartAt: maintenanceStartAt.trim(),
+        maintenanceEndAt: maintenanceEndAt.trim(),
       }),
     successMessage: 'App settings saved',
     invalidate: [qk.appSettings, qk.config],
@@ -556,16 +590,24 @@ function AppSettingsCard({ writable }) {
   if (error) return <ErrorState error={error} onRetry={refetch} />;
 
   const label = `${Number(major) || 0}.${Number(minor) || 0}.${Number(patch) || 0}`;
+  const iosLabel = `${Number(iosMajor) || 0}.${Number(iosMinor) || 0}.${Number(iosPatch) || 0}`;
   const dirty =
     Number(major) !== (data.version?.major ?? 1) ||
     Number(minor) !== (data.version?.minor ?? 0) ||
     Number(patch) !== (data.version?.patch ?? 0) ||
     releaseType !== (data.version?.releaseType || 'MINOR') ||
+    Number(iosMajor) !== (data.iosVersion?.major ?? data.version?.major ?? 1) ||
+    Number(iosMinor) !== (data.iosVersion?.minor ?? data.version?.minor ?? 0) ||
+    Number(iosPatch) !== (data.iosVersion?.patch ?? data.version?.patch ?? 0) ||
+    iosReleaseType !== (data.iosVersion?.releaseType || data.version?.releaseType || 'MINOR') ||
     whatsappNumber.trim() !== (data.whatsappNumber || '') ||
     supportEmail.trim() !== (data.supportEmail || '') ||
     paymentMode !== (data.payment?.mode || 'SANDBOX') ||
     reviewReminderEnabled !== Boolean(data.reviewReminder?.enabled) ||
-    Number(reviewReminderIntervalMinutes) !== (data.reviewReminder?.intervalMinutes ?? 10080);
+    Number(reviewReminderIntervalMinutes) !== (data.reviewReminder?.intervalMinutes ?? 10080) ||
+    maintenanceEnabled !== Boolean(data.maintenance?.enabled) ||
+    maintenanceStartAt.trim() !== (data.maintenance?.startAtLocal || '') ||
+    maintenanceEndAt.trim() !== (data.maintenance?.endAtLocal || '');
 
   return (
     <Card
@@ -584,7 +626,11 @@ function AppSettingsCard({ writable }) {
 
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
-            App release
+            Android / legacy app release
+          </p>
+          <p className="mb-2 text-xs text-ink-500">
+            Returned as <code className="rounded bg-ink-100 px-1">version</code> on GET /app/settings
+            (existing apps keep using this).
           </p>
           <div className="grid gap-3 sm:grid-cols-4">
             <Field label="Major" required>
@@ -633,6 +679,65 @@ function AppSettingsCard({ writable }) {
             Current label: <span className="font-medium tabular text-ink-800">{label}</span>
             {data.version?.label && data.version.label !== label ? (
               <span className="text-ink-400"> (saved as {data.version.label})</span>
+            ) : null}
+          </p>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            iOS app release
+          </p>
+          <p className="mb-2 text-xs text-ink-500">
+            Returned as additive <code className="rounded bg-ink-100 px-1">iosVersion</code> on GET
+            /app/settings. Does not change <code className="rounded bg-ink-100 px-1">version</code>.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Field label="Major" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={iosMajor}
+                disabled={!writable}
+                onChange={(e) => setIosMajor(e.target.value)}
+              />
+            </Field>
+            <Field label="Minor" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={iosMinor}
+                disabled={!writable}
+                onChange={(e) => setIosMinor(e.target.value)}
+              />
+            </Field>
+            <Field label="Patch" required>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={iosPatch}
+                disabled={!writable}
+                onChange={(e) => setIosPatch(e.target.value)}
+              />
+            </Field>
+            <Field label="Release type" required>
+              <Select
+                value={iosReleaseType}
+                disabled={!writable}
+                onChange={(e) => setIosReleaseType(e.target.value)}
+              >
+                <option value="MAJOR">MAJOR</option>
+                <option value="MINOR">MINOR</option>
+                <option value="PATCH">PATCH</option>
+              </Select>
+            </Field>
+          </div>
+          <p className="mt-2 text-xs text-ink-500">
+            Current label: <span className="font-medium tabular text-ink-800">{iosLabel}</span>
+            {data.iosVersion?.label && data.iosVersion.label !== iosLabel ? (
+              <span className="text-ink-400"> (saved as {data.iosVersion.label})</span>
             ) : null}
           </p>
         </div>
@@ -735,6 +840,55 @@ function AppSettingsCard({ writable }) {
               />
             </Field>
           </div>
+        </div>
+
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-500">
+            Maintenance
+          </p>
+          <p className="mb-2 text-xs text-ink-500">
+            When active, app APIs return{' '}
+            <code className="rounded bg-ink-100 px-1">503 MAINTENANCE</code>. Admin,{' '}
+            <code className="rounded bg-ink-100 px-1">/app/settings</code>, and payment webhooks stay
+            open. Optional from/to are IST wall clock.
+            {data.maintenance?.active ? (
+              <span className="ml-1 font-medium text-amber-700">Blocking is on now.</span>
+            ) : null}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Maintenance mode" hint="Blocks app APIs when active.">
+              <Toggle
+                checked={maintenanceEnabled}
+                disabled={!writable}
+                onChange={setMaintenanceEnabled}
+                label={maintenanceEnabled ? 'Enabled' : 'Disabled'}
+              />
+            </Field>
+            <Field label="From (IST)" hint="Date + time. Empty = unset.">
+              <Input
+                type="datetime-local"
+                value={maintenanceStartAt}
+                disabled={!writable}
+                onChange={(e) => setMaintenanceStartAt(e.target.value)}
+              />
+            </Field>
+            <Field label="To (IST)" hint="Date + time. Empty = unset.">
+              <Input
+                type="datetime-local"
+                value={maintenanceEndAt}
+                disabled={!writable}
+                onChange={(e) => setMaintenanceEndAt(e.target.value)}
+              />
+            </Field>
+          </div>
+          {(data.maintenance?.startAt || data.maintenance?.endAt) && (
+            <p className="mt-2 text-xs text-ink-500">
+              Saved:{' '}
+              <span className="font-medium tabular text-ink-800">
+                {data.maintenance?.startAtLocal || '—'} → {data.maintenance?.endAtLocal || '—'}
+              </span>
+            </p>
+          )}
         </div>
       </div>
     </Card>
