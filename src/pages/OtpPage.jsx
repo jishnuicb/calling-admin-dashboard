@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { KeyRound, LockOpen, Plus, ShieldAlert, Trash2 } from 'lucide-react';
 import { configApi, otpApi } from '../api/endpoints';
@@ -298,6 +298,129 @@ function AddAllowedCountryModal({ onClose }) {
   );
 }
 
+const WA_MODE_OPTIONS = [
+  {
+    value: 'WHATSAPP_1',
+    label: 'WhatsApp #1',
+    hint: 'Uses MSG91_WHATSAPP_* from-number + template',
+  },
+  {
+    value: 'WHATSAPP_2',
+    label: 'WhatsApp #2',
+    hint: 'Uses MSG91_WHATSAPP_2_* from-number + template',
+  },
+  {
+    value: 'FORCE_SMS',
+    label: 'Force SMS',
+    hint: 'When the app asks for WhatsApp, send SMS instead (same response shape)',
+  },
+];
+
+function WhatsAppDeliveryCard({ summary, canEdit }) {
+  const delivery = summary?.whatsappDelivery;
+  const effectiveMode = delivery?.mode || 'FORCE_SMS';
+  const [mode, setMode] = useState(effectiveMode);
+
+  useEffect(() => {
+    if (delivery?.mode) setMode(delivery.mode);
+  }, [delivery?.mode]);
+
+  const mutation = useApiMutation({
+    mutationFn: () =>
+      configApi.set({
+        key: delivery?.key || 'otp.whatsapp.deliveryMode',
+        value: mode,
+      }),
+    successMessage: 'WhatsApp OTP delivery mode updated',
+    invalidate: [['otp'], ['config']],
+  });
+
+  const slots = delivery?.slots || {};
+  const changed = mode !== effectiveMode;
+
+  return (
+    <Card
+      className="mb-6"
+      title="WhatsApp OTP delivery"
+      description="Pick one rail at a time. Slot credentials stay in server env; this only switches which rail is active (no app response shape change)."
+    >
+      <div className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {WA_MODE_OPTIONS.map((opt) => {
+            const slotMeta =
+              opt.value === 'WHATSAPP_1'
+                ? slots.WHATSAPP_1
+                : opt.value === 'WHATSAPP_2'
+                  ? slots.WHATSAPP_2
+                  : null;
+            const selected = (canEdit ? mode : effectiveMode) === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={!canEdit}
+                onClick={() => canEdit && setMode(opt.value)}
+                className={`rounded-xl border px-3.5 py-3 text-left transition ${
+                  selected
+                    ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500'
+                    : 'border-ink-200 bg-white hover:border-ink-300'
+                } ${!canEdit ? 'cursor-default opacity-90' : ''}`}
+              >
+                <p className="text-sm font-semibold text-ink-900">{opt.label}</p>
+                <p className="mt-1 text-[11px] leading-snug text-ink-500">{opt.hint}</p>
+                {slotMeta && (
+                  <p className="mt-2 font-mono text-[11px] text-ink-600">
+                    {slotMeta.configured
+                      ? `${slotMeta.integratedNumberMasked || '—'} · ${slotMeta.templateName || '—'}`
+                      : 'Not configured in env'}
+                  </p>
+                )}
+                {opt.value === 'FORCE_SMS' && (
+                  <p className="mt-2 text-[11px] font-medium text-amber-800">
+                    Fallback when both WhatsApp numbers fail
+                  </p>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {canEdit && (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              size="sm"
+              disabled={!changed}
+              loading={mutation.isPending}
+              onClick={() => mutation.mutate()}
+            >
+              Save delivery mode
+            </Button>
+            {changed && (
+              <span className="text-xs text-ink-500">
+                Will switch to <code className="font-mono">{mode}</code>
+              </span>
+            )}
+            {!changed && (
+              <span className="text-xs text-ink-500">
+                Active: <code className="font-mono">{effectiveMode}</code>
+              </span>
+            )}
+          </div>
+        )}
+
+        {!canEdit && (
+          <p className="text-xs text-ink-500">
+            Active mode: <code className="font-mono">{effectiveMode}</code>. Needs{' '}
+            <code className="font-mono">config:write</code> to change.
+          </p>
+        )}
+
+        {mutation.error && <ErrorState error={mutation.error} compact />}
+      </div>
+    </Card>
+  );
+}
+
 export function OtpPage() {
   const { can } = useAuth();
   const [editingField, setEditingField] = useState(null);
@@ -306,6 +429,7 @@ export function OtpPage() {
 
   const table = useTableState({ locked: 'true', search: '' });
   const ipTable = useTableState({ action: '', success: '', search: '', ip: '' }, { limit: 20 });
+  const honeypotTable = useTableState({ ip: '', search: '' }, { limit: 20 });
 
   const { data: summary } = useQuery({
     queryKey: qk.otpSummary,
@@ -355,6 +479,25 @@ export function OtpPage() {
   } = useQuery({
     queryKey: qk.otpIpLogs(ipParams),
     queryFn: () => otpApi.ipLogs(ipParams),
+  });
+
+  const honeypotParams = {
+    page: honeypotTable.page,
+    limit: honeypotTable.pageSize,
+    honeypotOnly: true,
+    action: 'SEND',
+    search: honeypotTable.filters.search || undefined,
+    ip: honeypotTable.filters.ip || undefined,
+  };
+
+  const {
+    data: honeypotLogs,
+    isLoading: honeypotLoading,
+    error: honeypotError,
+    refetch: honeypotRefetch,
+  } = useQuery({
+    queryKey: qk.otpIpLogs(honeypotParams),
+    queryFn: () => otpApi.ipLogs(honeypotParams),
   });
 
   const canUnlock = can(P.OTP_UNLOCK);
@@ -553,6 +696,8 @@ export function OtpPage() {
         </div>
       )}
 
+      <WhatsAppDeliveryCard summary={summary} canEdit={canEditPolicy} />
+
       <Card
         className="mb-6"
         title="Allowed countries for OTP"
@@ -662,6 +807,45 @@ export function OtpPage() {
       </Card>
 
       <div className="mt-6">
+        <PageHeader
+          title="Honeypot SMS activity"
+          description="OTP send attempts from honeypot IPs (fake 200, no MSG91). Auto-add triggers after N SMS sends in the configured window — see Configuration → IP security."
+        />
+        <Card bodyClassName="" className="mb-6">
+          <FilterBar onReset={honeypotTable.isFiltered ? honeypotTable.reset : undefined}>
+            <Field label="Search" className="w-full sm:w-56">
+              <SearchInput
+                value={honeypotTable.filters.search}
+                onChange={(v) => honeypotTable.setFilter('search', v)}
+                placeholder="Mobile or IP"
+              />
+            </Field>
+            <Field label="IP" className="w-44">
+              <SearchInput
+                value={honeypotTable.filters.ip}
+                onChange={(v) => honeypotTable.setFilter('ip', v)}
+                placeholder="Exact / partial IP"
+              />
+            </Field>
+          </FilterBar>
+
+          <DataTable
+            columns={ipColumns}
+            rows={honeypotLogs?.data}
+            loading={honeypotLoading}
+            error={honeypotError}
+            onRetry={honeypotRefetch}
+            emptyIcon={ShieldAlert}
+            emptyTitle="No honeypot SMS sends logged yet"
+          />
+
+          <Pagination
+            meta={honeypotLogs?.meta}
+            onPageChange={honeypotTable.setPage}
+            onLimitChange={honeypotTable.changeLimit}
+          />
+        </Card>
+
         <PageHeader
           title="OTP IP logs"
           description="Every send and verify attempt with client IP. Logging is best-effort and never blocks OTP for users."

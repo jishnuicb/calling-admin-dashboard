@@ -112,6 +112,11 @@ const CONFIG_META = {
     note: 'How long the support backup OTP (issued on send or by admin) remains valid. Default 300 (5 minutes). Range 60–3600.',
     group: 'OTP & verification',
   },
+  'otp.whatsapp.deliveryMode': {
+    label: 'WhatsApp OTP delivery mode',
+    note: 'WHATSAPP_1 / WHATSAPP_2 use the matching MSG91 from-number + template from server env. FORCE_SMS sends SMS when the app asks for WhatsApp (same user-facing success shape). Also editable on OTP & lockouts.',
+    group: 'OTP & verification',
+  },
   'chat.enabled': {
     label: 'In-app chat enabled',
     note: 'Master switch. When off, apps hide chat and APIs reject open/send. Default off — no impact on current users.',
@@ -472,7 +477,24 @@ const CONFIG_META = {
   },
   'security.otpHoneypot.ips': {
     label: 'OTP send honeypot IPs',
-    note: 'Comma/newline-separated real client IPs that get a fake OTP-send 200 (no MSG91).',
+    note: 'Comma/newline-separated real client IPs that get a fake OTP-send 200 (no MSG91). Auto-add may append here.',
+    group: 'IP security',
+  },
+  'security.otpHoneypot.autoAddEnabled': {
+    label: 'Auto-add SMS burst IPs to honeypot',
+    note: 'When on, an IP that hits the SMS OTP send threshold in the window is appended to the honeypot list.',
+    group: 'IP security',
+  },
+  'security.otpHoneypot.autoAddMaxSmsSends': {
+    label: 'SMS OTP sends before auto-honeypot',
+    unit: 'sends',
+    note: 'Successful SMS OTP sends from the same IP (not WhatsApp). Default 3.',
+    group: 'IP security',
+  },
+  'security.otpHoneypot.autoAddWindowSeconds': {
+    label: 'SMS burst window',
+    unit: 'seconds',
+    note: 'Rolling window for counting SMS OTP sends toward auto-honeypot. Default 180 (3 minutes).',
     group: 'IP security',
   },
   'security.googleSignup.enabled': {
@@ -895,17 +917,24 @@ function AppSettingsCard({ writable }) {
   );
 }
 
+const DELIVERY_MODE_OPTIONS = [
+  { value: 'WHATSAPP_1', label: 'WhatsApp slot 1 (env MSG91_WHATSAPP_*)' },
+  { value: 'WHATSAPP_2', label: 'WhatsApp slot 2 (env MSG91_WHATSAPP_2_*)' },
+  { value: 'FORCE_SMS', label: 'Force SMS (when app asks for WhatsApp)' },
+];
+
 function EditConfigModal({ entry, onClose }) {
   const isBoolean = typeof entry.value === 'boolean' || entry.type === 'boolean';
   // Some settings are genuinely textual (the default discovery language), so the
   // editor cannot assume a number - coercing one would save NaN.
   const isText = !isBoolean && (typeof entry.value === 'string' || entry.type === 'string');
+  const isDeliveryMode = entry.key === 'otp.whatsapp.deliveryMode';
   const [value, setValue] = useState(entry.value);
   const [description, setDescription] = useState(entry.description || '');
 
   const coercedValue = () => {
     if (isBoolean) return Boolean(value);
-    if (isText) return String(value);
+    if (isText || isDeliveryMode) return String(value);
     return Number(value);
   };
 
@@ -958,6 +987,16 @@ function EditConfigModal({ entry, onClose }) {
               label={Boolean(value) ? 'Enabled' : 'Disabled'}
             />
           </div>
+        ) : isDeliveryMode ? (
+          <Field label="Delivery mode" required>
+            <Select autoFocus value={String(value)} onChange={(e) => setValue(e.target.value)}>
+              {DELIVERY_MODE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
         ) : (
           <Field label="Value" required hint={meta.unit}>
             <Input
