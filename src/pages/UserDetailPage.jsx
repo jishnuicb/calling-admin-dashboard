@@ -131,10 +131,11 @@ function PaymentMarketCard({ user }) {
 function GenderCard({ user }) {
   const { can } = useAuth();
   const canWrite = can(P.USERS_WRITE);
-  const [gender, setGender] = useState(user.gender || 'MALE');
+  const toSelectableGender = (value) => (value === 'FEMALE' ? 'FEMALE' : 'MALE');
+  const [gender, setGender] = useState(() => toSelectableGender(user.gender));
 
   useEffect(() => {
-    setGender(user.gender || 'MALE');
+    setGender(toSelectableGender(user.gender));
   }, [user.gender, user.id]);
 
   const save = useApiMutation({
@@ -146,7 +147,7 @@ function GenderCard({ user }) {
     invalidate: [qk.user(user.id), ['users'], ['listeners']],
   });
 
-  const dirty = (user.gender || '') !== gender;
+  const dirty = toSelectableGender(user.gender) !== gender || user.gender !== gender;
 
   return (
     <Card
@@ -162,8 +163,6 @@ function GenderCard({ user }) {
           >
             <option value="MALE">Male</option>
             <option value="FEMALE">Female</option>
-            <option value="OTHER">Other</option>
-            <option value="UNDISCLOSED">Undisclosed</option>
           </Select>
         </Field>
         {canWrite && user.status !== 'DELETED' ? (
