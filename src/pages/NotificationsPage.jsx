@@ -341,6 +341,7 @@ function SendTab() {
               <option value="ALL">Everyone</option>
               <option value="CALLERS">Callers (users without an approved application)</option>
               <option value="LISTENERS">Approved listeners</option>
+              <option value="PAID_USERS">Only paid users (≥1 successful payment)</option>
               <option value="SPECIFIC">Specific user ids</option>
             </Select>
           </Field>

@@ -128,6 +128,62 @@ function PaymentMarketCard({ user }) {
   );
 }
 
+function GenderCard({ user }) {
+  const { can } = useAuth();
+  const canWrite = can(P.USERS_WRITE);
+  const [gender, setGender] = useState(user.gender || 'MALE');
+
+  useEffect(() => {
+    setGender(user.gender || 'MALE');
+  }, [user.gender, user.id]);
+
+  const save = useApiMutation({
+    mutationFn: () => usersApi.updateGender(user.id, { gender }),
+    successMessage: (data) =>
+      data?.listenerUpdated
+        ? 'Gender updated on user and listener profile'
+        : 'Gender updated',
+    invalidate: [qk.user(user.id), ['users'], ['listeners']],
+  });
+
+  const dirty = (user.gender || '') !== gender;
+
+  return (
+    <Card
+      title="Gender"
+      description="Applies to the user account and listener application together so both profiles always match."
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label="Gender" className="min-w-[200px]">
+          <Select
+            value={gender}
+            disabled={!canWrite || user.status === 'DELETED'}
+            onChange={(e) => setGender(e.target.value)}
+          >
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
+            <option value="OTHER">Other</option>
+            <option value="UNDISCLOSED">Undisclosed</option>
+          </Select>
+        </Field>
+        {canWrite && user.status !== 'DELETED' ? (
+          <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!dirty}>
+            Save
+          </Button>
+        ) : null}
+      </div>
+      <p className="mt-2 text-xs text-ink-500">
+        Current:{' '}
+        <span className="font-medium text-ink-700">{titleCase(user.gender) || '—'}</span>
+        {user.listener ? (
+          <span className="text-ink-500"> · listener app also updated on save</span>
+        ) : null}
+      </p>
+      {save.error ? <ErrorState error={save.error} compact /> : null}
+    </Card>
+  );
+}
+
 function loginMethodLabel(method) {
   if (!method) return '—';
   if (method === 'MSG91') return 'MSG91';
@@ -723,6 +779,7 @@ export function UserDetailPage() {
         )}
 
         <PaymentMarketCard user={user} />
+        <GenderCard user={user} />
 
         <Card title="Account" className="lg:col-span-2">
           <DescList
