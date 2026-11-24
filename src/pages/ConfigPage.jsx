@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Settings } from 'lucide-react';
+import { Plus, Settings, Trash2 } from 'lucide-react';
 import { appSettingsApi, configApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
+import { searchWorldCountries } from '../data/worldCountries';
 import {
   Badge,
   Button,
@@ -16,6 +17,7 @@ import {
   LoadingBlock,
   Modal,
   PageHeader,
+  SearchInput,
   Select,
   Toggle,
 } from '../components/ui';
@@ -45,6 +47,12 @@ const CONFIG_META = {
     label: 'Minimum balance to start a call',
     unit: 'tokens',
     note: 'Callers below this cannot initiate. Prevents a call that would end almost immediately.',
+    group: 'Calling',
+  },
+  'wallet.lowBalanceAlertTokens': {
+    label: 'Low balance alert threshold',
+    unit: 'tokens',
+    note: 'App should show “token balance is low” when wallet balance ≤ this value. Returned as lowBalanceAlertTokens on /app/settings. Set 0 to disable the alert from this rule. Default 50.',
     group: 'Calling',
   },
   'agora.packageMinutes': {
@@ -305,28 +313,54 @@ const CONFIG_META = {
     group: 'First payment bonus',
   },
   'bonus.welcome.enabled': {
-    label: 'Welcome bonus enabled',
-    note: 'Grants tokens once per user on first verification. Idempotent, so it cannot be claimed twice.',
-    group: 'Bonuses',
+    label: 'Welcome bonus (master) enabled',
+    note: 'Master switch. When off, no welcome bonus for anyone (mobile or email). Idempotent once claimed.',
+    group: 'Welcome bonus',
+  },
+  'bonus.welcome.mobileEnabled': {
+    label: 'Welcome bonus for mobile users',
+    note: 'When off (and master on), OTP/mobile signups skip welcome. Country-override amounts also require this on. Independent of Google/Apple.',
+    group: 'Welcome bonus',
   },
   'bonus.welcome.tokens': {
-    label: 'Welcome bonus amount',
+    label: 'Welcome bonus amount (mobile)',
     unit: 'tokens',
-    note: 'Applies to users who verify after the change; already-granted bonuses are untouched.',
-    group: 'Bonuses',
+    note: 'Default mobile OTP amount. Overridden for dial codes listed under country override when that feature is enabled.',
+    group: 'Welcome bonus',
   },
   'bonus.welcome.socialEnabled': {
-    label: 'Welcome bonus for Google / Apple',
+    label: 'Welcome bonus for email users (Google / Apple)',
     note:
-      'When on (and welcome bonus enabled), Google/Apple sign-in users get the welcome bonus once per identity. Off by default. Delete + re-signup cannot claim again.',
-    group: 'Bonuses',
+      'When on (and master enabled), Google/Apple sign-in users get the welcome bonus once per identity. Off by default. Independent of mobile.',
+    group: 'Welcome bonus',
   },
   'bonus.welcome.socialTokens': {
-    label: 'Welcome bonus amount (Google / Apple)',
+    label: 'Welcome bonus amount (email / Google / Apple)',
     unit: 'tokens',
     note:
-      'Token amount for Google/Apple welcome bonus only. Independent of mobile OTP welcome amount (bonus.welcome.tokens). Default 50.',
-    group: 'Bonuses',
+      'Token amount for Google/Apple welcome only. Independent of mobile OTP amount. Default 50.',
+    group: 'Welcome bonus',
+  },
+  'bonus.welcome.countryOverride.enabled': {
+    label: 'Country-specific mobile welcome enabled',
+    note: 'When on, mobile users whose dial code is in the list get the country override token amount instead of the normal mobile amount. Managed in the country list card below.',
+    group: 'Welcome bonus',
+  },
+  'bonus.welcome.countryOverride.tokens': {
+    label: 'Country override token amount',
+    unit: 'tokens',
+    note: 'Shared amount for every dial code in the country override list. Only used when country override is enabled.',
+    group: 'Welcome bonus',
+  },
+  'bonus.welcome.title': {
+    label: 'Welcome promo title',
+    note: 'Short heading for the app (e.g. “Welcome bonus”). Returned as welcomeBonus.title on settings.',
+    group: 'Welcome bonus',
+  },
+  'bonus.welcome.label': {
+    label: 'Welcome promo label',
+    note: 'Supporting line (e.g. “Get free tokens when you join”). Returned as welcomeBonus.label — independent of title.',
+    group: 'Welcome bonus',
   },
   'bonus.weekly.enabled': {
     label: 'User weekly bonus enabled',
@@ -578,6 +612,261 @@ const APP_SETTINGS_KEYS = new Set([
   'app.maintenance.startAt',
   'app.maintenance.endAt',
 ]);
+
+/** Edited via WelcomeCountryOverrideCard (search/add UI), not the generic modal. */
+const WELCOME_COUNTRY_LIST_KEY = 'bonus.welcome.countryOverride.countries';
+const WELCOME_COUNTRY_CARD_KEYS = new Set([
+  'bonus.welcome.countryOverride.enabled',
+  'bonus.welcome.countryOverride.tokens',
+  WELCOME_COUNTRY_LIST_KEY,
+]);
+
+function WelcomeCountryOverrideCard({ writable }) {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: qk.config,
+    queryFn: () => configApi.list(),
+  });
+
+  const entries = data?.data || data || [];
+  const findEntry = (key) => entries.find((e) => e.key === key);
+
+  const enabledEntry = findEntry('bonus.welcome.countryOverride.enabled');
+  const tokensEntry = findEntry('bonus.welcome.countryOverride.tokens');
+  const countriesEntry = findEntry(WELCOME_COUNTRY_LIST_KEY);
+
+  const [enabled, setEnabled] = useState(false);
+  const [tokens, setTokens] = useState(0);
+  const [countries, setCountries] = useState([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    if (dirty) return;
+    if (!enabledEntry && !tokensEntry && !countriesEntry) return;
+    setEnabled(Boolean(enabledEntry?.value));
+    setTokens(Number(tokensEntry?.value) || 0);
+    setCountries(Array.isArray(countriesEntry?.value) ? countriesEntry.value : []);
+  }, [enabledEntry, tokensEntry, countriesEntry, dirty]);
+
+  const saveMutation = useApiMutation({
+    mutationFn: async () => {
+      await configApi.set({
+        key: 'bonus.welcome.countryOverride.enabled',
+        value: Boolean(enabled),
+      });
+      await configApi.set({
+        key: 'bonus.welcome.countryOverride.tokens',
+        value: Number(tokens) || 0,
+      });
+      await configApi.set({
+        key: WELCOME_COUNTRY_LIST_KEY,
+        value: countries,
+      });
+    },
+    successMessage: 'Country welcome override saved',
+    invalidate: [qk.config, qk.appSettings],
+    onSuccess: () => setDirty(false),
+  });
+
+  const removeCountry = (countryCode) => {
+    setDirty(true);
+    setCountries((prev) => prev.filter((c) => c.countryCode !== countryCode));
+  };
+
+  const addCountry = (row) => {
+    setDirty(true);
+    setCountries((prev) => {
+      if (prev.some((c) => c.countryCode === row.countryCode)) return prev;
+      return [
+        ...prev,
+        {
+          countryCode: row.countryCode,
+          name: row.name,
+          flag: row.flag || null,
+        },
+      ];
+    });
+    setAddOpen(false);
+  };
+
+  if (isLoading) {
+    return (
+      <Card title="Welcome bonus — country override" className="mb-4">
+        <LoadingBlock label="Loading…" />
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card title="Welcome bonus — country override" className="mb-4">
+        <ErrorState error={error} onRetry={refetch} />
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card
+        className="mb-4"
+        title="Welcome bonus — country override"
+        description="When enabled, mobile users with these dial codes get the override token amount instead of the normal mobile welcome amount. Search by name or code to add."
+        actions={
+          writable ? (
+            <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>
+              <Plus className="size-3.5" />
+              Add country
+            </Button>
+          ) : null
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Enabled" hint="Requires master + mobile welcome to also be on.">
+              <Toggle
+                checked={enabled}
+                disabled={!writable}
+                onChange={(v) => {
+                  setDirty(true);
+                  setEnabled(v);
+                }}
+                label={enabled ? 'Enabled' : 'Disabled'}
+              />
+            </Field>
+            <Field label="Override tokens" hint="Same amount for every listed country.">
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={tokens}
+                disabled={!writable}
+                onChange={(e) => {
+                  setDirty(true);
+                  setTokens(e.target.value);
+                }}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {countries.map((row) => (
+              <span
+                key={row.countryCode}
+                className="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-ink-50 px-3 py-1 text-sm text-ink-800"
+              >
+                <span className="text-base leading-none" aria-hidden>
+                  {row.flag || '🏳️'}
+                </span>
+                <span className="font-medium">{row.name || row.countryCode}</span>
+                <span className="font-mono text-xs text-ink-500">{row.countryCode}</span>
+                {writable && (
+                  <button
+                    type="button"
+                    title="Remove"
+                    className="rounded p-0.5 text-ink-400 hover:bg-ink-200 hover:text-rose-600"
+                    onClick={() => removeCountry(row.countryCode)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
+              </span>
+            ))}
+            {!countries.length && (
+              <p className="text-sm text-ink-500">No countries added yet.</p>
+            )}
+          </div>
+
+          {writable && (
+            <div className="flex justify-end">
+              <Button
+                loading={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+              >
+                Save country override
+              </Button>
+            </div>
+          )}
+          {saveMutation.error && <ErrorState error={saveMutation.error} compact />}
+        </div>
+      </Card>
+
+      {addOpen && (
+        <AddWelcomeCountryModal
+          onClose={() => setAddOpen(false)}
+          onSelect={addCountry}
+          existingCodes={new Set(countries.map((c) => c.countryCode))}
+        />
+      )}
+    </>
+  );
+}
+
+function AddWelcomeCountryModal({ onClose, onSelect, existingCodes }) {
+  const [search, setSearch] = useState('');
+  const matches = useMemo(() => searchWorldCountries(search), [search]);
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Add country for welcome override"
+      description="Search by name or dial code, then add. Matching mobile users get the override token amount."
+      footer={
+        <Button variant="secondary" onClick={onClose}>
+          Cancel
+        </Button>
+      }
+    >
+      <Field
+        label="Search country"
+        hint="Type a name (UAE) or code (+971 / 971)."
+        required
+      >
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search name or country code…"
+          autoFocus
+        />
+        <ul
+          className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-ink-200 bg-white divide-y divide-ink-100"
+          role="listbox"
+        >
+          {matches.map((row) => {
+            const already = existingCodes.has(row.countryCode);
+            return (
+              <li key={`${row.iso2}-${row.countryCode}-${row.name}`}>
+                <button
+                  type="button"
+                  role="option"
+                  disabled={already}
+                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm ${
+                    already
+                      ? 'cursor-not-allowed bg-ink-50 text-ink-400'
+                      : 'hover:bg-brand-50'
+                  }`}
+                  onClick={() => !already && onSelect(row)}
+                >
+                  <span className="text-lg leading-none" aria-hidden>
+                    {row.flag || '🏳️'}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink-900">
+                    {row.name}
+                  </span>
+                  <span className="font-mono text-xs text-ink-500">{row.countryCode}</span>
+                  {already && <Badge tone="neutral">Added</Badge>}
+                </button>
+              </li>
+            );
+          })}
+          {!matches.length && (
+            <li className="px-3 py-2 text-sm text-ink-500">No matches.</li>
+          )}
+        </ul>
+      </Field>
+    </Modal>
+  );
+}
 
 function AppSettingsCard({ writable }) {
   const { data, isLoading, error, refetch } = useQuery({
@@ -1109,7 +1398,9 @@ export function ConfigPage() {
     );
   }
 
-  const entries = (data?.data || data || []).filter((entry) => !APP_SETTINGS_KEYS.has(entry.key));
+  const entries = (data?.data || data || []).filter(
+    (entry) => !APP_SETTINGS_KEYS.has(entry.key) && !WELCOME_COUNTRY_CARD_KEYS.has(entry.key),
+  );
   const writable = can(P.CONFIG_WRITE);
 
   // Group by the meta table so related settings sit together.
@@ -1135,6 +1426,8 @@ export function ConfigPage() {
       <div className="mb-4">
         <AppSettingsCard writable={writable} />
       </div>
+
+      <WelcomeCountryOverrideCard writable={writable} />
 
       <div className="space-y-4">
         {Object.entries(groups).map(([group, groupEntries]) => (
