@@ -81,6 +81,10 @@ export const qk = {
   weeklyAwards: (id, params) => ['bonuses', 'weekly', id, 'awards', params],
   weeklySettings: ['bonuses', 'weekly', 'settings'],
 
+  coupons: (params) => ['coupons', 'list', params],
+  coupon: (id) => ['coupons', 'detail', id],
+  couponRedemptions: (params) => ['coupons', 'redemptions', params],
+
   referrals: (params) => ['referrals', 'list', params],
   referral: (id) => ['referrals', 'detail', id],
   referralBonusSettings: ['referrals', 'bonus-settings'],

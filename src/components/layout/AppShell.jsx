@@ -36,6 +36,7 @@ import {
   Scale,
   GalleryHorizontal,
   Spade,
+  TicketPercent,
   Users,
   UserCheck,
   UserRoundSearch,
@@ -138,6 +139,7 @@ const NAV_SECTIONS = [
         permission: P.PAYOUTS_READ,
       },
       { to: '/bonuses', label: 'Bonuses', icon: Gift, permission: P.BONUSES_READ },
+      { to: '/coupons', label: 'Coupons', icon: TicketPercent, permission: P.COUPONS_READ },
       { to: '/referrals', label: 'Referrals', icon: Handshake, permission: P.REFERRALS_READ },
       {
         to: '/referral-bonus',

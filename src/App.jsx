@@ -39,6 +39,7 @@ import { ListenerBlocksPage } from './pages/ListenerBlocksPage';
 import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { BonusesPage } from './pages/BonusesPage';
+import { CouponsPage } from './pages/CouponsPage';
 import { ReferralsPage } from './pages/ReferralsPage';
 import { ReferralBonusPage } from './pages/ReferralBonusPage';
 import { ReferralReportsPage } from './pages/ReferralReportsPage';
@@ -203,6 +204,7 @@ export function App() {
           element={guard(S.MONEY, P.PAYOUTS_READ, <DailyPayoutsPage />)}
         />
         <Route path="bonuses" element={guard(S.MONEY, P.BONUSES_READ, <BonusesPage />)} />
+        <Route path="coupons" element={guard(S.MONEY, P.COUPONS_READ, <CouponsPage />)} />
         <Route path="referrals" element={guard(S.MONEY, P.REFERRALS_READ, <ReferralsPage />)} />
         <Route
           path="referral-bonus"

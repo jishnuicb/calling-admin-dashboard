@@ -362,6 +362,16 @@ export const bonusesApi = {
   runWeekly: (body) => post('/admin/bonuses/weekly/run', body),
 };
 
+// --- Coupons (fixed-token redeem) -------------------------------------------
+
+export const couponsApi = {
+  list: (params) => get('/admin/coupons', params),
+  get: (id) => get(`/admin/coupons/${id}`),
+  create: (body) => post('/admin/coupons', body),
+  update: (id, body) => patch(`/admin/coupons/${id}`, body),
+  redemptions: (params) => get('/admin/coupons/redemptions', params),
+};
+
 // --- Listener referrals -----------------------------------------------------
 
 export const referralsApi = {

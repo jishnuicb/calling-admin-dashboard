@@ -71,6 +71,9 @@ export const P = {
   BONUSES_READ: 'bonuses:read',
   BONUSES_WRITE: 'bonuses:write',
 
+  COUPONS_READ: 'coupons:read',
+  COUPONS_WRITE: 'coupons:write',
+
   REFERRALS_READ: 'referrals:read',
   REFERRALS_WRITE: 'referrals:write',
 
