@@ -32,7 +32,7 @@ const CONFIG_META = {
   'call.ratePerSecond': {
     label: 'Call rate',
     unit: 'tokens per second',
-    note: 'Snapshotted onto each call at initiate, so a change never re-prices a call already in progress.',
+    note: 'Decimals allowed (e.g. 2.25). Wallet still charges whole tokens: floor(seconds × rate). Snapshotted at initiate — does not re-price in-progress calls.',
     group: 'Calling',
   },
   'call.ringTimeoutSeconds': {
@@ -56,7 +56,7 @@ const CONFIG_META = {
   'call.peakRate.caller.ratePerSecond': {
     label: 'Caller peak rate',
     unit: 'tokens per second',
-    note: 'Auto-applied every day 12:00 AM–6:00 AM IST for NEW calls (window hardcoded). In-progress calls keep the rate snapshotted at initiate.',
+    note: 'Decimals allowed (e.g. 2.25). Auto-applied every day 12:00 AM–6:00 AM IST for NEW calls (window hardcoded). In-progress calls keep the rate snapshotted at initiate.',
     group: 'Peak rates (IST 12AM–6AM)',
   },
   'call.peakRate.listener.earnPaisePerSecond': {

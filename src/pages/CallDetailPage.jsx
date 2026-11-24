@@ -29,7 +29,8 @@ function TerminateModal({ call, onClose }) {
   const [reason, setReason] = useState('');
 
   const mutation = useApiMutation({
-    mutationFn: () => callsApi.terminate(call.id, { reason }),
+    // API shapes call as callSessionId (not id) — using call.id sent "undefined" and failed UUID validation.
+    mutationFn: () => callsApi.terminate(call.callSessionId || call.id, { reason }),
     successMessage: 'Call terminated',
     invalidate: [['calls'], ['dashboard'], ['wallet']],
     onSuccess: onClose,
@@ -137,7 +138,7 @@ export function CallDetailPage() {
             items={[
               { label: 'Status', value: <StatusBadge status={call.status} /> },
               { label: 'Call type', value: <Badge tone="brand">{call.callType}</Badge> },
-              { label: 'Session id', value: call.id, mono: true },
+              { label: 'Session id', value: call.callSessionId || call.id, mono: true },
               { label: 'Channel', value: call.channelName, mono: true },
               {
                 label: 'Rate per second',
@@ -171,6 +172,7 @@ export function CallDetailPage() {
                   <Badge
                     tone={
                       call.endReason === 'INSUFFICIENT_BALANCE' ||
+                      call.endReason === 'BILLING_SAFETY_TERMINATED' ||
                       call.endReason?.includes('NETWORK')
                         ? 'warning'
                         : 'neutral'
@@ -179,6 +181,16 @@ export function CallDetailPage() {
                     {call.endReason.replace(/_/g, ' ').toLowerCase()}
                   </Badge>
                 ) : null,
+              },
+              {
+                label: 'Safety end',
+                value:
+                  call.billingSafetyTerminated ||
+                  call.endReason === 'BILLING_SAFETY_TERMINATED' ? (
+                    <Badge tone="danger">billing safety watchdog</Badge>
+                  ) : (
+                    '—'
+                  ),
               },
               { label: 'Ended by', value: call.endedByRole },
               {
