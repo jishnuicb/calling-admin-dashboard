@@ -266,6 +266,39 @@ const CONFIG_META = {
     note: 'When on, the starter may shuffle the dealt cards before locking the pattern. Default on.',
     group: 'Card Guess',
   },
+  'payment.firstPaymentBonus.enabled': {
+    label: 'First-payment bonus (global) enabled',
+    note: 'When ON, ignores per-package “first payment bonus tokens” and uses FIXED or PERCENTAGE rules below. When OFF, legacy per-package first-payment tokens still apply.',
+    group: 'First payment bonus',
+  },
+  'payment.firstPaymentBonus.mode': {
+    label: 'First-payment bonus mode',
+    note: 'FIXED = flat extra tokens. PERCENTAGE = floor(package tokens × percent / 100). Only one mode is active.',
+    group: 'First payment bonus',
+  },
+  'payment.firstPaymentBonus.fixedTokens': {
+    label: 'Fixed extra tokens',
+    unit: 'tokens',
+    note: 'Used when mode is FIXED. Example: 50 → +50 tokens on first eligible purchase.',
+    group: 'First payment bonus',
+  },
+  'payment.firstPaymentBonus.percent': {
+    label: 'Percentage extra',
+    unit: '% of package tokens',
+    note: 'Used when mode is PERCENTAGE. Example: 5 with a 700-token pack → floor(700×5/100)=35 extra tokens.',
+    group: 'First payment bonus',
+  },
+  'payment.firstPaymentBonus.minPurchaseAmount': {
+    label: 'Minimum purchase amount',
+    unit: 'price (package currency)',
+    note: 'First-payment bonus applies only when package price ≥ this amount. 0 = no minimum.',
+    group: 'First payment bonus',
+  },
+  'payment.firstPaymentBonus.title': {
+    label: 'Promo title / label',
+    note: 'Shown to the app (e.g. “First time purchase, earn 25% extra token for calls”). Returned as title and label on settings.',
+    group: 'First payment bonus',
+  },
   'bonus.welcome.enabled': {
     label: 'Welcome bonus enabled',
     note: 'Grants tokens once per user on first verification. Idempotent, so it cannot be claimed twice.',
