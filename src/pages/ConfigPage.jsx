@@ -295,8 +295,13 @@ const CONFIG_META = {
     group: 'First payment bonus',
   },
   'payment.firstPaymentBonus.title': {
-    label: 'Promo title / label',
-    note: 'Shown to the app (e.g. “First time purchase, earn 25% extra token for calls”). Returned as title and label on settings.',
+    label: 'Promo title',
+    note: 'Short heading for the app (e.g. “First time purchase”). Returned as firstPaymentBonus.title.',
+    group: 'First payment bonus',
+  },
+  'payment.firstPaymentBonus.label': {
+    label: 'Promo label',
+    note: 'Supporting line under the title (e.g. “Earn 25% extra tokens for calls”). Returned as firstPaymentBonus.label — independent of title.',
     group: 'First payment bonus',
   },
   'bonus.welcome.enabled': {
@@ -956,18 +961,25 @@ const DELIVERY_MODE_OPTIONS = [
   { value: 'FORCE_SMS', label: 'Force SMS (when app asks for WhatsApp)' },
 ];
 
+const FIRST_PAYMENT_BONUS_MODE_OPTIONS = [
+  { value: 'FIXED', label: 'FIXED — flat extra tokens' },
+  { value: 'PERCENTAGE', label: 'PERCENTAGE — % of package tokens' },
+];
+
 function EditConfigModal({ entry, onClose }) {
   const isBoolean = typeof entry.value === 'boolean' || entry.type === 'boolean';
   // Some settings are genuinely textual (the default discovery language), so the
   // editor cannot assume a number - coercing one would save NaN.
   const isText = !isBoolean && (typeof entry.value === 'string' || entry.type === 'string');
   const isDeliveryMode = entry.key === 'otp.whatsapp.deliveryMode';
+  const isFirstPaymentBonusMode = entry.key === 'payment.firstPaymentBonus.mode';
+  const isSelectEnum = isDeliveryMode || isFirstPaymentBonusMode;
   const [value, setValue] = useState(entry.value);
   const [description, setDescription] = useState(entry.description || '');
 
   const coercedValue = () => {
     if (isBoolean) return Boolean(value);
-    if (isText || isDeliveryMode) return String(value);
+    if (isText || isSelectEnum) return String(value);
     return Number(value);
   };
 
@@ -1024,6 +1036,16 @@ function EditConfigModal({ entry, onClose }) {
           <Field label="Delivery mode" required>
             <Select autoFocus value={String(value)} onChange={(e) => setValue(e.target.value)}>
               {DELIVERY_MODE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : isFirstPaymentBonusMode ? (
+          <Field label="Bonus mode" required>
+            <Select autoFocus value={String(value)} onChange={(e) => setValue(e.target.value)}>
+              {FIRST_PAYMENT_BONUS_MODE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
