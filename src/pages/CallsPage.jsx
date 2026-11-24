@@ -114,13 +114,25 @@ export function CallsPage() {
         row.endReason ? (
           <Badge
             tone={
-              row.endReason === 'INSUFFICIENT_BALANCE' || String(row.endReason).includes('NETWORK')
+              row.endReason === 'INSUFFICIENT_BALANCE' ||
+              row.endReason === 'BILLING_SAFETY_TERMINATED' ||
+              String(row.endReason).includes('NETWORK')
                 ? 'warning'
                 : 'neutral'
             }
           >
             {row.endReason.replace(/_/g, ' ').toLowerCase()}
           </Badge>
+        ) : (
+          <span className="text-ink-400">—</span>
+        ),
+    },
+    {
+      key: 'billingSafetyTerminated',
+      header: 'Safety end',
+      render: (row) =>
+        row.billingSafetyTerminated || row.endReason === 'BILLING_SAFETY_TERMINATED' ? (
+          <Badge tone="danger">billing safety</Badge>
         ) : (
           <span className="text-ink-400">—</span>
         ),
