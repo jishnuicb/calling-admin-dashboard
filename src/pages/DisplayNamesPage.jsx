@@ -249,11 +249,9 @@ export function DisplayNamesPage() {
           <>
             <DataTable columns={columns} rows={pagedRows} loading={isLoading} />
             <Pagination
-              page={table.page}
-              pageSize={table.pageSize}
-              total={meta.total}
+              meta={meta}
               onPageChange={table.setPage}
-              onPageSizeChange={table.setPageSize}
+              onLimitChange={table.changeLimit}
             />
           </>
         )}
