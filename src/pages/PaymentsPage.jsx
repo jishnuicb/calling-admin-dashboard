@@ -4,7 +4,7 @@ import { CreditCard, Download } from 'lucide-react';
 import { paymentsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
-import { Badge, Button, Card, Field, Input, PageHeader, SearchInput, Select, StatusBadge } from '../components/ui';
+import { Button, Card, Field, Input, PageHeader, SearchInput, Select, StatusBadge } from '../components/ui';
 import { useToast } from '../components/ui/Toast';
 import { useTableState } from '../hooks/useTableState';
 import { fmtDateTime, fmtMoney, fmtNumber, fmtTokens, shortId } from '../lib/format';
@@ -72,25 +72,16 @@ export function PaymentsPage() {
       header: 'Tokens',
       align: 'right',
       render: (row) => {
+        const pkgBonus = Number(row.bonusTokens) || 0;
         const firstBonus = Number(row.firstPaymentBonusTokens) || 0;
-        const isFirstPayment = firstBonus > 0;
         return (
-          <div className="flex flex-col items-end gap-0.5">
-            <div className="flex items-center justify-end gap-1.5">
-              <p className="text-ink-800">{fmtTokens(row.tokens)}</p>
-              {isFirstPayment && (
-                <Badge tone="brand" className="px-1.5 py-0 text-[10px]">
-                  First
-                </Badge>
-              )}
-            </div>
-            {row.bonusTokens > 0 && (
-              <p className="text-[11px] text-emerald-600">+{fmtTokens(row.bonusTokens)} bonus</p>
+          <div>
+            <p className="text-ink-800">{fmtTokens(row.tokens)}</p>
+            {pkgBonus > 0 && (
+              <p className="text-[11px] text-ink-500">+{fmtTokens(pkgBonus)} bonus</p>
             )}
-            {isFirstPayment && (
-              <p className="text-[11px] text-brand-700">
-                +{fmtTokens(firstBonus)} first-payment bonus
-              </p>
+            {firstBonus > 0 && (
+              <p className="text-[11px] text-ink-500">+{fmtTokens(firstBonus)} first</p>
             )}
           </div>
         );
