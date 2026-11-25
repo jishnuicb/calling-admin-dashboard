@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Download, PhoneCall } from 'lucide-react';
 import { callsApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
+import { ClippedText } from '../components/ClippedText';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import {
   Badge,
@@ -150,9 +151,14 @@ export function CallsPage() {
           <div className="min-w-0 max-w-[11rem]">
             <Badge tone="warning">{reason || 'reported'}</Badge>
             {report.description ? (
-              <p className="mt-1 truncate text-[11px] text-ink-500" title={report.description}>
-                {report.description}
-              </p>
+              <div className="mt-1">
+                <ClippedText
+                  text={report.description}
+                  max={60}
+                  className="text-[11px] text-ink-500"
+                  title={reason || 'Report description'}
+                />
+              </div>
             ) : null}
           </div>
         );

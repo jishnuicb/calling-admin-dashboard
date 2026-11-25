@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Flag } from 'lucide-react';
 import { moderationApi } from '../api/endpoints';
 import { qk } from '../api/queryKeys';
+import { ClippedText } from '../components/ClippedText';
 import { DataTable, FilterBar, Pagination } from '../components/DataTable';
 import {
   Badge,
@@ -52,13 +53,11 @@ export function ModerationPage() {
       key: 'reason',
       header: 'Reason',
       render: (row) => (
-        <div className="min-w-0">
+        <div className="min-w-0 max-w-[16rem]">
           <p className="text-sm font-medium text-ink-900">{titleCase(row.reason)}</p>
-          {row.description && (
-            <p className="truncate text-xs text-ink-500" title={row.description}>
-              {row.description}
-            </p>
-          )}
+          {row.description ? (
+            <ClippedText text={row.description} title={titleCase(row.reason)} />
+          ) : null}
         </div>
       ),
     },

@@ -7,6 +7,7 @@ import { qk } from '../api/queryKeys';
 import { useApiMutation } from '../hooks/useApiMutation';
 import { useAuth } from '../auth/AuthContext';
 import { P } from '../auth/permissions';
+import { ClippedText } from '../components/ClippedText';
 import {
   Badge,
   Button,
@@ -389,9 +390,15 @@ export function CallDetailPage() {
                       {' · '}
                       {fmtDateTime(report.createdAt)}
                     </p>
-                    {report.description && (
-                      <p className="mt-1 text-xs text-ink-600 whitespace-pre-wrap">{report.description}</p>
-                    )}
+                    {report.description ? (
+                      <div className="mt-1">
+                        <ClippedText
+                          text={report.description}
+                          className="text-xs text-ink-600"
+                          title={titleCase(report.reason)}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                   <Link
                     to={`/moderation/${report.id}`}
