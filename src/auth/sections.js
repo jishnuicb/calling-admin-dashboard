@@ -28,6 +28,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/missed-call-auto-offline', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/languages', section: S.PEOPLE, permission: P.LANGUAGES_READ },
   { path: '/avatars', section: S.PEOPLE, permission: P.AVATARS_READ },
+  { path: '/display-names', section: S.PEOPLE, permission: P.DISPLAY_NAMES_READ },
   { path: '/otp', section: S.PEOPLE, permission: P.OTP_READ },
   { path: '/ip-blocks', section: S.SYSTEM, permission: P.SECURITY_READ },
   { path: '/payments', section: S.MONEY, permission: P.PAYMENTS_READ },

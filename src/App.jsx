@@ -18,6 +18,7 @@ import { MissedCallAutoOfflinePage } from './pages/MissedCallAutoOfflinePage';
 import { FakeListenersPage } from './pages/FakeListenersPage';
 import { LanguagesPage } from './pages/LanguagesPage';
 import { AvatarsPage } from './pages/AvatarsPage';
+import { DisplayNamesPage } from './pages/DisplayNamesPage';
 import { OtpPage } from './pages/OtpPage';
 import { IpBlocksPage } from './pages/IpBlocksPage';
 import { PaymentsPage } from './pages/PaymentsPage';
@@ -159,6 +160,10 @@ export function App() {
 
         <Route path="languages" element={guard(S.PEOPLE, P.LANGUAGES_READ, <LanguagesPage />)} />
         <Route path="avatars" element={guard(S.PEOPLE, P.AVATARS_READ, <AvatarsPage />)} />
+        <Route
+          path="display-names"
+          element={guard(S.PEOPLE, P.DISPLAY_NAMES_READ, <DisplayNamesPage />)}
+        />
         <Route path="otp" element={guard(S.PEOPLE, P.OTP_READ, <OtpPage />)} />
 
         <Route path="payments" element={guard(S.MONEY, P.PAYMENTS_READ, <PaymentsPage />)} />

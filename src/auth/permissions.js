@@ -33,6 +33,9 @@ export const P = {
   AVATARS_READ: 'avatars:read',
   AVATARS_WRITE: 'avatars:write',
 
+  DISPLAY_NAMES_READ: 'displayNames:read',
+  DISPLAY_NAMES_WRITE: 'displayNames:write',
+
   WALLET_READ: 'wallet:read',
   WALLET_ADJUST: 'wallet:adjust',
 

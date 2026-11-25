@@ -229,6 +229,15 @@ export const avatarsApi = {
   remove: (id) => del(`/admin/avatars/${id}`),
 };
 
+// --- Signup display-name pool ----------------------------------------------
+
+export const displayNamesApi = {
+  list: (params) => get('/admin/display-names', params),
+  create: (body) => post('/admin/display-names', body),
+  update: (id, body) => patch(`/admin/display-names/${id}`, body),
+  remove: (id) => del(`/admin/display-names/${id}`),
+};
+
 // --- Wallets ----------------------------------------------------------------
 
 export const walletApi = {

@@ -34,6 +34,8 @@ export const qk = {
 
   avatars: (params) => ['avatars', params],
 
+  displayNames: (params) => ['display-names', params],
+
   wallet: (userId) => ['wallet', userId],
   walletHistory: (userId, params) => ['wallet', userId, 'history', params],
 
