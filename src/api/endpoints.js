@@ -424,6 +424,19 @@ export const reengagementApi = {
   preview: (params) => get('/admin/reengagement/preview', params),
 };
 
+export const listenerGroupsApi = {
+  list: (params) => get('/admin/listener-groups', params),
+  get: (id) => get(`/admin/listener-groups/${id}`),
+  create: (body) => post('/admin/listener-groups', body),
+  update: (id, body) => patch(`/admin/listener-groups/${id}`, body),
+  remove: (id) => del(`/admin/listener-groups/${id}`),
+  members: (id, params) => get(`/admin/listener-groups/${id}/members`, params),
+  addMember: (id, body) => post(`/admin/listener-groups/${id}/members`, body),
+  removeMember: (id, listenerUserId) =>
+    del(`/admin/listener-groups/${id}/members/${listenerUserId}`),
+  searchListeners: (params) => get('/admin/listener-groups/search-listeners', params),
+};
+
 export const bulkTopupApi = {
   settings: () => get('/admin/bulk-topup/settings'),
   updateSettings: (body) => put('/admin/bulk-topup/settings', body),

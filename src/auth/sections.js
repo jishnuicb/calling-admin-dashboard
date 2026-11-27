@@ -27,6 +27,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/listener-calling-time', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/listener-shifts', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/missed-call-auto-offline', section: S.PEOPLE, permission: P.LISTENERS_READ },
+  { path: '/listener-groups', section: S.PEOPLE, permission: P.LISTENERS_READ },
   { path: '/languages', section: S.PEOPLE, permission: P.LANGUAGES_READ },
   { path: '/avatars', section: S.PEOPLE, permission: P.AVATARS_READ },
   { path: '/display-names', section: S.PEOPLE, permission: P.DISPLAY_NAMES_READ },
