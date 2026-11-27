@@ -104,6 +104,7 @@ export const listenersApi = {
   removeShift: (id) => del(`/admin/listeners/shifts/${id}`),
   listMissedCallAutoOffline: (params) =>
     get('/admin/listeners/missed-call-auto-offline', params),
+  listCallerNotes: (params) => get('/admin/listeners/caller-notes', params),
   listDecoys: () => get('/admin/listeners/decoys'),
   addDecoy: (body) => post('/admin/listeners/decoys', body),
   removeDecoy: (listenerId) => del(`/admin/listeners/decoys/${listenerId}`),

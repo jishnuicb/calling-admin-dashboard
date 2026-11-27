@@ -16,6 +16,7 @@ import { ListenerCallingTimePage } from './pages/ListenerCallingTimePage';
 import { ListenerShiftsPage } from './pages/ListenerShiftsPage';
 import { MissedCallAutoOfflinePage } from './pages/MissedCallAutoOfflinePage';
 import { ListenerGroupsPage } from './pages/ListenerGroupsPage';
+import { ListenerCallerNotesPage } from './pages/ListenerCallerNotesPage';
 import { FakeListenersPage } from './pages/FakeListenersPage';
 import { LanguagesPage } from './pages/LanguagesPage';
 import { AvatarsPage } from './pages/AvatarsPage';
@@ -158,6 +159,10 @@ export function App() {
         <Route
           path="listener-groups"
           element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerGroupsPage />)}
+        />
+        <Route
+          path="listener-caller-notes"
+          element={guard(S.PEOPLE, P.LISTENERS_READ, <ListenerCallerNotesPage />)}
         />
         <Route
           path="listener-online-time"

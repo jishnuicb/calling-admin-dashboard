@@ -21,6 +21,7 @@ export const qk = {
   listenerShifts: (params) => ['listeners', 'shifts', params],
   listenerShift: (id) => ['listeners', 'shifts', 'detail', id],
   missedCallAutoOffline: (params) => ['listeners', 'missed-call-auto-offline', params],
+  listenerCallerNotes: (params) => ['listeners', 'caller-notes', params],
   listenerGroups: (params) => ['listener-groups', 'list', params],
   listenerGroup: (id) => ['listener-groups', 'detail', id],
   listenerGroupMembers: (id, params) => ['listener-groups', 'members', id, params],
