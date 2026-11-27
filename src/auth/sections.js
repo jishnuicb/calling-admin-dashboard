@@ -66,7 +66,7 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/rbac', section: S.SYSTEM, permission: P.ADMINS_READ },
   { path: '/audit', section: S.SYSTEM, permission: P.AUDIT_READ },
   {
-    path: '/reengagement/phone-intl-last-call',
+    path: '/reengagement',
     section: S.REENGAGEMENT,
     permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
   },

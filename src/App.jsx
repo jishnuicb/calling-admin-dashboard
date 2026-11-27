@@ -50,12 +50,7 @@ import {
   IncentiveReportsPage,
 } from './pages/IncentivesPages';
 import { BulkTopupPage } from './pages/BulkTopupPage';
-import {
-  PaidBalanceIdlePage,
-  PhoneIndiaLastCallPage,
-  PhoneIntlLastCallPage,
-  PhoneIntlNeverCalledPage,
-} from './pages/ReengagementPages';
+import { ReengagementPage } from './pages/ReengagementPages';
 import { ManualWeeklyPayoutsPage } from './pages/ManualWeeklyPayoutsPage';
 import { DailyPayoutsPage } from './pages/DailyPayoutsPage';
 import { RbacPage } from './pages/RbacPage';
@@ -276,37 +271,17 @@ export function App() {
         <Route path="reports" element={guard(S.OVERVIEW, P.REPORTS_GENERATE, <ReportsPage />)} />
 
         <Route
-          path="reengagement/phone-intl-last-call"
+          path="reengagement"
           element={guard(
             S.REENGAGEMENT,
             [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
-            <PhoneIntlLastCallPage />,
+            <ReengagementPage />,
           )}
         />
-        <Route
-          path="reengagement/phone-india-last-call"
-          element={guard(
-            S.REENGAGEMENT,
-            [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
-            <PhoneIndiaLastCallPage />,
-          )}
-        />
-        <Route
-          path="reengagement/paid-balance-idle"
-          element={guard(
-            S.REENGAGEMENT,
-            [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
-            <PaidBalanceIdlePage />,
-          )}
-        />
-        <Route
-          path="reengagement/phone-intl-never-called"
-          element={guard(
-            S.REENGAGEMENT,
-            [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
-            <PhoneIntlNeverCalledPage />,
-          )}
-        />
+        <Route path="reengagement/phone-intl-last-call" element={<Navigate to="/reengagement" replace />} />
+        <Route path="reengagement/phone-india-last-call" element={<Navigate to="/reengagement" replace />} />
+        <Route path="reengagement/paid-balance-idle" element={<Navigate to="/reengagement" replace />} />
+        <Route path="reengagement/phone-intl-never-called" element={<Navigate to="/reengagement" replace />} />
 
         <Route path="no-access" element={<NoAccess />} />
 

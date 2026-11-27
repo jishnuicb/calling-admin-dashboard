@@ -420,6 +420,10 @@ export const referralsApi = {
 
 // --- Bulk wallet top-up -----------------------------------------------------
 
+export const reengagementApi = {
+  preview: (params) => get('/admin/reengagement/preview', params),
+};
+
 export const bulkTopupApi = {
   settings: () => get('/admin/bulk-topup/settings'),
   updateSettings: (body) => put('/admin/bulk-topup/settings', body),

@@ -211,26 +211,8 @@ const NAV_SECTIONS = [
     title: 'Re-engagement',
     items: [
       {
-        to: '/reengagement/phone-intl-last-call',
-        label: 'Phone, outside India — last call was X days ago',
-        icon: Megaphone,
-        permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
-      },
-      {
-        to: '/reengagement/phone-india-last-call',
-        label: 'Phone, inside India — last call was X days ago',
-        icon: Megaphone,
-        permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
-      },
-      {
-        to: '/reengagement/paid-balance-idle',
-        label: 'Paid token balance — no call in the last X days',
-        icon: Megaphone,
-        permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
-      },
-      {
-        to: '/reengagement/phone-intl-never-called',
-        label: 'Phone, outside India — registered X days ago, never called',
+        to: '/reengagement',
+        label: 'Re-engagement',
         icon: Megaphone,
         permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
       },
