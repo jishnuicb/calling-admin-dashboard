@@ -265,9 +265,37 @@ function TemplatesTab() {
 
 // --- Send -------------------------------------------------------------------
 
+const REENGAGEMENT_AUDIENCES = [
+  {
+    value: 'PHONE_INTL_LAST_CALL',
+    label: 'Phone, outside India — last call was X days ago',
+    hint: 'Verified phone, dial code other than +91, and no Google sign-in. Their latest call falls on the calendar day X days before today.',
+  },
+  {
+    value: 'PHONE_INDIA_LAST_CALL',
+    label: 'Phone, inside India — last call was X days ago',
+    hint: 'Verified phone on +91, and no Google sign-in. Their latest call falls on the calendar day X days before today.',
+  },
+  {
+    value: 'PAID_BALANCE_NO_RECENT_CALL',
+    label: 'Paid token balance — no call in the last X days',
+    hint: 'At least one successful payment, wallet balance above zero, and no call since the start of that day.',
+  },
+  {
+    value: 'PHONE_INTL_REGISTERED_NO_CALL',
+    label: 'Phone, outside India — registered X days ago, never called',
+    hint: 'Verified phone, dial code other than +91, account created on that calendar day, and no call yet.',
+  },
+];
+
+const reengagementByValue = Object.fromEntries(
+  REENGAGEMENT_AUDIENCES.map((item) => [item.value, item]),
+);
+
 function SendTab() {
   const [form, setForm] = useState({
     audience: 'ALL',
+    days: '7',
     userIds: '',
     templateKey: '',
     title: '',
@@ -285,6 +313,10 @@ function SendTab() {
   const mutation = useApiMutation({
     mutationFn: () => {
       const payload = { audience: form.audience, channel: form.channel };
+
+      if (reengagementByValue[form.audience]) {
+        payload.days = Number(form.days);
+      }
 
       if (form.audience === 'SPECIFIC') {
         payload.userIds = form.userIds
@@ -322,10 +354,15 @@ function SendTab() {
 
   const usingTemplate = Boolean(form.templateKey);
   const specificCount = form.userIds.split(/[\s,]+/).filter(Boolean).length;
+  const reengagement = reengagementByValue[form.audience];
+  const daysValue = Number(form.days);
+  const daysOk =
+    form.days !== '' && Number.isInteger(daysValue) && daysValue >= 0 && daysValue <= 3650;
 
   const canSend =
     (usingTemplate || (form.title.trim() && form.body.trim())) &&
-    (form.audience !== 'SPECIFIC' || specificCount > 0);
+    (form.audience !== 'SPECIFIC' || specificCount > 0) &&
+    (!reengagement || daysOk);
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -343,8 +380,29 @@ function SendTab() {
               <option value="LISTENERS">Approved listeners</option>
               <option value="PAID_USERS">Only paid users</option>
               <option value="SPECIFIC">Specific user ids</option>
+              {REENGAGEMENT_AUDIENCES.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
             </Select>
           </Field>
+
+          {reengagement && (
+            <Field
+              label="Days (X)"
+              required
+              hint={`${reengagement.hint} Counted in the bulk-topup timezone (Asia/Kolkata unless configured otherwise).`}
+            >
+              <Input
+                type="number"
+                min={0}
+                max={3650}
+                value={form.days}
+                onChange={(e) => setForm({ ...form, days: e.target.value })}
+              />
+            </Field>
+          )}
 
           {form.audience === 'SPECIFIC' && (
             <Field

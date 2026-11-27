@@ -175,10 +175,32 @@ function SettingsCard() {
   );
 }
 
+const TOPUP_AUDIENCES = [
+  { value: 'ALL', label: 'All eligible users (existing manual run)' },
+  {
+    value: 'PHONE_INTL_LAST_CALL',
+    label: 'Phone, outside India — last call was X days ago',
+  },
+  {
+    value: 'PHONE_INDIA_LAST_CALL',
+    label: 'Phone, inside India — last call was X days ago',
+  },
+  {
+    value: 'PAID_BALANCE_NO_RECENT_CALL',
+    label: 'Paid token balance — no call in the last X days',
+  },
+  {
+    value: 'PHONE_INTL_REGISTERED_NO_CALL',
+    label: 'Phone, outside India — registered X days ago, never called',
+  },
+];
+
 function ManualRunCard() {
   const writable = useBulkTopupWrite();
   const [tokensPerUser, setTokensPerUser] = useState('');
   const [note, setNote] = useState('');
+  const [audience, setAudience] = useState('ALL');
+  const [days, setDays] = useState('7');
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const settings = useQuery({
@@ -201,22 +223,70 @@ function ManualRunCard() {
 
   const effectiveTokens =
     tokensPerUser === '' ? settings.data?.tokensPerUser : Number(tokensPerUser);
+  const targeted = audience !== 'ALL';
+  const daysValue = Number(days);
+  const daysOk = days !== '' && Number.isInteger(daysValue) && daysValue >= 0 && daysValue <= 3650;
+  const audienceLabel =
+    TOPUP_AUDIENCES.find((item) => item.value === audience)?.label || audience;
 
   return (
     <>
       <Card
         title="Manual bulk top-up"
-        description={`Credits ACTIVE users now (MANUAL exclusion list)${
-          settings.data?.excludeListeners !== false
-            ? '; approved listeners skipped when that setting is on'
-            : ''
-        }${
-          settings.data?.excludeEmailAccounts
-            ? '; Google/Apple email accounts skipped when that setting is on'
-            : ''
-        }. Previous-day spend gate applies only to automatic runs.`}
+        description={
+          targeted
+            ? `Credits only the selected group, X = ${daysOk ? daysValue : '…'} days. The manual exclusion list still applies. The daily automatic run is unchanged.`
+            : `Credits ACTIVE users now (MANUAL exclusion list)${
+                settings.data?.excludeListeners !== false
+                  ? '; approved listeners skipped when that setting is on'
+                  : ''
+              }${
+                settings.data?.excludeEmailAccounts
+                  ? '; Google/Apple email accounts skipped when that setting is on'
+                  : ''
+              }. Previous-day spend gate applies only to automatic runs.`
+        }
       >
         <div className="grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Who receives tokens"
+            hint={
+              targeted
+                ? `Credits only this group. People on the manual exclusion list are still skipped. The daily automatic run is unchanged.${
+                    audience === 'PHONE_INTL_LAST_CALL' || audience === 'PHONE_INDIA_LAST_CALL'
+                      ? ' Google sign-in accounts are not included.'
+                      : ''
+                  }`
+                : 'Leave this on all eligible users to keep the current manual run.'
+            }
+          >
+            <Select
+              value={audience}
+              disabled={!writable}
+              onChange={(e) => setAudience(e.target.value)}
+            >
+              {TOPUP_AUDIENCES.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {targeted && (
+            <Field
+              label="Days (X)"
+              hint="Calendar days before today, in the bulk-topup timezone."
+            >
+              <Input
+                type="number"
+                min={0}
+                max={3650}
+                value={days}
+                disabled={!writable}
+                onChange={(e) => setDays(e.target.value)}
+              />
+            </Field>
+          )}
           <Field label="Tokens per user" hint="Leave blank to use the saved setting.">
             <Input
               type="number"
@@ -240,7 +310,7 @@ function ManualRunCard() {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button
             variant="secondary"
-            disabled={!writable}
+            disabled={!writable || (targeted && !daysOk)}
             onClick={() => setConfirmOpen(true)}
           >
             <Play className="size-4" />
@@ -258,7 +328,11 @@ function ManualRunCard() {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         title="Confirm manual bulk top-up"
-        description="This credits real wallets for every ACTIVE user not on the MANUAL exclusion list."
+        description={
+          targeted
+            ? `This credits only "${audienceLabel}" with X = ${daysValue}. Users on the MANUAL exclusion list are still skipped.`
+            : 'This credits real wallets for every ACTIVE user not on the MANUAL exclusion list.'
+        }
         footer={
           <>
             <Button variant="secondary" onClick={() => setConfirmOpen(false)}>
@@ -270,6 +344,7 @@ function ManualRunCard() {
                 run.mutate({
                   ...(tokensPerUser !== '' ? { tokensPerUser: Number(tokensPerUser) } : {}),
                   note: note || undefined,
+                  ...(targeted ? { audience, days: daysValue } : {}),
                 })
               }
             >
