@@ -269,22 +269,22 @@ const REENGAGEMENT_AUDIENCES = [
   {
     value: 'PHONE_INTL_LAST_CALL',
     label: 'Phone, outside India — last call was X days ago',
-    hint: 'Verified phone, dial code other than +91, and no Google sign-in. Their latest call falls on the calendar day X days before today.',
+    hint: 'Verified phone, dial code other than +91, and no Google sign-in. Latest call was on or before that day — they have not called anyone after it.',
   },
   {
     value: 'PHONE_INDIA_LAST_CALL',
     label: 'Phone, inside India — last call was X days ago',
-    hint: 'Verified phone on +91, and no Google sign-in. Their latest call falls on the calendar day X days before today.',
+    hint: 'Verified phone on +91, and no Google sign-in. Latest call was on or before that day — they have not called anyone after it.',
   },
   {
     value: 'PAID_BALANCE_NO_RECENT_CALL',
     label: 'Paid token balance — no call in the last X days',
-    hint: 'At least one successful payment, wallet balance above zero, and no call since the start of that day.',
+    hint: 'At least one successful payment, wallet balance above zero, and no call after that day.',
   },
   {
     value: 'PHONE_INTL_REGISTERED_NO_CALL',
     label: 'Phone, outside India — registered X days ago, never called',
-    hint: 'Verified phone, dial code other than +91, account created on that calendar day, and no call yet.',
+    hint: 'Verified phone, dial code other than +91, account created on or before that day, and no call yet.',
   },
 ];
 

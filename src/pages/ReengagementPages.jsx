@@ -24,28 +24,28 @@ const AUDIENCES = [
     label: 'Outside India, last call',
     title: 'Phone, outside India — last call was X days ago',
     description:
-      'Verified phone, dial code other than +91, no Google sign-in, and their latest call falls on that calendar day.',
+      'Verified phone, dial code other than +91, no Google sign-in. Latest call was on or before that day — they have not called anyone after it.',
   },
   {
     id: 'PHONE_INDIA_LAST_CALL',
     label: 'Inside India, last call',
     title: 'Phone, inside India — last call was X days ago',
     description:
-      'Verified phone on +91, no Google sign-in, and their latest call falls on that calendar day.',
+      'Verified phone on +91, no Google sign-in. Latest call was on or before that day — they have not called anyone after it.',
   },
   {
     id: 'PAID_BALANCE_NO_RECENT_CALL',
     label: 'Paid balance, no recent call',
     title: 'Paid token balance — no call in the last X days',
     description:
-      'At least one successful payment, wallet balance above zero, and no call since the start of that day.',
+      'At least one successful payment, wallet balance above zero, and no call after that day.',
   },
   {
     id: 'PHONE_INTL_REGISTERED_NO_CALL',
     label: 'Outside India, never called',
     title: 'Phone, outside India — registered X days ago, never called',
     description:
-      'Verified phone, dial code other than +91, account created on that calendar day, and no call yet.',
+      'Verified phone, dial code other than +91, account created on or before that day, and no call yet.',
   },
 ];
 
