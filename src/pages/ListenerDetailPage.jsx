@@ -40,7 +40,21 @@ import {
   Textarea,
   Toggle,
 } from '../components/ui';
-import { fmtDate, fmtDateTime, fmtPaise, fmtRelative, titleCase } from '../lib/format';
+import { fmtDate, fmtDateTime, fmtDateTimeSeconds, fmtPaise, fmtRelative, titleCase } from '../lib/format';
+
+function CheckLight({ done, label }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={`size-2.5 shrink-0 rounded-full ${done ? 'bg-emerald-500' : 'bg-red-500'}`}
+        aria-hidden
+      />
+      <span className={`text-sm font-medium ${done ? 'text-emerald-800' : 'text-red-700'}`}>
+        {label}
+      </span>
+    </span>
+  );
+}
 
 /**
  * The four review decisions share one modal. `reason` is required for reject and
@@ -570,6 +584,12 @@ export function ListenerDetailPage() {
     invalidate: [qk.listener(id), ['listeners']],
   });
 
+  const adminChecks = useApiMutation({
+    mutationFn: (body) => listenersApi.setAdminChecks(id, body),
+    successMessage: 'Check updated',
+    invalidate: [qk.listener(id), ['listeners']],
+  });
+
   const [photoError, setPhotoError] = useState('');
   const uploadPhoto = useApiMutation({
     mutationFn: (file) => {
@@ -945,6 +965,24 @@ export function ListenerDetailPage() {
                   <Badge>Not verified</Badge>
                 ),
               },
+              {
+                label: 'Bank account',
+                value: (
+                  <CheckLight
+                    done={Boolean(application.bankAccountVerified)}
+                    label={application.bankAccountVerified ? 'Done' : 'Not done'}
+                  />
+                ),
+              },
+              {
+                label: 'Direct, sound verification',
+                value: (
+                  <CheckLight
+                    done={Boolean(application.directSoundVerified)}
+                    label={application.directSoundVerified ? 'Done' : 'Not done'}
+                  />
+                ),
+              },
               application.reopenReason && {
                 label: 'Reopen reason',
                 value: <span className="text-amber-800">{application.reopenReason}</span>,
@@ -974,6 +1012,37 @@ export function ListenerDetailPage() {
         </Card>
 
         <div className="space-y-4">
+          <Card
+            title="Review checks"
+            description="Admin-only. These do not change approval, discovery, or payouts."
+          >
+            <div className="space-y-3">
+              <Checkbox
+                label="Bank account"
+                description={
+                  application.bankAccountVerified
+                    ? `Done${application.bankAccountVerifiedAt ? ` · ${fmtDateTimeSeconds(application.bankAccountVerifiedAt)}` : ''}`
+                    : 'Not done'
+                }
+                checked={Boolean(application.bankAccountVerified)}
+                disabled={!can(P.LISTENERS_APPROVE) || adminChecks.isPending}
+                onChange={(checked) => adminChecks.mutate({ bankAccountVerified: checked })}
+              />
+              <Checkbox
+                label="Direct, sound verification"
+                description={
+                  application.directSoundVerified
+                    ? `Done${application.directSoundVerifiedAt ? ` · ${fmtDateTimeSeconds(application.directSoundVerifiedAt)}` : ''}`
+                    : 'Not done'
+                }
+                checked={Boolean(application.directSoundVerified)}
+                disabled={!can(P.LISTENERS_APPROVE) || adminChecks.isPending}
+                onChange={(checked) => adminChecks.mutate({ directSoundVerified: checked })}
+              />
+              {adminChecks.error && <ErrorState error={adminChecks.error} compact />}
+            </div>
+          </Card>
+
           <Card
             title="Languages"
             description="At least one is mandatory. Deactivated languages remain listed here."

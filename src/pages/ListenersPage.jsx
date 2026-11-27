@@ -26,6 +26,20 @@ import { P } from '../auth/permissions';
 import { useToast } from '../components/ui/Toast';
 import { fmtRelative, titleCase } from '../lib/format';
 
+function CheckLight({ done, label }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span
+        className={`size-2.5 shrink-0 rounded-full ${done ? 'bg-emerald-500' : 'bg-red-500'}`}
+        aria-hidden
+      />
+      <span className={`text-xs font-medium ${done ? 'text-emerald-800' : 'text-red-700'}`}>
+        {label}
+      </span>
+    </span>
+  );
+}
+
 const PAGE_VARIANTS = {
   applications: {
     title: 'Listener applications',
@@ -219,6 +233,7 @@ export function ListenersPage({ variant = 'applications' }) {
   const [searchParams] = useSearchParams();
   const { can } = useAuth();
   const canRename = can(P.LISTENERS_APPROVE);
+  const canChecks = can(P.LISTENERS_APPROVE);
   const canExport = can(P.LISTENERS_READ);
   const [renameRow, setRenameRow] = useState(null);
   const [exportOpen, setExportOpen] = useState(false);
@@ -264,6 +279,11 @@ export function ListenersPage({ variant = 'applications' }) {
   const { data: languages } = useQuery({
     queryKey: qk.languages({ active: true }),
     queryFn: () => languagesApi.list({ active: true }),
+  });
+
+  const checksMutation = useApiMutation({
+    mutationFn: ({ id, body }) => listenersApi.setAdminChecks(id, body),
+    invalidate: [['listeners']],
   });
 
   const columns = [
@@ -317,6 +337,46 @@ export function ListenersPage({ variant = 'applications' }) {
             <Badge tone="success">Details updated</Badge>
           )}
           {row.isDiscoveryDecoy && <Badge tone="warning">Fake</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'adminChecks',
+      header: 'Checks',
+      render: (row) => (
+        <div className="flex flex-col gap-1.5">
+          <button
+            type="button"
+            className={`text-left ${canChecks ? 'cursor-pointer' : 'cursor-default'}`}
+            disabled={!canChecks || checksMutation.isPending}
+            title={canChecks ? 'Click to mark done / not done' : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!canChecks) return;
+              checksMutation.mutate({
+                id: row.id,
+                body: { bankAccountVerified: !row.bankAccountVerified },
+              });
+            }}
+          >
+            <CheckLight done={Boolean(row.bankAccountVerified)} label="Bank account" />
+          </button>
+          <button
+            type="button"
+            className={`text-left ${canChecks ? 'cursor-pointer' : 'cursor-default'}`}
+            disabled={!canChecks || checksMutation.isPending}
+            title={canChecks ? 'Click to mark done / not done' : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!canChecks) return;
+              checksMutation.mutate({
+                id: row.id,
+                body: { directSoundVerified: !row.directSoundVerified },
+              });
+            }}
+          >
+            <CheckLight done={Boolean(row.directSoundVerified)} label="Direct, sound verification" />
+          </button>
         </div>
       ),
     },

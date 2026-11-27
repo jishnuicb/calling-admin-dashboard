@@ -62,6 +62,7 @@ export const listenersApi = {
   reopen: (id, body) => post(`/admin/listeners/applications/${id}/reopen`, body),
   closeReopen: (id, body) => post(`/admin/listeners/applications/${id}/close-reopen`, body),
   professionalVerify: (id) => post(`/admin/listeners/applications/${id}/professional-verify`),
+  setAdminChecks: (id, body) => patch(`/admin/listeners/applications/${id}/admin-checks`, body),
   revealBank: (id, body) => post(`/admin/listeners/applications/${id}/bank-details/reveal`, body),
   revealPhone: (id, body) => post(`/admin/listeners/applications/${id}/phone/reveal`, body),
   addNotes: (id, body) => post(`/admin/listeners/applications/${id}/notes`, body),
