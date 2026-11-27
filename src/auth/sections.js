@@ -11,6 +11,7 @@ export const S = {
   MONEY: 'MONEY',
   ACTIVITY: 'ACTIVITY',
   SYSTEM: 'SYSTEM',
+  REENGAGEMENT: 'REENGAGEMENT',
 };
 
 /** First matching path an admin may land on after login / unauthorized redirect. */
@@ -64,6 +65,11 @@ export const SECTION_HOME_CANDIDATES = [
   { path: '/banners', section: S.SYSTEM, permission: P.BANNERS_READ },
   { path: '/rbac', section: S.SYSTEM, permission: P.ADMINS_READ },
   { path: '/audit', section: S.SYSTEM, permission: P.AUDIT_READ },
+  {
+    path: '/reengagement/phone-intl-last-call',
+    section: S.REENGAGEMENT,
+    permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+  },
 ];
 
 export const NO_ACCESS_PATH = '/no-access';

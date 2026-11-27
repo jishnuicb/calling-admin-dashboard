@@ -357,6 +357,7 @@ const FALLBACK_SECTIONS = [
   { key: 'MONEY', label: 'Money' },
   { key: 'ACTIVITY', label: 'Activity' },
   { key: 'SYSTEM', label: 'System' },
+  { key: 'REENGAGEMENT', label: 'Re-engagement' },
 ];
 
 function AdminFormModal({ adminUser, roles, onClose }) {

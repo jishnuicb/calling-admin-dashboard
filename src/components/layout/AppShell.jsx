@@ -19,6 +19,7 @@ import {
   ImagePlus,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   Ban,
   MessageSquare,
@@ -203,6 +204,36 @@ const NAV_SECTIONS = [
       { to: '/banners', label: 'Banners', icon: GalleryHorizontal, permission: P.BANNERS_READ },
       { to: '/rbac', label: 'Admins & roles', icon: ShieldCheck, permission: P.ADMINS_READ },
       { to: '/audit', label: 'Audit log', icon: ScrollText, permission: P.AUDIT_READ },
+    ],
+  },
+  {
+    key: S.REENGAGEMENT,
+    title: 'Re-engagement',
+    items: [
+      {
+        to: '/reengagement/phone-intl-last-call',
+        label: 'Phone, outside India — last call was X days ago',
+        icon: Megaphone,
+        permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+      },
+      {
+        to: '/reengagement/phone-india-last-call',
+        label: 'Phone, inside India — last call was X days ago',
+        icon: Megaphone,
+        permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+      },
+      {
+        to: '/reengagement/paid-balance-idle',
+        label: 'Paid token balance — no call in the last X days',
+        icon: Megaphone,
+        permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+      },
+      {
+        to: '/reengagement/phone-intl-never-called',
+        label: 'Phone, outside India — registered X days ago, never called',
+        icon: Megaphone,
+        permission: [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+      },
     ],
   },
 ];

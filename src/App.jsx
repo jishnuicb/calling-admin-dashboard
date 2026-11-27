@@ -50,6 +50,12 @@ import {
   IncentiveReportsPage,
 } from './pages/IncentivesPages';
 import { BulkTopupPage } from './pages/BulkTopupPage';
+import {
+  PaidBalanceIdlePage,
+  PhoneIndiaLastCallPage,
+  PhoneIntlLastCallPage,
+  PhoneIntlNeverCalledPage,
+} from './pages/ReengagementPages';
 import { ManualWeeklyPayoutsPage } from './pages/ManualWeeklyPayoutsPage';
 import { DailyPayoutsPage } from './pages/DailyPayoutsPage';
 import { RbacPage } from './pages/RbacPage';
@@ -268,6 +274,39 @@ export function App() {
         <Route path="rbac" element={guard(S.SYSTEM, P.ADMINS_READ, <RbacPage />)} />
         <Route path="audit" element={guard(S.SYSTEM, P.AUDIT_READ, <AuditPage />)} />
         <Route path="reports" element={guard(S.OVERVIEW, P.REPORTS_GENERATE, <ReportsPage />)} />
+
+        <Route
+          path="reengagement/phone-intl-last-call"
+          element={guard(
+            S.REENGAGEMENT,
+            [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+            <PhoneIntlLastCallPage />,
+          )}
+        />
+        <Route
+          path="reengagement/phone-india-last-call"
+          element={guard(
+            S.REENGAGEMENT,
+            [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+            <PhoneIndiaLastCallPage />,
+          )}
+        />
+        <Route
+          path="reengagement/paid-balance-idle"
+          element={guard(
+            S.REENGAGEMENT,
+            [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+            <PaidBalanceIdlePage />,
+          )}
+        />
+        <Route
+          path="reengagement/phone-intl-never-called"
+          element={guard(
+            S.REENGAGEMENT,
+            [P.NOTIFICATIONS_READ, P.BONUSES_READ, P.WALLET_READ],
+            <PhoneIntlNeverCalledPage />,
+          )}
+        />
 
         <Route path="no-access" element={<NoAccess />} />
 
