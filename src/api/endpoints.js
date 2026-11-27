@@ -424,6 +424,8 @@ export const referralsApi = {
 
 export const reengagementApi = {
   preview: (params) => get('/admin/reengagement/preview', params),
+  notify: (body) => post('/admin/reengagement/notify', body),
+  topup: (body) => post('/admin/reengagement/topup', body),
 };
 
 export const listenerGroupsApi = {
